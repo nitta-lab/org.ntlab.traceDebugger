@@ -1,0 +1,546 @@
+package org.ntlab.traceDebugger.analyzerProvider;
+
+import java.util.ArrayList;
+
+import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayAccess;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayCreate;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldAccess;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.ObjectReference;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.Reference;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
+
+
+/**
+ * デルタ抽出アルゴリズム(配列へのアクセスを検知できるJavassist版JSONトレースに対応し、アルゴリズムを単純化)
+ * 
+ * @author Nitta
+ *
+ */
+public class DeltaExtractorJSON extends DeltaExtractor {
+	public DeltaExtractorJSON(String traceFile) {
+		super(new TraceJSON(traceFile));
+	}
+
+	public DeltaExtractorJSON(TraceJSON trace) {
+		super(trace);
+	}
+
+	/**
+	 * デルタ抽出アルゴリズムの呼び出し元探索部分（calleeSearchと相互再帰になっている）
+	 * @param trace　解析対象トレース
+	 * @param methodExecution 探索するメソッド実行
+	 * @param objList　追跡中のオブジェクト
+	 * @param child　直前に探索していた呼び出し先のメソッド実行
+	 * @return 見つかったコーディネータ
+	 * @throws TraceFileException
+	 */
+	protected MethodExecution callerSearch(Trace trace, TracePoint tracePoint, ArrayList<String> objList, MethodExecution childMethodExecution) {
+		MethodExecution methodExecution = tracePoint.getMethodExecution();
+		methodExecution.setAugmentation(new DeltaAugmentationInfo());
+		eStructure.createParent(methodExecution);
+		String thisObjectId = methodExecution.getThisObjId();
+		ArrayList<String> removeList = new ArrayList<String>();		// 追跡しているオブジェクト中で削除対象となっているもの
+		ArrayList<String> creationList = new ArrayList<String>();	// このメソッド実行中に生成されたオブジェクト
+		int existsInFields = 0;			// このメソッド実行内でフィールドに由来しているオブジェクトの数(1以上ならこのメソッド実行内でthisに依存)
+		boolean isTrackingThis = false;	// 呼び出し先でthisに依存した
+		boolean isSrcSide = true;		// 参照元か参照先のいずれの側のオブジェクトの由来をたどってthisオブジェクトに到達したか?
+		ObjectReference thisObj = new ObjectReference(thisObjectId, methodExecution.getThisClassName(), 
+				Trace.getDeclaringType(methodExecution.getSignature(), methodExecution.isConstructor()), Trace.getDeclaringType(methodExecution.getCallerSideSignature(), methodExecution.isConstructor()));
+		
+		if (childMethodExecution == null) {
+			// 探索開始時は一旦削除し、呼び出し元の探索を続ける際に復活させる
+			removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
+			isTrackingThis = true;				// 呼び出し元探索前に復活
+		}
+		
+		if (childMethodExecution != null && objList.contains(childMethodExecution.getThisObjId())) {
+			// 呼び出し先でthisに依存した
+			if (thisObjectId.equals(childMethodExecution.getThisObjId())) {
+				// オブジェクト内呼び出しのときのみ一旦削除し、呼び出し元の探索を続ける際に復活させる
+				removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
+				isTrackingThis = true;				// 呼び出し元探索前に復活
+			}
+		}
+		
+		if (childMethodExecution != null && childMethodExecution.isConstructor()) {
+			// 呼び出し先がコンストラクタだった場合
+			int newIndex = objList.indexOf(childMethodExecution.getThisObjId());
+			if (newIndex != -1) {
+				// 呼び出し先が追跡対象のコンストラクタだったらfieldと同様に処理
+				removeList.add(childMethodExecution.getThisObjId());
+				existsInFields++;
+				removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
+			}
+		}
+		
+		if (childMethodExecution != null && Trace.getMethodName(childMethodExecution.getSignature()).startsWith("access$")) {
+			// エンクロージングインスタンスに対するメソッド呼び出しだった場合
+			String enclosingObj = childMethodExecution.getArguments().get(0).getId();	// エンクロージングインスタンスは第一引数に入っているらしい
+			int encIndex = objList.indexOf(enclosingObj);
+			if (encIndex != -1) {
+				// thisObject に置き換えた後、fieldと同様に処理
+				removeList.add(enclosingObj);
+				existsInFields++;
+				removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
+			}
+		}
+
+		// 戻り値に探索対象が含まれていればcalleeSearchを再帰呼び出し
+		while (tracePoint.stepBackOver()) {
+			Statement statement = tracePoint.getStatement();
+			// 直接参照、フィールド参照および配列アクセスの探索
+			if (statement instanceof FieldAccess) {
+				FieldAccess fs = (FieldAccess)statement;
+				String refObjectId = fs.getValueObjId();
+				int index = objList.indexOf(refObjectId);
+				if (index != -1) {
+					String ownerObjectId = fs.getContainerObjId();
+					if (ownerObjectId.equals(thisObjectId)) {
+						// フィールド参照の場合
+						removeList.add(refObjectId);
+						existsInFields++;					// setした後のgetを検出している可能性がある
+						removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
+					} else {
+						// 直接参照の場合
+						if (refObjectId.equals(srcObject.getId())) {
+							eStructure.addSrcSide(new Reference(ownerObjectId, refObjectId,
+									fs.getContainerClassName(), srcObject.getActualType()));
+							srcObject = new ObjectReference(ownerObjectId, fs.getContainerClassName());
+						} else if(refObjectId.equals(dstObject.getId())) {
+							eStructure.addDstSide(new Reference(ownerObjectId, refObjectId,
+									fs.getContainerClassName(), dstObject.getActualType()));
+							dstObject = new ObjectReference(ownerObjectId, fs.getContainerClassName());
+						}
+						objList.set(index, ownerObjectId);
+					}
+				}
+			} else if (statement instanceof ArrayAccess) {
+				ArrayAccess aa = (ArrayAccess)statement;
+				String elementObjectId = aa.getValueObjectId();
+				int index = objList.indexOf(elementObjectId);
+				if (index != -1) {
+					// 配列アクセスの場合
+					String arrayObjectId = aa.getArrayObjectId();
+					if (elementObjectId.equals(srcObject.getId())) {
+						eStructure.addSrcSide(new Reference(arrayObjectId, elementObjectId,
+								aa.getArrayClassName(), srcObject.getActualType()));
+						srcObject = new ObjectReference(arrayObjectId, aa.getArrayClassName());
+					} else if(elementObjectId.equals(dstObject.getId())) {
+						eStructure.addDstSide(new Reference(arrayObjectId, elementObjectId,
+								aa.getArrayClassName(), dstObject.getActualType()));
+						dstObject = new ObjectReference(arrayObjectId, aa.getArrayClassName());
+					}
+					objList.set(index, arrayObjectId);
+				}
+			} else if (statement instanceof ArrayCreate) {
+				ArrayCreate ac = (ArrayCreate)statement;
+				String arrayObjectId = ac.getArrayObjectId();
+				int index = objList.indexOf(arrayObjectId);
+				if (index != -1) {
+					// 配列生成の場合fieldと同様に処理
+					creationList.add(arrayObjectId);
+					removeList.add(arrayObjectId);
+					existsInFields++;
+					removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
+				}
+			} else if (statement instanceof MethodInvocation) {
+				MethodExecution prevChildMethodExecution = ((MethodInvocation)statement).getCalledMethodExecution();
+				if (!prevChildMethodExecution.equals(childMethodExecution)) {
+					// 戻り値
+					ObjectReference ret = prevChildMethodExecution.getReturnValue();
+					if (ret != null) {
+						int retIndex = -1;
+						retIndex = objList.indexOf(ret.getId());
+						if (retIndex != -1) {
+							// 戻り値が由来だった
+							prevChildMethodExecution.setAugmentation(new DeltaAugmentationInfo());
+							if (prevChildMethodExecution.isConstructor()) {
+								// 追跡対象のconstractorを呼んでいたら(オブジェクトの生成だったら)fieldと同様に処理
+								String newObjId = ret.getId();
+								creationList.add(newObjId);
+								removeList.add(newObjId);
+								existsInFields++;
+								removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
+								((DeltaAugmentationInfo)prevChildMethodExecution.getAugmentation()).setTraceObjectId(Integer.parseInt(newObjId));		// 追跡対象
+								((DeltaAugmentationInfo)prevChildMethodExecution.getAugmentation()).setSetterSide(false);	// getter呼び出しと同様
+								continue;
+							}
+							String retObj = objList.get(retIndex);
+							if (removeList.contains(retObj)) {
+								// 一度getで検出してフィールドに依存していると判断したが本当の由来が戻り値だったことが判明したので、フィールドへの依存をキャンセルする
+								removeList.remove(retObj);
+								existsInFields--;
+								if (existsInFields == 0) {
+									removeList.remove(thisObjectId);
+								}
+							}
+							((DeltaAugmentationInfo)prevChildMethodExecution.getAugmentation()).setTraceObjectId(Integer.parseInt(retObj));					// 追跡対象
+							TracePoint prevChildTracePoint = tracePoint.duplicate();
+							prevChildTracePoint.stepBackNoReturn();
+							calleeSearch(trace, prevChildTracePoint, objList, prevChildMethodExecution.isStatic(), retIndex);	// 呼び出し先を探索
+							if (objList.get(retIndex) != null && objList.get(retIndex).equals(prevChildMethodExecution.getThisObjId()) 
+									&& thisObjectId.equals(prevChildMethodExecution.getThisObjId())) {
+								// 呼び出し先でフィールドに依存していた場合の処理
+								removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
+								isTrackingThis = true;				// 呼び出し元探索前に復活
+							}
+							if (isLost) {
+								checkList.add(objList.get(retIndex));
+								isLost = false;
+							}
+						}
+					}
+				}
+			}
+		}
+		// --- この時点で tracePoint は呼び出し元を指している ---
+		
+		// コレクション型対応
+		if (methodExecution.isCollectionType()) {
+			objList.add(thisObjectId);
+		}		
+
+		// 引数の取得
+		ArrayList<ObjectReference> argments = methodExecution.getArguments();
+		
+		// 引数とフィールドに同じIDのオブジェクトがある場合を想定
+		Reference r;
+		for (int i = 0; i < removeList.size(); i++) {
+			String removeId = removeList.get(i);
+			if (argments.contains(new ObjectReference(removeId))) { 
+				removeList.remove(removeId);	// フィールドと引数の両方に追跡対象が存在した場合、引数を優先
+			} else if(objList.contains(removeId)) {
+				// フィールドにしかなかった場合(ただし、オブジェクトの生成もフィールドと同様に扱う)
+				objList.remove(removeId);		// 追跡対象から外す
+				if (!removeId.equals(thisObjectId)) {
+					// フィールド（this から removeId への参照）がデルタの構成要素になる
+					if (removeId.equals(srcObject.getId())) {
+						r = new Reference(thisObj, srcObject);
+						r.setCreation(creationList.contains(removeId));		// オブジェクトの生成か?
+						eStructure.addSrcSide(r);
+						srcObject = thisObj;
+						isSrcSide = true;
+					} else if (removeId.equals(dstObject.getId())) {
+						r = new Reference(thisObj, dstObject);
+						r.setCreation(creationList.contains(removeId));		// オブジェクトの生成か?
+						eStructure.addDstSide(r);
+						dstObject = thisObj;
+						isSrcSide = false;
+					}					
+				}
+			}
+		}
+		// --- この時点で this が追跡対象であったとしても objList の中からいったん削除されている ---
+		
+		// 引数探索
+		boolean existsInAnArgument = false;
+		for (int i = 0; i < objList.size(); i++) {
+			String objectId = objList.get(i);
+			if (objectId != null) {
+				ObjectReference trackingObj = new ObjectReference(objectId);
+				if (argments.contains(trackingObj)) {
+					// 引数が由来だった
+					existsInAnArgument = true;
+					((DeltaAugmentationInfo)methodExecution.getAugmentation()).setTraceObjectId(Integer.parseInt(objectId));
+				} else {
+					// 由来がどこにも見つからなかった
+					boolean isSrcSide2 = true;
+					trackingObj = null;
+					if (objectId.equals(srcObject.getId())) {
+						isSrcSide2 = true;
+						trackingObj = srcObject;
+					} else if (objectId.equals(dstObject.getId())) {
+						isSrcSide2 = false;
+						trackingObj = dstObject;
+					}
+				}
+			}
+		}
+		if (existsInAnArgument) {
+			// 引数に1つでも追跡対象が存在した場合
+			if (existsInFields > 0 || isTrackingThis) {
+				// thisオブジェクトを追跡中の場合
+				if (!Trace.isNull(thisObjectId)) {
+					objList.add(thisObjectId);	// さらに探索する場合、一旦取り除いた thisObject を復活
+				} else {
+					objList.add(null);			// ただしstatic呼び出しだった場合、それ以上追跡しない
+				}				
+			}
+			if (tracePoint.isValid()) {
+				finalCount = 0;
+				return callerSearch(trace, tracePoint, objList, methodExecution);		// 呼び出し元をさらに探索				
+			}
+		}
+		
+		for (int i = 0; i < objList.size(); i++) {
+			objList.remove(null);
+		}
+		if (objList.isEmpty()) {
+			((DeltaAugmentationInfo)methodExecution.getAugmentation()).setCoodinator(true);
+		} else {
+			// 由来を解決できなかった
+			if (!methodExecution.isStatic()) {
+				finalCount++;
+				if (finalCount <= LOST_DECISION_EXTENSION) {
+					// final変数を参照している場合由来を解決できない可能性があるので、追跡をすぐ終了せず猶予期間を設ける
+					if (tracePoint.isValid()) { 
+						MethodExecution c = callerSearch(trace, tracePoint, objList, methodExecution);		// 呼び出し元をさらに探索	
+						if (((DeltaAugmentationInfo)c.getAugmentation()).isCoodinator()) {
+							methodExecution = c;		// 追跡を続けた結果コーディネータが見つかった
+						}
+					}
+				} else if (thisObj.getActualType().contains("$")) {
+					// 自分が内部または無名クラスの場合、見失ったオブジェクトを外側メソッドの内のfinal変数から取得したとみなし、さらに自分の中のフィールドの一種とみなす
+					for (int i = objList.size() - 1; i >= 0; i--) {
+						String objectId = objList.get(i);
+						if (objectId != null) {
+							ObjectReference trackingObj = new ObjectReference(objectId);
+							boolean isSrcSide2 = true;
+							trackingObj = null;
+							if (objectId.equals(srcObject.getId())) {
+								isSrcSide2 = true;
+								trackingObj = srcObject;
+							} else if (objectId.equals(dstObject.getId())) {
+								isSrcSide2 = false;
+								trackingObj = dstObject;
+							}
+							if (trackingObj != null) {
+								r = new Reference(thisObjectId, trackingObj.getId(),
+										methodExecution.getThisClassName(), trackingObj.getActualType());
+								r.setFinalLocal(true);
+								if (isSrcSide2) {
+									eStructure.addSrcSide(r);
+									srcObject = thisObj;
+									isSrcSide = true;
+								} else {
+									eStructure.addDstSide(r);
+									dstObject = thisObj;
+									isSrcSide = false;
+								}
+								existsInFields++;
+								objList.remove(objectId);
+							}
+						}
+					}
+				}
+			}
+			((DeltaAugmentationInfo)methodExecution.getAugmentation()).setCoodinator(false);
+		}
+		finalCount = 0;
+		return methodExecution;
+	}
+
+	/**
+	 * デルタ抽出アルゴリズムの呼び出し先探索部分(再帰呼び出しになっている)
+	 * @param trace 解析対象トレース
+	 * @param methodExecution 探索するメソッド実行
+	 * @param objList 追跡中のオブジェクト
+	 * @param isStatic　静的メソッドか否か
+	 * @param index　objList中のどのオブジェクトを追跡してこのメソッド実行に入ってきたのか
+	 * @throws TraceFileException
+	 */
+	protected void calleeSearch(Trace trace, TracePoint tracePoint, ArrayList<String> objList, Boolean isStatic, int index) {
+		MethodExecution methodExecution = tracePoint.getMethodExecution();
+		Boolean isResolved = false;
+		String objectId = objList.get(index);		// calleeSearch() では追跡対象のオブジェクトは一つだけ、※objListはindex番目の要素以外変更してはいけない
+		String thisObjectId = methodExecution.getThisObjId();
+		ObjectReference thisObj = new ObjectReference(thisObjectId, methodExecution.getThisClassName(), 
+				Trace.getDeclaringType(methodExecution.getSignature(), methodExecution.isConstructor()), 
+				Trace.getDeclaringType(methodExecution.getCallerSideSignature(), methodExecution.isConstructor()));
+		
+		((DeltaAugmentationInfo)methodExecution.getAugmentation()).setSetterSide(false);		// 基本的にgetter呼び出しのはずだが、注意
+		ArrayList<ObjectReference> argments = methodExecution.getArguments();
+		ObjectReference trackingObj = null;
+		//staticを経由するとnullが入っている時がある
+		if (objectId != null) {
+			String returnType = Trace.getReturnType(methodExecution.getSignature());
+			if (objectId.equals(srcObject.getId())) {
+				trackingObj = srcObject;
+				trackingObj.setCalleeType(returnType);
+			} else if(objectId.equals(dstObject.getId())) {
+				trackingObj = dstObject;
+				trackingObj.setCalleeType(returnType);
+			} else {
+				trackingObj = new ObjectReference(objectId, null, returnType);
+			}
+			
+			Reference r;
+			// 戻り値に探索対象が含まれていればcalleeSearch呼び出し
+			do {
+				if (!tracePoint.isValid()) break;
+				Statement statement = tracePoint.getStatement();
+				// 直接参照およびフィールド参照の探索
+				if (statement instanceof FieldAccess) {
+					FieldAccess fs = (FieldAccess)statement;
+					if (objectId != null && objectId.equals(fs.getValueObjId())) {
+						String ownerObjectId = fs.getContainerObjId();
+						if (ownerObjectId.equals(thisObjectId)) {							
+							// フィールド参照の場合
+							if (objectId.equals(srcObject.getId())) {
+								eStructure.addSrcSide(new Reference(thisObj, srcObject));
+								srcObject = thisObj;
+								trackingObj = srcObject;
+							} else if(objectId.equals(dstObject.getId())) {
+								eStructure.addDstSide(new Reference(thisObj, dstObject));
+								dstObject = thisObj;
+								trackingObj = dstObject;
+							}
+							if (Trace.isNull(thisObjectId)) objectId = null;	// static変数の場合
+							else objectId = thisObjectId;
+							objList.set(index, objectId);
+						} else {
+							// 直接参照の場合
+							if (objectId.equals(srcObject.getId())) {
+								eStructure.addSrcSide(new Reference(ownerObjectId, objectId,
+										fs.getContainerClassName(), srcObject.getActualType()));
+								srcObject = new ObjectReference(ownerObjectId, fs.getContainerClassName());
+								trackingObj = srcObject;
+							} else if(objectId.equals(dstObject.getId())) {
+								eStructure.addDstSide(new Reference(ownerObjectId, objectId,
+										fs.getContainerClassName(), dstObject.getActualType()));
+								dstObject = new ObjectReference(ownerObjectId, fs.getContainerClassName());
+								trackingObj = dstObject;
+							}
+							if (Trace.isNull(ownerObjectId)) objectId = null;	// static変数の場合
+							else objectId = ownerObjectId;
+							objList.set(index, objectId);
+						}
+						isResolved = true;
+					}
+				} else if (statement instanceof ArrayAccess) {
+					ArrayAccess aa = (ArrayAccess)statement;
+					if (objectId != null && objectId.equals(aa.getValueObjectId())) {
+						// 配列アクセスの場合
+						String arrayObjectId = aa.getArrayObjectId();
+						if (objectId.equals(srcObject.getId())) {
+							eStructure.addSrcSide(new Reference(arrayObjectId, objectId,
+									aa.getArrayClassName(), srcObject.getActualType()));
+							srcObject = new ObjectReference(arrayObjectId, aa.getArrayClassName());
+							trackingObj = srcObject;
+						} else if(objectId.equals(dstObject.getId())) {
+							eStructure.addDstSide(new Reference(arrayObjectId, objectId,
+									aa.getArrayClassName(), dstObject.getActualType()));
+							dstObject = new ObjectReference(arrayObjectId, aa.getArrayClassName());
+							trackingObj = dstObject;
+						}
+						objectId = arrayObjectId;
+						objList.set(index, objectId);
+						isResolved = true;
+					}
+				} else if (statement instanceof ArrayCreate) {
+					ArrayCreate ac = (ArrayCreate)statement;
+					if (objectId != null && objectId.equals(ac.getArrayObjectId())) {
+						// 配列生成の場合
+						if (objectId.equals(srcObject.getId())) {
+							eStructure.addSrcSide(new Reference(thisObj, srcObject));
+							srcObject = thisObj;
+							trackingObj = srcObject;
+						} else if(objectId.equals(dstObject.getId())) {
+							eStructure.addDstSide(new Reference(thisObj, dstObject));
+							dstObject = thisObj;
+							trackingObj = dstObject;
+						}
+						if (Trace.isNull(thisObjectId)) objectId = null;	// static変数の場合
+						else objectId = thisObjectId;
+						objList.set(index, objectId);
+					}
+				} else if (statement instanceof MethodInvocation) {
+					// 戻り値
+					MethodExecution childMethodExecution = ((MethodInvocation)statement).getCalledMethodExecution();
+					ObjectReference ret = childMethodExecution.getReturnValue();
+					if (ret != null && objectId != null && objectId.equals(ret.getId())) {
+						childMethodExecution.setAugmentation(new DeltaAugmentationInfo());
+						((DeltaAugmentationInfo)childMethodExecution.getAugmentation()).setTraceObjectId(Integer.parseInt(objectId));
+						TracePoint childTracePoint = tracePoint.duplicate();
+						childTracePoint.stepBackNoReturn();
+						calleeSearch(trace, childTracePoint, objList, childMethodExecution.isStatic(), index);		// 呼び出し先をさらに探索	
+						if (childMethodExecution.isConstructor()) {
+							// コンストラクタ呼び出しだった場合
+							if (objectId.equals(srcObject.getId())) {
+								r = new Reference(thisObj, srcObject);
+								r.setCreation(true);
+								eStructure.addSrcSide(r);
+								srcObject = thisObj;
+								trackingObj = srcObject;
+							} else if (objectId.equals(dstObject.getId())) {
+								r = new Reference(thisObj, dstObject);
+								r.setCreation(true);
+								eStructure.addDstSide(r);
+								dstObject = thisObj;
+								trackingObj = dstObject;
+							}
+							if (Trace.isNull(thisObjectId)) objectId = null;	// static変数の場合
+							else objectId = thisObjectId;
+							objList.set(index, objectId);
+							isResolved = true;
+							isLost = false;
+							continue;
+						}
+						objectId = objList.get(index);
+						if (objectId == null) {
+							// static呼び出しの戻り値だった場合（たぶん）
+							trackingObj = null;
+							isResolved = true;
+						} else if (objectId.equals(srcObject.getId())) {
+							trackingObj = srcObject;
+						} else if (objectId.equals(dstObject.getId())) {
+							trackingObj = dstObject;
+						}
+						if (isLost) {
+							checkList.add(objList.get(index));
+							isLost = false;
+						}
+					}
+				}
+			} while (tracePoint.stepBackOver());
+			
+			//引数探索
+			if (argments.contains(new ObjectReference(objectId))) {
+				((DeltaAugmentationInfo)methodExecution.getAugmentation()).setSetterSide(true);		// ※多分必要?
+				isResolved = true;
+			}
+		}
+		
+		//コレクション型対応
+		Reference r;
+		if (methodExecution.isCollectionType()) {
+			if (objectId != null) {
+				// コレクション型の場合、内部で個々の要素を直接保持していると仮定する
+				if (objectId.equals(srcObject.getId())) {
+					r = new Reference(thisObj, srcObject);
+					r.setCollection(true);
+					eStructure.addSrcSide(r);
+					srcObject = thisObj;
+				} else if(objectId.equals(dstObject.getId())) {
+					r = new Reference(thisObj, dstObject);
+					r.setCollection(true);
+					eStructure.addDstSide(r);
+					dstObject =thisObj;
+				}
+			}
+			objList.set(index, methodExecution.getThisObjId());
+			isResolved = true;		// 必要なのでは?
+		}
+		
+		if (objectId == null && isResolved && !isStatic) {	// static 呼び出しからの戻り値を返している場合
+			objList.set(index, thisObjectId);	// 自分を追跡させる
+			if (Trace.isNull(srcObject.getId())) {
+				srcObject = thisObj;
+			} else if (Trace.isNull(dstObject.getId())) {
+				dstObject = thisObj;
+			}
+		}
+		
+		if (isStatic && !isResolved) {		// 今は起こりえない?(getポイントカットを取得するようにしたため)
+			objList.set(index, null);
+		}
+		if(!isStatic && !isResolved){
+			isLost = true;					// final変数を内部クラスで参照している可能性もあるが、calleeSearch()は必ず呼び出し元に復帰していくので、ここでは何もしない
+		}
+	}
+}
