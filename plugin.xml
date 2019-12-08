@@ -55,11 +55,27 @@
       </super>
    </extension>
    <extension
+         id="org.ntlab.traceDebugger.deltaMarker2"
+         name="DeltaMarker2"
+         point="org.eclipse.core.resources.markers">
+      <persistent
+            value="true">
+      </persistent>
+      <super
+            type="org.eclipse.core.resources.textmarker">
+      </super>
+   </extension>
+   <extension
          point="org.eclipse.ui.ide.markerImageProviders">
       <imageprovider
             icon="icons/deltaMarker.png"
             id="DeltaMarker"
             markertype="org.ntlab.traceDebugger.deltaMarker">
+      </imageprovider>
+      <imageprovider
+            icon="icons/deltaMarker.png"
+            id="DeltaMarker2"
+            markertype="org.ntlab.traceDebugger.deltaMarker2">
       </imageprovider>
    </extension>
    <extension
@@ -67,24 +83,53 @@
       <type
             markerSeverity="0"
             markerType="org.ntlab.traceDebugger.deltaMarker"
-            name="org.ntlab.traceDebugger.deltaAnotation"
+            name="org.ntlab.traceDebugger.deltaAnnotation"
+            super="org.eclipse.ui.workbench.texteditor.info">
+      </type>
+      <type
+            markerSeverity="0"
+            markerType="org.ntlab.traceDebugger.deltaMarker2"
+            name="org.ntlab.traceDebugger.deltaAnnotation2"
             super="org.eclipse.ui.workbench.texteditor.info">
       </type>
    </extension>
    <extension
          point="org.eclipse.ui.editors.markerAnnotationSpecification">
       <specification
-            annotationType="org.ntlab.traceDebugger.deltaAnotation"
+            annotationType="org.ntlab.traceDebugger.deltaAnnotation"
             colorPreferenceKey="clcolor"
             colorPreferenceValue="255,69,0"
             highlightPreferenceKey="clhighlight"
+            highlightPreferenceValue="true"
             icon="icons/deltaMarker.png"
             includeOnPreferencePage="true"
-            label="DeltaAnotation"
+            label="DeltaAnnotation"
             overviewRulerPreferenceKey="clruler"
+            overviewRulerPreferenceValue="true"
             textPreferenceKey="cltext"
+            textPreferenceValue="true"
             textStylePreferenceKey="clstyle"
-            verticalRulerPreferenceKey="clvertical">
+            textStylePreferenceValue="BOX"
+            verticalRulerPreferenceKey="clvertical"
+            verticalRulerPreferenceValue="true">
+      </specification>
+      <specification
+            annotationType="org.ntlab.traceDebugger.deltaAnnotation2"
+            colorPreferenceKey="clcolor2"
+            colorPreferenceValue="0,255,255"
+            highlightPreferenceKey="clhighlight2"
+            highlightPreferenceValue="true"
+            icon="icons/deltaMarker.png"
+            includeOnPreferencePage="true"
+            label="DeltaAnnotation2"
+            overviewRulerPreferenceKey="clruler2"
+            overviewRulerPreferenceValue="true"
+            textPreferenceKey="cltext2"
+            textPreferenceValue="true"
+            textStylePreferenceKey="clstyle2"
+            textStylePreferenceValue="BOX"
+            verticalRulerPreferenceKey="clvertical2"
+            verticalRulerPreferenceValue="true">
       </specification>
    </extension>
 

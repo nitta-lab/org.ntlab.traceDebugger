@@ -8,9 +8,11 @@ import org.eclipse.core.runtime.FileLocator;
 import org.ntlab.traceAnalysisPlatform.IAdditionalLaunchConfiguration;
 
 public class ObjectFlowAnalyzerLaunchConfiguration implements IAdditionalLaunchConfiguration {
-	public static final String ANALYZER_PATH = "org/ntlab/traceDebugger/analyzerProvider/ObjectFlowAnalyzer.class";
+//	public static final String ANALYZER_PATH = "org/ntlab/traceDebugger/analyzerProvider/ObjectFlowAnalyzer.class";
+	public static final String ANALYZER_PATH = "org/ntlab/traceDebugger/analyzerProvider/DeltaExtractionAnalyzer.class";
 	public static final String ANALYZER_PACKAGE = "org.ntlab.traceDebugger.analyzerProvider";
-	public static final String ANALYZER_CLASS = "ObjectFlowAnalyzer";
+//	public static final String ANALYZER_CLASS = "ObjectFlowAnalyzer";
+	public static final String ANALYZER_CLASS = "DeltaExtractionAnalyzer";
 	
 	@Override
 	public String[] getAdditionalClasspaths() {

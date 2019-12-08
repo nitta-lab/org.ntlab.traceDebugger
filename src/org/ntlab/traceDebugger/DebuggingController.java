@@ -50,7 +50,8 @@ public class DebuggingController {
 		}
 //		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void Company.pay(Money,Person)", null);
 //		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void worstCase.P.setM(worstCase.M)", null);
-		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public void org.jhotdraw.draw.DefaultDrawingView.addToSelection(org.jhotdraw.draw.Figure)", null);
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public void org.jhotdraw.draw.DefaultDrawingView.addToSelection(org.jhotdraw.draw.Figure)", null);
+		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void E.setC(C)", null);
 		if (inputDialog.open() != InputDialog.OK) return false;
 		String methodSignature = inputDialog.getValue();
 		inputDialog = new InputDialog(null, "line No dialog", "Input line no", "", null);
@@ -236,25 +237,37 @@ public class DebuggingController {
 		refresh(false);
 		return true;
 	}
-	
+
 	/**
 	 * 現在のデバッグ位置を抽出したデルタの底辺のトレースポイントに合わせる (とりあえず確認するだけ用)
 	 * @return
 	 */
 	public boolean tmp() {
 		DeltaExtractionAnalyzer analyzer = (DeltaExtractionAnalyzer)TraceDebuggerPlugin.getAnalyzer();
-		ReferencePoint rp = analyzer.getBottomPoint();
-		long previousTime = debuggingTp.getStatement().getTimeStamp();
-		long rpTime = rp.getTime();
-		debuggingTp = rp.getTracePoint();
-//		if (rpTime < previousTime) {
-//			traceBreakPoints.reverseAll(rpTime);
-//		} else {
-//			traceBreakPoints.forwardAll(rpTime);
-//		}
+		TracePoint tp = analyzer.getBottomPoint();
+		debuggingTp = tp.duplicate();
 		refresh(false);
 		return true;
 	}
+	
+//	/**
+//	 * 現在のデバッグ位置を抽出したデルタの底辺のトレースポイントに合わせる (とりあえず確認するだけ用)
+//	 * @return
+//	 */
+//	public boolean tmp() {
+//		DeltaExtractionAnalyzer analyzer = (DeltaExtractionAnalyzer)TraceDebuggerPlugin.getAnalyzer();
+//		ReferencePoint rp = analyzer.getBottomPoint();
+//		long previousTime = debuggingTp.getStatement().getTimeStamp();
+//		long rpTime = rp.getTime();
+//		debuggingTp = rp.getTracePoint();
+////		if (rpTime < previousTime) {
+////			traceBreakPoints.reverseAll(rpTime);
+////		} else {
+////			traceBreakPoints.forwardAll(rpTime);
+////		}
+//		refresh(false);
+//		return true;
+//	}
 	
 	private void refresh(boolean isReturned) {
 		MethodExecution me = debuggingTp.getMethodExecution();

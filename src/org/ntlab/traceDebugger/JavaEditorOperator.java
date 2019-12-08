@@ -1,24 +1,14 @@
 package org.ntlab.traceDebugger;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
-import org.eclipse.debug.core.DebugPlugin;
-import org.eclipse.debug.core.IBreakpointManager;
-import org.eclipse.debug.core.model.IBreakpoint;
-import org.eclipse.debug.core.model.ILineBreakpoint;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IMethod;
@@ -29,31 +19,21 @@ import org.eclipse.jdt.core.Signature;
 import org.eclipse.jdt.ui.JavaUI;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
-import org.eclipse.jface.text.IRegion;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.editors.text.FileDocumentProvider;
 import org.eclipse.ui.ide.IDE;
-import org.eclipse.ui.part.FileEditorInput;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ClassInfo;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
-import org.ntlab.traceDebugger.analyzerProvider.Alias;
 
 public class JavaEditorOperator {
-	private static List<IMarker> markers = new ArrayList<>();
-	
-	public static void openSrcFileOfAlias(Alias alias) {
-		MethodExecution methodExecution = alias.getMethodExecution();
-		int lineNo = alias.getLineNo();
-		openSrcFileOfMethodExecution(methodExecution, lineNo);
-	}
+//	private static List<IMarker> markers = new ArrayList<>();
 
 	/**
 	 * 引数で渡したmeCaller内にあるmethodExecutionが定義されているクラスのソースコードを対象Eclipseのエディタで開かせる
@@ -101,31 +81,69 @@ public class JavaEditorOperator {
 		}
 	}
 	
-	public static void markAndOpenJavaFile(MethodExecution methodExecution, int lineNo, String message, String markerId) {
-		IFile file = findIFile(methodExecution);		
+	public static void markAndOpenJavaFile(IMarker marker) {
+		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();			
 		try {
-			FileEditorInput input = new FileEditorInput(file);
-			FileDocumentProvider provider = new FileDocumentProvider();
-			provider.connect(input);
-			IDocument document = provider.getDocument(input);
-			IMarker marker = file.createMarker(markerId);
-			Map<String, Object> attributes = new HashMap<>();
-			attributes.put(IMarker.MESSAGE, message);
-			attributes.put(IMarker.TRANSIENT, true);
-			if (lineNo > 1) {
-				IRegion r = document.getLineInformation(lineNo - 1);
-				attributes.put(IMarker.LINE_NUMBER, lineNo);
-				attributes.put(IMarker.CHAR_START, r.getOffset());
-				attributes.put(IMarker.CHAR_END, r.getOffset() + r.getLength());
-			}
-			marker.setAttributes(attributes);
-			markers.add(marker);
-			IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 			IDE.openEditor(page, marker);
-		} catch (CoreException | BadLocationException e) {
+		} catch (PartInitException e) {
 			e.printStackTrace();
 		}
-	}
+	}	
+	
+//	public static void markAndOpenJavaFile(Alias alias, int lineNo, String markerId) {
+//		try {
+//			IFile file = findIFile(alias.getMethodExecution());
+//			DeltaMarkerManager mgr = DeltaMarkerManager.getInstance();
+//			IMarker marker = mgr.addMarker(alias, file, lineNo, markerId);		
+//			IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();			
+//			IDE.openEditor(page, marker);
+//		} catch (PartInitException e) {
+//			e.printStackTrace();
+//		}
+//	}
+
+//	public static void markAndOpenJavaFile(MethodExecution methodExecution, int lineNo, String findString, String message, String markerId) {
+//		IFile file = findIFile(methodExecution);	
+//		try {
+//			FileEditorInput input = new FileEditorInput(file);
+//			FileDocumentProvider provider = new FileDocumentProvider();
+//			provider.connect(input);
+//			IDocument document = provider.getDocument(input);
+//			FindReplaceDocumentAdapter findAdapter = new FindReplaceDocumentAdapter(document);			
+//			IMarker marker = file.createMarker(markerId);
+//			Map<String, Object> attributes = new HashMap<>();
+//			attributes.put(IMarker.MESSAGE, message);
+//			attributes.put(IMarker.TRANSIENT, true);
+//			if (lineNo > 1) {
+//				// 特定行中の指定した文字列部分をハイライト (存在しない場合は特定行全体をハイライト)
+//				IRegion lineRegion = document.getLineInformation(lineNo - 1);
+//				IRegion findStringRegion = findAdapter.find(lineRegion.getOffset(), findString, true, true, true, false);
+//				if (findStringRegion != null) {
+//					attributes.put(IMarker.CHAR_START, findStringRegion.getOffset());
+//					attributes.put(IMarker.CHAR_END, findStringRegion.getOffset() + findStringRegion.getLength());
+//				} else {
+//					attributes.put(IMarker.CHAR_START, lineRegion.getOffset());
+//					attributes.put(IMarker.CHAR_END, lineRegion.getOffset() + lineRegion.getLength());					
+//				}
+//				attributes.put(IMarker.LINE_NUMBER, lineNo);
+//			} else {
+//				// メソッドシグネチャをハイライト
+//				IType type = findIType(methodExecution);
+//				IMethod method = findIMethod(methodExecution, type);
+//				int start = method.getSourceRange().getOffset();
+//				int end = start + method.getSource().indexOf(")") + 1;
+//				attributes.put(IMarker.CHAR_START, start);
+//				attributes.put(IMarker.CHAR_END, end);
+//			}
+//
+//			marker.setAttributes(attributes);
+//			markers.add(marker);
+//			IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+//			IDE.openEditor(page, marker);
+//		} catch (CoreException | BadLocationException e) {
+//			e.printStackTrace();
+//		}
+//	}
 	
 //	private static void tmp() {
 //		IBreakpointManager mgr = DebugPlugin.getDefault().getBreakpointManager();
@@ -170,20 +188,20 @@ public class JavaEditorOperator {
 		return ResourcesPlugin.getWorkspace().getRoot().getFile(path);
 	}
 
-	public static void deleteMarkers(String markerId) {
-		Iterator<IMarker> it = markers.iterator();
-		while (it.hasNext()) {
-			IMarker marker = it.next();
-			try {
-				if (marker.getType().equals(markerId)) {
-					marker.delete();
-					it.remove();
-				}
-			} catch (CoreException e) {
-				e.printStackTrace();
-			}
-		}
-	}
+//	public static void deleteMarkers(String markerId) {
+//		Iterator<IMarker> it = markers.iterator();
+//		while (it.hasNext()) {
+//			IMarker marker = it.next();
+//			try {
+//				if (marker.getType().equals(markerId)) {
+//					marker.delete();
+//					it.remove();
+//				}
+//			} catch (CoreException e) {
+//				e.printStackTrace();
+//			}
+//		}
+//	}
 
 	public static IType findIType(MethodExecution methodExecution) {		
 		String declaringClassName = methodExecution.getDeclaringClassName();
@@ -263,7 +281,7 @@ public class JavaEditorOperator {
 		}		
 	}
 	
-	private static IMethod findIMethod(MethodExecution methodExecution, IType type) {
+	public static IMethod findIMethod(MethodExecution methodExecution, IType type) {
 		IMethod method = null;
 		if (type != null) {
 			String methodSignature = methodExecution.getSignature();

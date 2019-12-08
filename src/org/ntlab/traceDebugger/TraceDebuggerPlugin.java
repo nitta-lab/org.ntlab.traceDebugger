@@ -2,7 +2,6 @@ package org.ntlab.traceDebugger;
 
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
-import org.ntlab.traceDebugger.analyzerProvider.ObjectFlowAnalyzer;
 import org.osgi.framework.BundleContext;
 
 /**
