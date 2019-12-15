@@ -2,7 +2,6 @@ package org.ntlab.traceDebugger.analyzerProvider;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -12,7 +11,6 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IMethod;
-import org.eclipse.jdt.core.ISourceRange;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.dom.AST;
@@ -21,18 +19,15 @@ import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.Expression;
-import org.eclipse.jdt.core.dom.MemberRef;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
-import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jface.text.BadLocationException;
-import org.eclipse.jface.text.FindReplaceDocumentAdapter;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.ui.editors.text.FileDocumentProvider;
 import org.eclipse.ui.part.FileEditorInput;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayAccess;
-import org.ntlab.traceAnalysisPlatform.tracer.trace.BlockEnter;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayCreate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
@@ -42,6 +37,8 @@ import org.ntlab.traceDebugger.JavaEditorOperator;
 public class DeltaMarkerManager {
 	private static final DeltaMarkerManager theInstance = new DeltaMarkerManager();
 	private Map<String, List<IMarker>> markers = new HashMap<>();
+	public static final String DELTA_MARKER_ID = "org.ntlab.traceDebugger.deltaMarker";
+	public static final String DELTA_MARKER_ID_2 = "org.ntlab.traceDebugger.deltaMarker2";
 	
 	private DeltaMarkerManager() {
 		
@@ -50,12 +47,16 @@ public class DeltaMarkerManager {
 	public static DeltaMarkerManager getInstance() {
 		return theInstance;
 	}
+	
+	public Map<String, List<IMarker>> getMarkers() {
+		return markers;
+	}
 
-	public IMarker addMarker(Alias alias, IFile file, String markerId) {
+	public IMarker addMarker(Alias alias, IFile file, String message, String markerId) {
 		try {
 			IMarker marker = file.createMarker(markerId);
 			Map<String, Object> attributes = new HashMap<>();
-			setAttributesForAlias(attributes, alias, file, markerId);
+			setAttributesForAlias(attributes, alias, file, message, markerId);
 			attributes.put(IMarker.TRANSIENT, true);
 			marker.setAttributes(attributes);
 			addMarker(markerId, marker);
@@ -90,72 +91,81 @@ public class DeltaMarkerManager {
 		}
 		markerList.add(marker);
 	}
-	
-	public Map<String, List<IMarker>> getMarkers() {
-		return markers;
-	}
 
-	private void setAttributesForAlias(final Map<String, Object> attributes, Alias alias, IFile file, String markerId) {
+	private void setAttributesForAlias(final Map<String, Object> attributes, Alias alias, IFile file, String message, String markerId) {
 		try {
 			FileEditorInput input = new FileEditorInput(file);
 			FileDocumentProvider provider = new FileDocumentProvider();
 			provider.connect(input);
-			IDocument document = provider.getDocument(input);
-//			FindReplaceDocumentAdapter findAdapter = new FindReplaceDocumentAdapter(document);
-			Statement statement = alias.getOccurrencePoint().getStatement();
-			
 			String aliasType = alias.getAliasType().toString();
-			String statements = alias.getOccurrencePoint().getStatement().toString();
-			System.out.println(aliasType + ": " + statements);
-			StringBuilder message = new StringBuilder();
-			if (markerId.equals(DeltaExtractionAnalyzer.DELTA_MARKER_ID)) {
-				message.append("SrcSide: ");	
-			} else if (markerId.equals(DeltaExtractionAnalyzer.DELTA_MARKER_ID_2)) {
-				message.append("DstSide: ");
+			String statement = "";
+			try {
+				statement = alias.getOccurrencePoint().getStatement().toString(); // statementがない場合がある
+			} catch (ArrayIndexOutOfBoundsException e) {
+				// e.printStackTrace();
 			}
-			message.append(alias.getAliasType().toString());
-			message.append(" (id = " + alias.getObjectId() + ")");
+			System.out.println(aliasType + ": " + statement);
 			
 			ASTParser parser = ASTParser.newParser(AST.JLS10);
 			MethodExecution methodExecution = alias.getMethodExecution();
 			IType type = JavaEditorOperator.findIType(methodExecution);					
 			IMethod method = JavaEditorOperator.findIMethod(methodExecution, type);
-			ICompilationUnit unit = method.getCompilationUnit();
-			parser.setSource(unit);
-			ASTNode node = parser.createAST(new NullProgressMonitor());
-			ASTVisitor visitor = createVisitor(alias, method, document, parser, attributes);
-			
-			if (visitor != null) node.accept(visitor);
-			attributes.put(IMarker.MESSAGE, message.toString());
-			attributes.put(IMarker.LINE_NUMBER, alias.getLineNo());
+			if (method != null) {
+				ICompilationUnit unit = method.getCompilationUnit();
+				parser.setSource(unit);
+				ASTNode node = parser.createAST(new NullProgressMonitor());
+				if (node instanceof CompilationUnit) {
+					CompilationUnit cUnit = (CompilationUnit)node;
+					ASTVisitor visitor = createVisitor(alias, method, cUnit, attributes);
+					if (visitor != null) {
+						node.accept(visitor);
+					}
+				}
+			}
+			attributes.put(IMarker.MESSAGE, message);
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	private ASTVisitor createVisitor(Alias alias, IMethod method, IDocument document, ASTParser parser, final Map<String, Object> attributes) {
-		ASTVisitor visitor = new ASTVisitor() {
-		};	
+	private ASTVisitor createVisitor(final Alias alias, final IMethod method, final CompilationUnit cUnit, final Map<String, Object> attributes) {
+		class MyASTVisitor extends ASTVisitor {
+			public boolean preVisit2(ASTNode node) {
+				if (attributes.containsKey(IMarker.LINE_NUMBER)) return false;
+				if (node instanceof org.eclipse.jdt.core.dom.MethodDeclaration) {
+					try {
+						String src1 = node.toString().replaceAll(" ", "");
+						src1 = src1.substring(0, src1.lastIndexOf("\n"));
+						String src2 = method.getSource().replaceAll(" |\t|\r", "");
+						return (src1.equals(src2));
+					} catch (JavaModelException e) {
+						e.printStackTrace();
+						return false;
+					}			
+				}
+				return true;
+			}
+		}
+		ASTVisitor visitor = new MyASTVisitor();
 		try {
 			Statement statement = alias.getOccurrencePoint().getStatement();
-			final ICompilationUnit unit = method.getCompilationUnit();
-			final String source = unit.getSource();
+			final String source = method.getCompilationUnit().getSource();
 			switch (alias.getAliasType()) {
-			// メソッドへの入口
+			// note: メソッドへの入口
 			case FORMAL_PARAMETER: {
-				ISourceRange range = method.getSourceRange();
-				parser.setSourceRange(range.getOffset(), range.getLength());
 				final int index = alias.getIndex();
-				visitor = new ASTVisitor() {
+				visitor = new MyASTVisitor() {
 					@Override
-					public boolean visit(MethodDeclaration node) {
+					public boolean visit(org.eclipse.jdt.core.dom.MethodDeclaration node) {
 						Object obj = node.parameters().get(index);
 						if (obj instanceof SingleVariableDeclaration) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
 							SingleVariableDeclaration parameter = (SingleVariableDeclaration)obj;
 							int start = parameter.getStartPosition();
 							int end = start + parameter.getLength();
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
 						}
 						return false;
 					}
@@ -165,23 +175,73 @@ public class DeltaMarkerManager {
 			case THIS: {
 				if (statement instanceof FieldAccess) {
 					final FieldAccess fa = (FieldAccess)statement;
-					IRegion lineRegion = document.getLineInformation(fa.getLineNo() - 1);
-					parser.setSourceRange(lineRegion.getOffset(), lineRegion.getLength());
-					visitor = new ASTVisitor() {
+					visitor = new MyASTVisitor() {						
 						@Override
 						public boolean visit(org.eclipse.jdt.core.dom.FieldAccess node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
 							String name1 = node.getName().toString();
 							String name2 = fa.getFieldName();
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
-							if (!(name1.equals(name2))) return false;
+							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
+							attributes.put(IMarker.CHAR_START, start);
 							if (source.startsWith("this.", start)) {
-								attributes.put(IMarker.CHAR_START, start);
-								attributes.put(IMarker.CHAR_END, start + "this".length());								
+								attributes.put(IMarker.CHAR_END, start + "this".length());
+							} else {
+								attributes.put(IMarker.CHAR_END, start + node.getLength());
 							}
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}
-					};					
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.ArrayAccess node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							int start = node.getStartPosition();
+							attributes.put(IMarker.CHAR_START, start);
+							if (source.startsWith("this.", start)) {
+								attributes.put(IMarker.CHAR_END, start + "this".length());
+							} else {
+								attributes.put(IMarker.CHAR_END, start + node.getLength());
+							}
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return true;
+						}
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.SimpleName node) {
+							// note: メソッド呼び出しのレシーバがフィールドの場合はフィールドアクセスのノードだと来ないが代わりにこれで通る
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							if (!(node.getParent() instanceof org.eclipse.jdt.core.dom.MethodInvocation)) return true;							
+							String name1 = node.toString();
+							String name2 = fa.getFieldName();
+							name2 = name2.substring(name2.lastIndexOf(".") + 1);
+							if (!(name1.equals(name2))) return true;
+							int start = node.getStartPosition();
+							attributes.put(IMarker.CHAR_START, start);
+							if (source.startsWith("this.", start)) {
+								attributes.put(IMarker.CHAR_END, start + "this".length());
+							} else {
+								attributes.put(IMarker.CHAR_END, start + node.getLength());
+							}
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}						
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							int start = node.getExpression().getStartPosition();
+							attributes.put(IMarker.CHAR_START, start);
+							if (source.startsWith("this.", start)) {
+								attributes.put(IMarker.CHAR_END, start + "this".length());
+							} else {
+								attributes.put(IMarker.CHAR_END, start + node.getExpression().getLength());
+							}
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
+					};
 				}
 				return visitor;
 			}
@@ -189,21 +249,41 @@ public class DeltaMarkerManager {
 				if (statement instanceof MethodInvocation) {
 					final MethodInvocation mi = (MethodInvocation)statement;
 					final MethodExecution calledMe = mi.getCalledMethodExecution();
-					IRegion lineRegion = document.getLineInformation(mi.getLineNo() - 1);
-					parser.setSourceRange(lineRegion.getOffset(), lineRegion.getLength());
-					visitor = new ASTVisitor() {
+					visitor = new MyASTVisitor() {
 						@Override
 						public boolean visit(org.eclipse.jdt.core.dom.MethodInvocation node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
 							String name1 = node.getName().toString();
 							String name2 = calledMe.getCallerSideSignature();
-							name2 = name2.substring(name2.lastIndexOf(".") + 1, name2.indexOf("("));
-							if (!(name1.equals(name2))) return false;
+							name1 += "(";
+							name2 = name2.substring(0, name2.indexOf("(") + 1);
+							name2 = name2.substring(name2.lastIndexOf(".") + 1);
+							if (!(name1.equals(name2))) return true;
 							String receiverName = node.getExpression().toString();
 							int start = node.getStartPosition() + (receiverName + ".").length();
-							// int end = start + name1.length();
 							int end = node.getStartPosition() + node.getLength();
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.ClassInstanceCreation node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							String name1 = node.toString();
+							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
+							String name2 = calledMe.getCallerSideSignature();
+							name2 = name2.substring(0, name2.indexOf("(") + 1);
+							System.out.println(name1);
+							System.out.println(name2);
+							if (!(name1.equals(name2))) return true;
+							int start = node.getStartPosition();
+							int end = start + node.getLength();
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}
 					};
@@ -211,41 +291,46 @@ public class DeltaMarkerManager {
 				return visitor;
 			}
 			case CONSTRACTOR_INVOCATION: {
+				// note: コンストラクタ呼び出しの際もエイリアスタイプはMETHOD_INVOCATIONになっている?
 				if (statement instanceof MethodInvocation) {
 					final MethodInvocation mi = (MethodInvocation)statement;
 					final MethodExecution calledMe = mi.getCalledMethodExecution();
-					IRegion lineRegion = document.getLineInformation(mi.getLineNo() - 1);
-					parser.setSourceRange(lineRegion.getOffset(), lineRegion.getLength());
-					visitor = new ASTVisitor() {
+					visitor = new MyASTVisitor() {
 						@Override
-						public boolean visit(org.eclipse.jdt.core.dom.ConstructorInvocation node) {
-//							String name1 = node.getClass().getName();
-//							String name2 = calledMe.getCallerSideSignature();
-//							name2 = name2.substring(0, name2.indexOf("("));
-//							if (!(name1.equals(name2))) return false;
-//							int start = node.getStartPosition();
-//							int end = start + name1.length();
-//							attributes.put(IMarker.CHAR_START, start);
-//							attributes.put(IMarker.CHAR_END, end);
+						public boolean visit(org.eclipse.jdt.core.dom.ClassInstanceCreation node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							String name1 = node.toString();
+							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
+							String name2 = calledMe.getCallerSideSignature();
+							name2 = name2.substring(0, name2.indexOf("(") + 1);
+							System.out.println(name1);
+							System.out.println(name2);
+							if (!(name1.equals(name2))) return true;
+							int start = node.getStartPosition();
+							int end = start + node.getLength();
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}
 					};
 				}
 				return visitor;
 			}
-			// 追跡オブジェクトの切り替え
+			// note: 追跡オブジェクトの切り替え
 			case FIELD: {
 				if (statement instanceof FieldAccess) {
 					final FieldAccess fa = (FieldAccess)statement;
-					IRegion lineRegion = document.getLineInformation(fa.getLineNo() - 1);
-					parser.setSourceRange(lineRegion.getOffset(), lineRegion.getLength());
-					visitor = new ASTVisitor() {
+					visitor = new MyASTVisitor() {
 						@Override
 						public boolean visit(org.eclipse.jdt.core.dom.FieldAccess node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
 							String name1 = node.getName().toString();
 							String name2 = fa.getFieldName();
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
-							if (!(name1.equals(name2))) return false;
+							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
 							int end = start + node.getLength();
 							if (source.startsWith("this.", start)) {
@@ -254,55 +339,171 @@ public class DeltaMarkerManager {
 								attributes.put(IMarker.CHAR_START, start);
 							}
 							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}
-					};			
-				}
-				return visitor;
-			}
-			case CONTAINER: {
-				if (statement instanceof FieldAccess) {
-					final FieldAccess fa = (FieldAccess)statement;
-					IRegion lineRegion = document.getLineInformation(fa.getLineNo() - 1);
-					parser.setSourceRange(lineRegion.getOffset(), lineRegion.getLength());
-					visitor = new ASTVisitor() {						
 						@Override
-						public boolean visit(QualifiedName node) {
-							String name1 = node.getName().toString();
+						public boolean visit(org.eclipse.jdt.core.dom.ArrayAccess node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							int start = node.getStartPosition();
+							int end = start + node.getArray().toString().length();
+							if (source.startsWith("this.", start)) {
+								attributes.put(IMarker.CHAR_START, start + "this.".length());
+							} else {
+								attributes.put(IMarker.CHAR_START, start);
+							}
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.SimpleName node) {
+							// note: メソッド呼び出しのレシーバがフィールドの場合はフィールドアクセスのノードだと来ないが代わりにこれで通る
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							if (!(node.getParent() instanceof org.eclipse.jdt.core.dom.MethodInvocation)) return true;							
+							String name1 = node.toString();
 							String name2 = fa.getFieldName();
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
-							if (!(name1.equals(name2))) return false;
+							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
 							int end = start + node.getLength();
-							// end = start + source.substring(start, end).lastIndexOf(".");
+							if (source.startsWith("this.", start)) {
+								attributes.put(IMarker.CHAR_START, start + "this.".length());
+							} else {
+								attributes.put(IMarker.CHAR_START, start);
+							}
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}						
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							int start = node.getExpression().getStartPosition();
+							int end = start + node.getExpression().getLength();
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}
 					};
 				}
 				return visitor;
 			}
-			case ARRAY_ELEMENT:
-				break;			
-			case ARRAY:
-				break;
-			// メソッドからの出口
+			case CONTAINER: {
+				if (statement instanceof FieldAccess) {
+					final FieldAccess fa = (FieldAccess)statement;
+					visitor = new MyASTVisitor() {						
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.QualifiedName node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							String name1 = node.getName().toString();
+							String name2 = fa.getFieldName();
+							name2 = name2.substring(name2.lastIndexOf(".") + 1);
+							System.out.println(name1);
+							System.out.println(name2);
+							if (!(name1.equals(name2))) return true;
+							int start = node.getStartPosition();
+							int end = start + node.getLength();
+							// end = start + source.substring(start, end).lastIndexOf(".");
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
+					};
+				}
+				return visitor;
+			}
+			case ARRAY_ELEMENT: {
+				// note: 配列のセットとゲットのトレースには行番号や配列名が記録されていない
+				if (statement instanceof ArrayAccess) {
+					final ArrayAccess aa = (ArrayAccess)statement;
+					visitor = new MyASTVisitor() {
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.ArrayAccess node) {
+							int index = Integer.parseInt(node.getIndex().toString());
+							if (index != aa.getIndex()) return true;
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							int start = node.getStartPosition();
+							int end = start + node.getLength();
+							if (source.startsWith("this.", start)) {
+								attributes.put(IMarker.CHAR_START, start + "this.".length());	
+							} else {
+								attributes.put(IMarker.CHAR_START, start);
+							}
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
+					};
+				}
+				return visitor;
+			}
+			case ARRAY: {
+				// note: 配列のセットとゲットのトレースには行番号や配列名が記録されていない
+				if (statement instanceof ArrayAccess) {
+					final ArrayAccess aa = (ArrayAccess)statement;
+					visitor = new MyASTVisitor() {
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.ArrayAccess node) {
+							int index = Integer.parseInt(node.getIndex().toString());
+							if (index != aa.getIndex()) return true;
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							int start = node.getStartPosition();
+							int end = start + node.getArray().toString().length();
+							if (source.startsWith("this.", start)) {
+								attributes.put(IMarker.CHAR_START, start + "this.".length());	
+							} else {
+								attributes.put(IMarker.CHAR_START, start);
+							}
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
+					};
+				}
+				return visitor;
+			}
+			case ARRAY_CREATE: {
+				if (statement instanceof ArrayCreate) {
+					final ArrayCreate ac = (ArrayCreate)statement;
+					visitor = new MyASTVisitor() {
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.ArrayCreation node) {
+//							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+//							if (lineNo != ac.getLineNo()) return true;
+//							int start = node.getStartPosition();
+//							int end = start + node.getLength();
+//							attributes.put(IMarker.CHAR_START, start);
+//							attributes.put(IMarker.CHAR_END, end);
+//							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
+					};
+				}
+				return visitor;
+			}
+			// note: メソッドからの出口
 			case ACTUAL_ARGUMENT: {
 				if (statement instanceof MethodInvocation) {
 					final MethodInvocation mi = (MethodInvocation)statement;
 					final MethodExecution calledMe = mi.getCalledMethodExecution();
 					final int index = alias.getIndex();
 					calledMe.getArguments().get(alias.getIndex());
-					IRegion lineRegion = document.getLineInformation(mi.getLineNo() - 1);
-					parser.setSourceRange(lineRegion.getOffset(), lineRegion.getLength());
-					visitor = new ASTVisitor() {
+					visitor = new MyASTVisitor() {
 						@Override
 						public boolean visit(org.eclipse.jdt.core.dom.MethodInvocation node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
 							String name1 = node.getName().toString();
 							String name2 = calledMe.getCallerSideSignature();
-							name2 = name2.substring(name2.lastIndexOf(".") + 1, name2.indexOf("("));
-							if (!(name1.equals(name2))) return false;
+							name2 = name2.substring(0, name2.indexOf("("));
+							name2 = name2.substring(name2.lastIndexOf(".") + 1);
+							if (!(name1.equals(name2))) return true;
 							Object obj = node.arguments().get(index);
 							if (obj instanceof Expression) {
 								Expression argument = (Expression)obj;
@@ -310,6 +511,7 @@ public class DeltaMarkerManager {
 								int end = start + argument.getLength();
 								attributes.put(IMarker.CHAR_START, start);
 								attributes.put(IMarker.CHAR_END, end);
+								attributes.put(IMarker.LINE_NUMBER, lineNo);
 							}
 							return false;
 						}
@@ -321,20 +523,22 @@ public class DeltaMarkerManager {
 				if (statement instanceof MethodInvocation) {
 					final MethodInvocation mi = (MethodInvocation)statement;
 					final MethodExecution calledMe = mi.getCalledMethodExecution();
-					IRegion lineRegion = document.getLineInformation(mi.getLineNo() - 1);
-					parser.setSourceRange(lineRegion.getOffset(), lineRegion.getLength());
-					visitor = new ASTVisitor() {
+					visitor = new MyASTVisitor() {
 						@Override
 						public boolean visit(org.eclipse.jdt.core.dom.MethodInvocation node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
 							String name1 = node.getName().toString();
 							String name2 = calledMe.getCallerSideSignature();
-							name2 = name2.substring(name2.lastIndexOf(".") + 1, name2.indexOf("("));
-							if (!(name1.equals(name2))) return false;
+							name2 = name2.substring(0, name2.indexOf("("));
+							name2 = name2.substring(name2.lastIndexOf(".") + 1);
+							if (!(name1.equals(name2))) return true;
 							String receiverName = node.getExpression().toString();
 							int start = node.getStartPosition();
 							int end = start + (receiverName).length();
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}
 					};
@@ -343,173 +547,26 @@ public class DeltaMarkerManager {
 			}
 			case RETURN_VALUE:
 				// note: どこでリターンしたかの情報(行番号等)がトレースには記録されていない
-				ISourceRange range = method.getSourceRange();
-				parser.setSourceRange(range.getOffset(), range.getLength());
-				visitor = new ASTVisitor(){
+				visitor = new MyASTVisitor(){
 					public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
+						int lineNo = cUnit.getLineNumber(node.getStartPosition());
 						int start = node.getStartPosition();
 						int end = start + node.getLength();
 						attributes.put(IMarker.CHAR_START, start);
 						attributes.put(IMarker.CHAR_END, end);
+						attributes.put(IMarker.LINE_NUMBER, lineNo);
 						return false;
 					}
 				};
 				return visitor;
 			}			
-		} catch (JavaModelException | BadLocationException e) {
+		} catch (JavaModelException e) {
 			e.printStackTrace();
 		}
 		return visitor;
 	}
-	
-//	private void setAttributesForAlias(Map<String, Object> attributes, Alias alias, IFile file, String markerId) {
-//		try {
-//			FileEditorInput input = new FileEditorInput(file);
-//			FileDocumentProvider provider = new FileDocumentProvider();
-//			provider.connect(input);
-//			IDocument document = provider.getDocument(input);
-//			FindReplaceDocumentAdapter findAdapter = new FindReplaceDocumentAdapter(document);
-//			IRegion lineRegion = document.getLineInformation(alias.getLineNo() - 1);
-//			Statement statement = alias.getOccurrencePoint().getStatement();
-//			
-//			String type = alias.getAliasType().toString();
-//			String statements = alias.getOccurrencePoint().getStatement().toString();
-//			System.out.println(type + ": " + statements);
-//			StringBuilder message = new StringBuilder();
-//			if (markerId.equals(DeltaExtractionAnalyzer.DELTA_MARKER_ID)) {
-//				message.append("SrcSide: ");	
-//			} else if (markerId.equals(DeltaExtractionAnalyzer.DELTA_MARKER_ID_2)) {
-//				message.append("DstSide: ");
-//			}
-//			message.append(alias.getAliasType().toString());
-//			message.append(" (id = " + alias.getObjectId() + ")");
-//
-//			switch (alias.getAliasType()) {
-//			// メソッドへの入口
-//			case FORMAL_PARAMETER:
-//				if (statement instanceof BlockEnter) {
-//					BlockEnter be = (BlockEnter)statement;
-//					IRegion region = document.getLineInformation(alias.getLineNo() - 2);
-//					if (region == null) break;
-//					attributes.put(IMarker.CHAR_START, region.getOffset());
-//					attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());
-//				}
-//				break;
-//			case THIS:
-//				if (statement instanceof FieldAccess) {
-//					FieldAccess fa = (FieldAccess)statement;
-//					IRegion region = findAdapter.find(lineRegion.getOffset(), "this", true, true, true, false);
-//					if (region == null) break;
-//					attributes.put(IMarker.CHAR_START, region.getOffset());
-//					attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());
-//				}
-//				break;
-//			case METHOD_INVOCATION:
-//			case CONSTRACTOR_INVOCATION:
-//				if (statement instanceof MethodInvocation) {
-//					MethodInvocation mi = (MethodInvocation)statement;
-//					MethodExecution me = mi.getCalledMethodExecution();
-//					String signature = me.getSignature();
-//					signature = signature.substring(signature.lastIndexOf(".") + 1, signature.lastIndexOf("("));
-//					IRegion region = findAdapter.find(lineRegion.getOffset(), signature, true, true, true, false);
-//					if (region == null) break;
-//					attributes.put(IMarker.CHAR_START, region.getOffset());
-//					attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());
-//				}
-//				break;
-//			// 追跡オブジェクトの切り替え
-//			case FIELD:
-//				if (statement instanceof FieldAccess) {
-//					FieldAccess fa = (FieldAccess)statement;
-//					String fieldName = fa.getFieldName();
-//					fieldName = fieldName.substring(fieldName.lastIndexOf(".") + 1);
-//					IRegion region = null;					
-//					int start = lineRegion.getOffset();
-//					while (true) {
-//						region = findAdapter.find(start, fieldName, true, true, true, false);
-//						if (region == null) break;
-//						if (findAdapter.charAt(region.getOffset() - 1) == '.') break;
-//						start = region.getOffset() + 1;
-//					}
-//					if (region == null) break;
-//					attributes.put(IMarker.CHAR_START, region.getOffset());
-//					attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());
-//				}
-//				break;
-//			case CONTAINER:
-//				if (statement instanceof FieldAccess) {
-//					FieldAccess fa = (FieldAccess)statement;
-//					String fieldName = fa.getFieldName();
-//					IRegion region = findAdapter.find(lineRegion.getOffset(), fieldName, true, true, true, false);
-//					if (region == null) break;
-//					attributes.put(IMarker.CHAR_START, region.getOffset());
-//					attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());				
-//				}
-//				break;
-//			case ARRAY_ELEMENT:
-//				if (statement instanceof ArrayAccess) {
-//					ArrayAccess aa = (ArrayAccess)statement;
-//					String arrayIndex = "[" + aa.getIndex() + "]";
-//					IRegion region = findAdapter.find(lineRegion.getOffset(), arrayIndex, true, true, true, false);
-//					if (region == null) break;
-//					attributes.put(IMarker.CHAR_START, region.getOffset());
-//					attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());
-//				}
-//				break;			
-//			case ARRAY:
-//				if (statement instanceof ArrayAccess) {
-//					ArrayAccess aa = (ArrayAccess)statement;
-//					String arrayIndex = "[" + aa.getIndex() + "]";
-//					IRegion region = findAdapter.find(lineRegion.getOffset(), arrayIndex, true, true, true, false);
-//					if (region == null) break;
-//					attributes.put(IMarker.CHAR_START, region.getOffset());
-//					attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());
-//				}
-//				break;
-//			// メソッドからの出口
-//			case ACTUAL_ARGUMENT:
-//				if (statement instanceof MethodInvocation) {
-//					MethodInvocation mi = (MethodInvocation)statement;
-//					MethodExecution me = mi.getCalledMethodExecution();
-//					String signature = me.getSignature();
-//					signature = signature.substring(signature.lastIndexOf(".") + 1, signature.lastIndexOf("("));
-//					IRegion region = findAdapter.find(lineRegion.getOffset(), signature, true, true, true, false);
-//					if (region == null) break;
-//					attributes.put(IMarker.CHAR_START, region.getOffset());
-//					attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());
-//				}
-//				break;
-//			case RECEIVER:
-//				if (statement instanceof MethodInvocation) {
-//					MethodInvocation mi = (MethodInvocation)statement;
-//					MethodExecution me = mi.getCalledMethodExecution();
-//					String signature = me.getSignature();
-//					signature = signature.substring(signature.lastIndexOf(".") + 1, signature.lastIndexOf("("));
-//					IRegion region = findAdapter.find(lineRegion.getOffset(), signature, true, true, true, false);
-//					if (region == null) break;
-//					attributes.put(IMarker.CHAR_START, region.getOffset());
-//					attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());
-//				}
-//				break;
-//			case RETURN_VALUE:
-//				if (statement instanceof FieldAccess) {
-//					FieldAccess fa = (FieldAccess)statement;
-//					String fieldName = fa.getFieldName();
-//					IRegion region = findAdapter.find(lineRegion.getOffset(), fieldName, true, true, true, false);
-//					if (region == null) break;
-//					attributes.put(IMarker.CHAR_START, region.getOffset());
-//					attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());				
-//				}
-//				break;
-//			}
-//			attributes.put(IMarker.MESSAGE, message.toString());
-//			attributes.put(IMarker.LINE_NUMBER, alias.getLineNo());
-//		} catch (CoreException | BadLocationException e) {
-//			e.printStackTrace();
-//		}
-//	}
 
-	private void setAttributesForMethodExecution(Map<String, Object> attributes, MethodExecution methodExecution, IFile file, int lineNo, String markerId) {
+	private void setAttributesForMethodExecution(final Map<String, Object> attributes, MethodExecution methodExecution, IFile file, int lineNo, String markerId) {
 		try {
 			FileEditorInput input = new FileEditorInput(file);
 			FileDocumentProvider provider = new FileDocumentProvider();
@@ -523,11 +580,34 @@ public class DeltaMarkerManager {
 			} else {
 				// note: メソッドシグネチャをハイライト
 				IType type = JavaEditorOperator.findIType(methodExecution);				
-				IMethod method = JavaEditorOperator.findIMethod(methodExecution, type);
-				int start = method.getSourceRange().getOffset();
-				int end = start + method.getSource().indexOf(")") + 1;
-				attributes.put(IMarker.CHAR_START, start);
-				attributes.put(IMarker.CHAR_END, end);
+				final IMethod method = JavaEditorOperator.findIMethod(methodExecution, type);				
+				ASTParser parser = ASTParser.newParser(AST.JLS10);
+				ICompilationUnit unit = method.getCompilationUnit();
+				parser.setSource(unit);
+				ASTNode node = parser.createAST(new NullProgressMonitor());
+				if (node instanceof CompilationUnit) {
+					final CompilationUnit cUnit = (CompilationUnit)node;
+					node.accept(new ASTVisitor() {			
+						@Override
+						public boolean visit(MethodDeclaration node) {
+							try {
+								String src1 = node.toString().replaceAll(" ", "");
+								src1 = src1.substring(0, src1.lastIndexOf("\n"));
+								String src2 = method.getSource().replaceAll(" |\t|\r", "");
+								if (!(src1.equals(src2))) return false;
+								int start = node.getStartPosition();
+								int end = start + node.toString().indexOf(")") + 1;
+								int lineNo = cUnit.getLineNumber(node.getStartPosition());
+								attributes.put(IMarker.CHAR_START, start);
+								attributes.put(IMarker.CHAR_END, end);
+								attributes.put(IMarker.LINE_NUMBER, lineNo);
+							} catch (JavaModelException e) {
+								e.printStackTrace();
+							}
+							return true;
+						}
+					});
+				}
 			}
 		} catch (CoreException | BadLocationException e) {
 			e.printStackTrace();

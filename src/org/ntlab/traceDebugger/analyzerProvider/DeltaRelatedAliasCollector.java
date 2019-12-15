@@ -17,20 +17,42 @@ public class DeltaRelatedAliasCollector implements IAliasCollector {
 	@Override
 	public void addAlias(Alias alias) {
 		String objId = alias.getObjectId();
-		if (srcSideIdList.contains(objId)) {
+		String srcOrDst = "";
+		if (srcSideIdList.contains(objId) && !(dstSideIdList.contains(objId))) {
 			if (alias.getAliasType().equals(Alias.AliasType.ACTUAL_ARGUMENT)) {
 				Alias formalParameterAlias = srcSideRelatedAliases.get(srcSideRelatedAliases.size() - 1);
 				alias.setIndex(formalParameterAlias.getIndex());
 			}
 			srcSideRelatedAliases.add(alias);
-			System.out.println("Src " + alias.getAliasType() + ": 			" + alias.getMethodSignature() + " line" + alias.getLineNo() + "		index" + alias.getIndex());
-		} else if (dstSideIdList.contains(objId)) {
+			srcOrDst = "Src ";
+		} else if (dstSideIdList.contains(objId) && !(srcSideIdList.contains(objId))) {
 			if (alias.getAliasType().equals(Alias.AliasType.ACTUAL_ARGUMENT)) {
 				Alias formalParameterAlias = dstSideRelatedAliases.get(dstSideRelatedAliases.size() - 1);
 				alias.setIndex(formalParameterAlias.getIndex());
 			}
 			dstSideRelatedAliases.add(alias);
-			System.out.println("Dst " + alias.getAliasType() + ": 			" + alias.getMethodSignature() + " line" + alias.getLineNo() + "		index" + alias.getIndex());
+			srcOrDst = "Dst ";
+		} else if (srcSideIdList.contains(objId) && dstSideIdList.contains(objId)) {
+			boolean hasSrcSide = false;
+			for (Alias ra : srcSideRelatedAliases) {
+				if (ra.getObjectId().equals(objId)) {
+					hasSrcSide = true;
+					break;
+				}
+			}
+			if (!hasSrcSide) {
+				srcSideRelatedAliases.add(alias);
+				srcOrDst = "Src ";
+			} else {
+				dstSideRelatedAliases.add(alias);
+				srcOrDst = "Dst ";
+			}
+		}
+		
+		try {
+			System.out.println(srcOrDst + alias.getAliasType() + ": 			" + alias.getMethodSignature() + " line" + alias.getLineNo() + "		index" + alias.getIndex());
+		} catch (Exception e) {
+			System.out.println(srcOrDst + alias.getAliasType() + ": 			" + alias.getMethodSignature());				
 		}
 	}
 
