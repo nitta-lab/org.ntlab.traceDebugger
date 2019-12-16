@@ -134,14 +134,16 @@ public class DeltaMarkerManager {
 				if (attributes.containsKey(IMarker.LINE_NUMBER)) return false;
 				if (node instanceof org.eclipse.jdt.core.dom.MethodDeclaration) {
 					try {
+						// note: 該当するメソッド呼び出しの場合のみ子ノードの探索を続行
 						String src1 = node.toString().replaceAll(" ", "");
 						src1 = src1.substring(0, src1.lastIndexOf("\n"));
-						String src2 = method.getSource().replaceAll(" |\t|\r", "");
-						return (src1.equals(src2));
+						String src1Head = src1.substring(0, src1.indexOf(")") + 1);
+						String src2 = method.getSource().replaceAll(" |\t|\r", "");						
+						return src2.contains(src1Head);
 					} catch (JavaModelException e) {
 						e.printStackTrace();
 						return false;
-					}			
+					}
 				}
 				return true;
 			}
@@ -213,7 +215,7 @@ public class DeltaMarkerManager {
 							// note: メソッド呼び出しのレシーバがフィールドの場合はフィールドアクセスのノードだと来ないが代わりにこれで通る
 							int lineNo = cUnit.getLineNumber(node.getStartPosition());
 							if (lineNo != alias.getLineNo()) return true;
-							if (!(node.getParent() instanceof org.eclipse.jdt.core.dom.MethodInvocation)) return true;							
+							if (!(node.getParent() instanceof org.eclipse.jdt.core.dom.MethodInvocation)) return true;
 							String name1 = node.toString();
 							String name2 = fa.getFieldName();
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
@@ -240,6 +242,47 @@ public class DeltaMarkerManager {
 							}
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
+						}						
+					};
+				} else if (statement instanceof MethodInvocation) {
+					final MethodInvocation mi = (MethodInvocation)statement;
+					final MethodExecution calledMe = mi.getCalledMethodExecution();
+					visitor = new MyASTVisitor() {
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.MethodInvocation node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							String name1 = node.getName().toString() + "(";
+							String name2 = calledMe.getCallerSideSignature();
+							name2 = name2.substring(0, name2.indexOf("(") + 1);
+							name2 = name2.substring(name2.lastIndexOf(".") + 1);
+							if (!(name1.equals(name2))) return true;
+							String receiverName = node.getExpression().toString();
+							int start = node.getStartPosition();
+							attributes.put(IMarker.CHAR_START, start);
+							if (source.startsWith("this.", start)) {
+								attributes.put(IMarker.CHAR_END, start + "this".length());
+							} else {
+								attributes.put(IMarker.CHAR_END, start + receiverName.length());
+							}
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.ClassInstanceCreation node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							String name1 = node.toString();
+							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
+							String name2 = calledMe.getCallerSideSignature();
+							name2 = name2.substring(0, name2.indexOf("(") + 1);
+							if (!(name1.equals(name2))) return true;
+							int start = node.getStartPosition();
+							int end = start + node.getLength();
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
 						}
 					};
 				}
@@ -254,14 +297,18 @@ public class DeltaMarkerManager {
 						public boolean visit(org.eclipse.jdt.core.dom.MethodInvocation node) {
 							int lineNo = cUnit.getLineNumber(node.getStartPosition());
 							if (lineNo != alias.getLineNo()) return true;
-							String name1 = node.getName().toString();
+							String name1 = node.getName().toString() + "(";
 							String name2 = calledMe.getCallerSideSignature();
-							name1 += "(";
 							name2 = name2.substring(0, name2.indexOf("(") + 1);
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
 							if (!(name1.equals(name2))) return true;
 							String receiverName = node.getExpression().toString();
-							int start = node.getStartPosition() + (receiverName + ".").length();
+							int start = node.getStartPosition();
+							if (source.startsWith("this.", start)) {
+								start += ("this." + receiverName + ".").length();
+							} else {
+								start += (receiverName + ".").length();
+							}
 							int end = node.getStartPosition() + node.getLength();
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
@@ -276,8 +323,6 @@ public class DeltaMarkerManager {
 							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
 							String name2 = calledMe.getCallerSideSignature();
 							name2 = name2.substring(0, name2.indexOf("(") + 1);
-							System.out.println(name1);
-							System.out.println(name2);
 							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
 							int end = start + node.getLength();
@@ -304,8 +349,6 @@ public class DeltaMarkerManager {
 							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
 							String name2 = calledMe.getCallerSideSignature();
 							name2 = name2.substring(0, name2.indexOf("(") + 1);
-							System.out.println(name1);
-							System.out.println(name2);
 							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
 							int end = start + node.getLength();
@@ -377,7 +420,7 @@ public class DeltaMarkerManager {
 							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
-						}						
+						}
 						@Override
 						public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
 							int lineNo = cUnit.getLineNumber(node.getStartPosition());
@@ -403,8 +446,6 @@ public class DeltaMarkerManager {
 							String name1 = node.getName().toString();
 							String name2 = fa.getFieldName();
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
-							System.out.println(name1);
-							System.out.println(name2);
 							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
 							int end = start + node.getLength();
@@ -474,13 +515,13 @@ public class DeltaMarkerManager {
 					visitor = new MyASTVisitor() {
 						@Override
 						public boolean visit(org.eclipse.jdt.core.dom.ArrayCreation node) {
-//							int lineNo = cUnit.getLineNumber(node.getStartPosition());
-//							if (lineNo != ac.getLineNo()) return true;
-//							int start = node.getStartPosition();
-//							int end = start + node.getLength();
-//							attributes.put(IMarker.CHAR_START, start);
-//							attributes.put(IMarker.CHAR_END, end);
-//							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != ac.getLineNo()) return true;
+							int start = node.getStartPosition();
+							int end = start + node.getLength();
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}
 					};
@@ -591,10 +632,12 @@ public class DeltaMarkerManager {
 						@Override
 						public boolean visit(MethodDeclaration node) {
 							try {
+								if (attributes.containsKey(IMarker.LINE_NUMBER)) return false;
 								String src1 = node.toString().replaceAll(" ", "");
 								src1 = src1.substring(0, src1.lastIndexOf("\n"));
+								String src1Head = src1.substring(0, src1.indexOf(")") + 1);
 								String src2 = method.getSource().replaceAll(" |\t|\r", "");
-								if (!(src1.equals(src2))) return false;
+								if (!(src2.contains(src1Head))) return false;
 								int start = node.getStartPosition();
 								int end = start + node.toString().indexOf(")") + 1;
 								int lineNo = cUnit.getLineNumber(node.getStartPosition());
@@ -604,7 +647,7 @@ public class DeltaMarkerManager {
 							} catch (JavaModelException e) {
 								e.printStackTrace();
 							}
-							return true;
+							return false;
 						}
 					});
 				}
