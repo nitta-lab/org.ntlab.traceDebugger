@@ -2,8 +2,10 @@ package org.ntlab.traceDebugger.analyzerProvider;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
@@ -37,6 +39,7 @@ import org.ntlab.traceDebugger.JavaEditorOperator;
 public class DeltaMarkerManager {
 	private static final DeltaMarkerManager theInstance = new DeltaMarkerManager();
 	private Map<String, List<IMarker>> markers = new HashMap<>();
+	private Map<String, Set<String>> markerIdToObjectIdSet = new HashMap<>();
 	public static final String DELTA_MARKER_ID = "org.ntlab.traceDebugger.deltaMarker";
 	public static final String DELTA_MARKER_ID_2 = "org.ntlab.traceDebugger.deltaMarker2";
 	
@@ -53,6 +56,23 @@ public class DeltaMarkerManager {
 	}
 
 	public IMarker addMarker(Alias alias, IFile file, String message, String markerId) {
+//		idSet.add(alias.getObjectId());
+		if (markerId.equals(DELTA_MARKER_ID)) {
+			Set<String> objectIdSet = markerIdToObjectIdSet.get(DELTA_MARKER_ID);
+			if (objectIdSet == null) {
+				objectIdSet = new HashSet<String>();
+				markerIdToObjectIdSet.put(DELTA_MARKER_ID, objectIdSet);
+			}
+			objectIdSet.add(alias.getObjectId());
+		} else if (markerId.equals(DELTA_MARKER_ID_2)) {
+			Set<String> objectIdSet = markerIdToObjectIdSet.get(DELTA_MARKER_ID_2);
+			if (objectIdSet == null) {
+				objectIdSet = new HashSet<String>();
+				markerIdToObjectIdSet.put(DELTA_MARKER_ID_2, objectIdSet);
+			}
+			objectIdSet.add(alias.getObjectId());			
+		}
+		
 		try {
 			IMarker marker = file.createMarker(markerId);
 			Map<String, Object> attributes = new HashMap<>();
@@ -621,7 +641,8 @@ public class DeltaMarkerManager {
 			} else {
 				// note: メソッドシグネチャをハイライト
 				IType type = JavaEditorOperator.findIType(methodExecution);				
-				final IMethod method = JavaEditorOperator.findIMethod(methodExecution, type);				
+				final IMethod method = JavaEditorOperator.findIMethod(methodExecution, type);
+				if (method == null) return;
 				ASTParser parser = ASTParser.newParser(AST.JLS10);
 				ICompilationUnit unit = method.getCompilationUnit();
 				parser.setSource(unit);
@@ -669,5 +690,13 @@ public class DeltaMarkerManager {
 		}
 		markerList.clear();
 		markers.remove(markerId);
+	}
+	
+	public Map<String, Set<String>> getMarkerIdToObjectIdSet() {
+		return markerIdToObjectIdSet;
+	}
+	
+	public void deleteMarkerIdToObjectIdSet() {
+		markerIdToObjectIdSet.clear();
 	}
 }

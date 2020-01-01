@@ -23,22 +23,31 @@ public class Variable {
 	private List<Variable> children = new ArrayList<>();
 	private String containerClassName;
 	private String containerId;
-	private TracePoint tracePoint;
+	private TracePoint lastUpdatePoint;
+	private TracePoint before;
 	private boolean isReturned;
 	private DeepHierarchy deepHierarchy;
 	private boolean alreadyCreatedChildHierarchy = false;
 	private boolean alreadyCreatedGrandChildHierarchy = false;
+	private boolean isSrcSideRelatedDelta = false;
+	private boolean isDstSideRelatedDelta = false;
 	
 	public Variable(String variableName, String containerClassName, String containerId,
 			String className, String id, TracePoint before, boolean isReturned) {
+		this(variableName, containerClassName, containerId, className, id, null, before, isReturned);
+	}
+	
+	public Variable(String variableName, String containerClassName, String containerId,
+			String className, String id, TracePoint lastUpdatePoint, TracePoint before, boolean isReturned) {
 		this.variableName = variableName;
 		this.containerClassName = containerClassName;
 		this.containerId = containerId;
 		this.className = className;
 		this.id = id;
-		this.tracePoint = before;
+		this.lastUpdatePoint = lastUpdatePoint;
+		this.before = before;
 		this.isReturned = isReturned;
-		this.deepHierarchy = checkDeepHierarchy();
+		this.deepHierarchy = checkDeepHierarchy();		
 	}
 	
 	public String getVariableName() {
@@ -61,8 +70,12 @@ public class Variable {
 		return id;
 	}
 	
-	public TracePoint getTracePoint() {
-		return tracePoint;
+	public TracePoint getLastUpdatePoint() {
+		return lastUpdatePoint;
+	}
+	
+	public TracePoint getBeforeTracePoint() {
+		return before;
 	}
 	
 	public Variable getParent() {
@@ -172,12 +185,15 @@ public class Variable {
 
 				// そのフィールドについての最新の更新情報を取得(FieldUpdate)
 //				FieldUpdate fieldUpdate = trace.getRecentlyFieldUpdate(thisObjData.getId(), fieldName, tp);
-				FieldUpdate fieldUpdate = trace.getFieldUpdate(id, fullyQualifiedFieldName, tracePoint, isReturned);
+//				FieldUpdate fieldUpdate = trace.getFieldUpdate(id, fullyQualifiedFieldName, before, isReturned);
+				TracePoint updateTracePoint = trace.getFieldUpdateTracePoint(id, fullyQualifiedFieldName, before, isReturned);
+				if (updateTracePoint == null) continue;
+				FieldUpdate fieldUpdate = (FieldUpdate)updateTracePoint.getStatement();
 
 				// フィールドのIDとTypeを取得(String)
 				String fieldObjId = (fieldUpdate != null) ? fieldUpdate.getValueObjId()     : "0";
 				String fieldType  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : "---";
-				Variable fieldData = new Variable(fieldName, className, id, fieldType, fieldObjId, tracePoint, isReturned);
+				Variable fieldData = new Variable(fieldName, className, id, fieldType, fieldObjId, updateTracePoint, before, isReturned);
 				this.addChild(fieldData);
 			}
 		} catch (JavaModelException e) {
@@ -189,7 +205,7 @@ public class Variable {
 		TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
 		for (int i = 0;; i++){
 			// その配列要素についての最新の更新情報を取得(ArrayUpdate)
-			ArrayUpdate arrayUpdate = trace.getRecentlyArrayUpdate(id, i, tracePoint);
+			ArrayUpdate arrayUpdate = trace.getRecentlyArrayUpdate(id, i, before);
 			if (arrayUpdate == null) {
 				// 配列のサイズが取得できないため、インデックスがサイズ超過のときに確実に抜けられる方法として仮処理
 				// ただし、配列要素の途中に未定義があった場合でも、抜けてしまうのが問題点
@@ -200,10 +216,27 @@ public class Variable {
 			// 配列要素のIDとTypeを取得(String)
 			String valueObjId = arrayUpdate.getValueObjectId();
 			String valueType = arrayUpdate.getValueClassName();
-			Variable arrayIndexData = new Variable(arrayIndexName, className, id, valueType, valueObjId, tracePoint, isReturned);
+			Variable arrayIndexData = new Variable(arrayIndexName, className, id, valueType, valueObjId, before, isReturned);
 			this.addChild(arrayIndexData);
 		}
 	}
+	
+	public boolean isSrcSideRelatedDelta() {
+		return isSrcSideRelatedDelta;
+	}
+	
+	public void setSrcSideRelatedDelta(boolean isSrcSideRelatedDelta) {
+		this.isSrcSideRelatedDelta = isSrcSideRelatedDelta;
+	}
+	
+	public boolean isDstSideRelatedDelta() {
+		return isDstSideRelatedDelta;
+	}
+	
+	public void setDstSideRelatedDelta(boolean isDstSideRelatedDelta) {
+		this.isDstSideRelatedDelta = isDstSideRelatedDelta;
+	}
+	
 	
 	private enum DeepHierarchy {
 		NONE, FIELD, ARRAY;

@@ -19,6 +19,7 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 	private DeltaExtractorJSON deltaExtractor;
 	private ExtractedStructure extractedStructure;
 	private TracePoint bottomPoint;
+	private TracePoint coordinatorPoint;
 	
 	public DeltaExtractionAnalyzer(Trace trace) {
 		super(trace);
@@ -26,6 +27,7 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		DeltaMarkerManager mgr = DeltaMarkerManager.getInstance();
 		mgr.deleteMarkers(DeltaMarkerManager.DELTA_MARKER_ID);
 		mgr.deleteMarkers(DeltaMarkerManager.DELTA_MARKER_ID_2);
+		mgr.deleteMarkerIdToObjectIdSet();
 	}
 	
 	private static DeltaExtractionAnalyzer getInstance() {
@@ -39,6 +41,10 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		return bottomPoint;
 	}
 	
+	public TracePoint getCoordinatorPoint() {
+		return coordinatorPoint;
+	}
+	
 	public ExtractedStructure geExtractedStructure() {
 		return extractedStructure;
 	}
@@ -48,7 +54,7 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		String srcClassName = variable.getContainerClassName();
 		String dstId = variable.getId();
 		String dstClassName = variable.getClassName();
-		TracePoint before = variable.getTracePoint();
+		TracePoint before = variable.getBeforeTracePoint();
 		Reference reference = new Reference(srcId, dstId, srcClassName, dstClassName);
 		
 		// デルタ抽出
@@ -60,6 +66,18 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		List<Alias> dstSideRelatedAliases = aliasCollector.getDstSideRelatedAliases();
 		MethodExecution coordinator = extractedStructure.getCoordinator();
 		bottomPoint = findTracePoint(reference, creationCallTree, before.getStatement().getTimeStamp());
+
+		MethodExecution me = bottomPoint.getMethodExecution();
+		MethodExecution childMe = null;
+		coordinatorPoint = null;
+		while (me != null) {
+			childMe = me;
+			me = me.getParent();
+			if (coordinator.equals(me)) {
+				coordinatorPoint = childMe.getCallerTracePoint();
+				break;
+			}
+		}
 
 		// デルタ抽出の結果を元にソースコードを反転表示する
 		mark(bottomPoint, srcSideRelatedAliases, dstSideRelatedAliases, coordinator);
@@ -103,6 +121,7 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		DeltaMarkerManager mgr = DeltaMarkerManager.getInstance();
 		mgr.deleteMarkers(DeltaMarkerManager.DELTA_MARKER_ID);
 		mgr.deleteMarkers(DeltaMarkerManager.DELTA_MARKER_ID_2);
+		mgr.deleteMarkerIdToObjectIdSet();
 	}
 	
 	private void markAndOpenJavaFile(Alias alias, String message, String markerId) {

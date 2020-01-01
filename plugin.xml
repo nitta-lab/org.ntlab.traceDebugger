@@ -28,6 +28,14 @@
             name="BreakPoint"
             restorable="true">
       </view>
+      <view
+            allowMultiple="true"
+            category="org.ntlab.traceDebugger.category"
+            class="org.ntlab.traceDebugger.DeltaMarkerView"
+            id="org.ntlab.traceDebugger.deltaMarkerView"
+            name="DeltaMarker"
+            restorable="true">
+      </view>
    </extension>
    <extension
          point="org.eclipse.ui.perspectives">
@@ -98,7 +106,7 @@
       <specification
             annotationType="org.ntlab.traceDebugger.deltaAnnotation"
             colorPreferenceKey="clcolor"
-            colorPreferenceValue="255,69,0"
+            colorPreferenceValue="255,128,0"
             highlightPreferenceKey="clhighlight"
             highlightPreferenceValue="true"
             icon="icons/deltaMarker.png"
@@ -131,6 +139,36 @@
             verticalRulerPreferenceKey="clvertical2"
             verticalRulerPreferenceValue="true">
       </specification>
+   </extension>
+   <extension
+         point="org.eclipse.ui.ide.markerSupport">
+      <markerContentGenerator
+            id="org.ntlab.traceDebugger.markerContentGenerator"
+            name="DeltaMarkerView">
+         <markerTypeReference
+               id="org.ntlab.traceDebugger.deltaMarker">
+         </markerTypeReference>
+         <markerTypeReference
+               id="org.ntlab.traceDebugger.deltaMarker2">
+         </markerTypeReference>
+         <markerFieldReference
+               id="org.eclipse.ui.ide.descriptionField">
+         </markerFieldReference>
+         <markerFieldReference
+               id="org.eclipse.ui.ide.resourceField"
+               visible="true">
+         </markerFieldReference>
+         <markerFieldReference
+               id="org.eclipse.ui.ide.pathField">
+         </markerFieldReference>
+         <markerFieldReference
+               id="org.eclipse.ui.ide.locationField"
+               visible="true">
+         </markerFieldReference>
+         <markerFieldReference
+               id="org.eclipse.ui.ide.markerType">
+         </markerFieldReference>
+      </markerContentGenerator>
    </extension>
 
 </plugin>

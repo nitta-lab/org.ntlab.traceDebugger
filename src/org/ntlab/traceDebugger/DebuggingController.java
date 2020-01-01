@@ -13,13 +13,23 @@ import org.eclipse.ui.PlatformUI;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
+import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.ReferencePoint;
 
 public class DebuggingController {
+	private static final DebuggingController theInstance = new DebuggingController();
 	private TracePoint debuggingTp;
 	private TraceBreakPoint selectedTraceBreakPoint;
 	private TraceBreakPoints traceBreakPoints = new TraceBreakPoints();
+	
+	private DebuggingController() {
+		
+	}
+	
+	public static DebuggingController getInstance() {
+		return theInstance;
+	}
 	
 	public void setDebuggingTp(TracePoint tp) {
 		this.debuggingTp = tp;
@@ -240,35 +250,15 @@ public class DebuggingController {
 	}
 
 	/**
-	 * 現在のデバッグ位置を抽出したデルタの底辺のトレースポイントに合わせる (とりあえず確認するだけ用)
+	 * 現在のデバッグ位置を指定したトレースポイントに合わせる
 	 * @return
 	 */
-	public boolean tmp() {
-		DeltaExtractionAnalyzer analyzer = (DeltaExtractionAnalyzer)TraceDebuggerPlugin.getAnalyzer();
-		TracePoint tp = analyzer.getBottomPoint();
+	public boolean jumpToTheTracePoint(TracePoint tp) {
+		if (tp == null) return false;
 		debuggingTp = tp.duplicate();
 		refresh(false);
 		return true;
 	}
-	
-//	/**
-//	 * 現在のデバッグ位置を抽出したデルタの底辺のトレースポイントに合わせる (とりあえず確認するだけ用)
-//	 * @return
-//	 */
-//	public boolean tmp() {
-//		DeltaExtractionAnalyzer analyzer = (DeltaExtractionAnalyzer)TraceDebuggerPlugin.getAnalyzer();
-//		ReferencePoint rp = analyzer.getBottomPoint();
-//		long previousTime = debuggingTp.getStatement().getTimeStamp();
-//		long rpTime = rp.getTime();
-//		debuggingTp = rp.getTracePoint();
-////		if (rpTime < previousTime) {
-////			traceBreakPoints.reverseAll(rpTime);
-////		} else {
-////			traceBreakPoints.forwardAll(rpTime);
-////		}
-//		refresh(false);
-//		return true;
-//	}
 	
 	private void refresh(boolean isReturned) {
 		MethodExecution me = debuggingTp.getMethodExecution();

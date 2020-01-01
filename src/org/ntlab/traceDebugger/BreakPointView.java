@@ -41,9 +41,8 @@ public class BreakPointView extends ViewPart {
 	private IAction stepBackOverAction;
 	private IAction stepBackReturnAction;
 	private IAction backResumeAction;
-	private IAction tmpAction;
 	private Shell shell;
-	private DebuggingController debuggingController = new DebuggingController();
+	private DebuggingController debuggingController = DebuggingController.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.breakPointView";
 
 	public BreakPointView() {
@@ -227,15 +226,6 @@ public class BreakPointView extends ViewPart {
 		};
 		backResumeAction.setText("Back Resume");
 		backResumeAction.setToolTipText("Back Resume");
-
-		tmpAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.tmp();
-			}
-		};
-		tmpAction.setText("Tmp");
-		tmpAction.setToolTipText("Tmp");
 	}
 	
 	private void createToolBar() {
@@ -251,7 +241,6 @@ public class BreakPointView extends ViewPart {
 		mgr.add(stepBackOverAction);
 		mgr.add(stepBackReturnAction);
 		mgr.add(backResumeAction);
-		mgr.add(tmpAction);
 	}
 	
 	private void createMenuBar() {
@@ -267,7 +256,6 @@ public class BreakPointView extends ViewPart {
 		mgr.add(stepBackOverAction);
 		mgr.add(stepBackReturnAction);
 		mgr.add(backResumeAction);
-		mgr.add(tmpAction);
 	}
 	
 	private void createPopupMenu() {

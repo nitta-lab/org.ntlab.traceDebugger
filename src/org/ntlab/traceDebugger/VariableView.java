@@ -1,6 +1,9 @@
 package org.ntlab.traceDebugger;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
@@ -9,9 +12,12 @@ import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
+import org.eclipse.jface.viewers.IBaseLabelProvider;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.ITableColorProvider;
 import org.eclipse.jface.viewers.ITreeViewerListener;
+import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TreeExpansionEvent;
 import org.eclipse.jface.viewers.TreeNode;
@@ -23,6 +29,7 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.ui.IViewPart;
+import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
@@ -31,9 +38,11 @@ import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
+import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class VariableView extends ViewPart {	
-	private TreeViewer viewer; 
+	private TreeViewer viewer;
+	private IAction jumpAction;
 	private IAction deltaAction;
 	private Variable selectedVariable;
 	private Variables variables = Variables.getInstance();
@@ -101,7 +110,7 @@ public class VariableView extends ViewPart {
 						grandChildNode.setChildren(nodes);
 					}
 				}
-				viewer.refresh();				
+				viewer.refresh();
 			}
 			
 			@Override
@@ -120,6 +129,18 @@ public class VariableView extends ViewPart {
 	}
 	
 	private void createActions() {
+		jumpAction = new Action() {
+			public void run() {
+				TracePoint tp = selectedVariable.getLastUpdatePoint();
+				if (tp == null) return;
+				DebuggingController controller = DebuggingController.getInstance();
+				controller.jumpToTheTracePoint(tp);
+				controller.stepOverAction();
+			}
+		};
+		jumpAction.setText("Jump to Creation Point");
+		jumpAction.setToolTipText("Jump to Creation Point");
+		
 		deltaAction = new Action() {
 			@Override
 			public void run() {
@@ -127,11 +148,67 @@ public class VariableView extends ViewPart {
 				if (analyzer instanceof DeltaExtractionAnalyzer) {
 					DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;
 					deltaAnalyzer.extractDelta(selectedVariable);
+					TracePoint coordinatorPoint = deltaAnalyzer.getCoordinatorPoint();
+					DebuggingController controller = DebuggingController.getInstance();
+					controller.jumpToTheTracePoint(coordinatorPoint);
+					
+					IWorkbench workbench = PlatformUI.getWorkbench();
+					IWorkbenchPage workbenchPage = workbench.getActiveWorkbenchWindow().getActivePage();
+					try {
+						// note: 同一ビューを複数開くテスト
+						workbenchPage.showView("org.eclipse.ui.views.AllMarkersView", "tmp" + Math.random(), IWorkbenchPage.VIEW_ACTIVATE);
+					} catch (PartInitException e) {
+						e.printStackTrace();
+					}
+					expandParticularNodes();
 				}
 			}
 		};
 		deltaAction.setText("Extract Delta");
 		deltaAction.setToolTipText("Extract Delta");
+	}
+	
+	private void expandParticularNodes() {
+		Map<String, Set<String>> markerIdToObjectIdSet = DeltaMarkerManager.getInstance().getMarkerIdToObjectIdSet();
+		Set<String> srcSideIdSet = new HashSet<>(markerIdToObjectIdSet.get(DeltaMarkerManager.DELTA_MARKER_ID));
+		Set<String> dstSideIdSet = new HashSet<>(markerIdToObjectIdSet.get(DeltaMarkerManager.DELTA_MARKER_ID_2));
+//		Set<String> idSet = new HashSet<>(DeltaMarkerManager.getInstance().getIdSet());
+		Set<TreeNode> expandNodes = new HashSet<>();
+		Object obj = viewer.getTree().getTopItem().getData();
+		if (!(obj instanceof TreeNode)) return;
+		TreeNode node = (TreeNode)obj;
+		Object value = node.getValue();
+		if (!(value instanceof Variable)) return;
+		expandParticularNodes(srcSideIdSet, dstSideIdSet, expandNodes, node);
+		viewer.setExpandedElements(expandNodes.toArray(new Object[expandNodes.size()]));
+	}
+	
+	private void expandParticularNodes(Set<String> srcSideIdSet, Set<String> dstSideIdSet, Set<TreeNode> expandNodes, TreeNode node) {
+//		if (idSet.isEmpty()) return;
+		Object value = node.getValue();
+		if (!(value instanceof Variable)) return;
+		Variable variable = (Variable)value;
+		String id = variable.getId();
+		if (srcSideIdSet.contains(id)) {
+			variable.setSrcSideRelatedDelta(true);
+			srcSideIdSet.remove(id);
+			TreeNode parent = node.getParent();
+			if (parent != null) {
+				expandNodes.add(node.getParent());	
+			}
+		} else if (dstSideIdSet.contains(id)) {
+			variable.setDstSideRelatedDelta(true);
+			dstSideIdSet.remove(id);
+			TreeNode parent = node.getParent();
+			if (parent != null) {
+				expandNodes.add(node.getParent());	
+			}
+		}
+		TreeNode[] children = node.getChildren();
+		if (children == null) return;
+		for (TreeNode child : children) {
+			expandParticularNodes(srcSideIdSet, dstSideIdSet, expandNodes, child);	
+		}
 	}
 	
 	private void createToolBar() {
@@ -148,6 +225,7 @@ public class VariableView extends ViewPart {
 		menuMgr.addMenuListener(new IMenuListener() {
 			@Override
 			public void menuAboutToShow(IMenuManager manager) {
+				manager.add(jumpAction);
 				manager.add(deltaAction);
 				manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 			}
@@ -167,11 +245,6 @@ public class VariableView extends ViewPart {
 		variables.getAllObjectDataByTracePoint(tp, isReturned);
 		viewer.setInput(variables.getVariablesTreeNodes());
 	}
-	
-//	public void updateVariablesByAlias(Alias alias) {
-//		variables.getAllObjectDataByAlias(alias);
-//		viewer.setInput(variables.getVariablesTreeNodesList());
-//	}
 	
 	private IViewPart getOtherView(String viewId) {
 		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
