@@ -1,5 +1,8 @@
 package org.ntlab.traceDebugger;
 
+import java.util.List;
+import java.util.Map;
+
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuManager;
@@ -111,6 +114,10 @@ public class CallStackView extends ViewPart {
 //		viewer.setInput(null);
 //		viewer.expandAll();
 		refresh();
+	}
+	
+	public Map<String, List<CallStackModel>> getCallStackModels() {
+		return callStackModels.getAllCallStacks();
 	}
 	
 	private IViewPart getOtherView(String viewId) {

@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuListener;
@@ -37,6 +39,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
+import org.ntlab.traceDebugger.analyzerProvider.Alias;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
@@ -146,21 +149,22 @@ public class VariableView extends ViewPart {
 			public void run() {
 				AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 				if (analyzer instanceof DeltaExtractionAnalyzer) {
-					DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;
-					deltaAnalyzer.extractDelta(selectedVariable);
-					TracePoint coordinatorPoint = deltaAnalyzer.getCoordinatorPoint();
-					DebuggingController controller = DebuggingController.getInstance();
-					controller.jumpToTheTracePoint(coordinatorPoint);
-					
+					DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;					
 					IWorkbench workbench = PlatformUI.getWorkbench();
 					IWorkbenchPage workbenchPage = workbench.getActiveWorkbenchWindow().getActivePage();
 					try {
 						// note: 同一ビューを複数開くテスト
-						workbenchPage.showView("org.eclipse.ui.views.AllMarkersView", "tmp" + Math.random(), IWorkbenchPage.VIEW_ACTIVATE);
+						String newDeltaMarkerViewSubId = deltaAnalyzer.getNextDeltaMarkerSubId();
+						DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)workbenchPage.showView(DeltaMarkerView.ID, newDeltaMarkerViewSubId, IWorkbenchPage.VIEW_ACTIVATE);
+						deltaAnalyzer.extractDelta(selectedVariable, newDeltaMarkerView, newDeltaMarkerViewSubId);
+						TracePoint coordinatorPoint = newDeltaMarkerView.getCoordinatorPoint();
+						DebuggingController controller = DebuggingController.getInstance();
+						controller.jumpToTheTracePoint(coordinatorPoint);
+						DeltaMarkerManager deltaMarkerManager = newDeltaMarkerView.getDeltaMarkerManager();
+						expandParticularNodes(deltaMarkerManager.getMarkers());
 					} catch (PartInitException e) {
 						e.printStackTrace();
 					}
-					expandParticularNodes();
 				}
 			}
 		};
@@ -168,11 +172,27 @@ public class VariableView extends ViewPart {
 		deltaAction.setToolTipText("Extract Delta");
 	}
 	
-	private void expandParticularNodes() {
-		Map<String, Set<String>> markerIdToObjectIdSet = DeltaMarkerManager.getInstance().getMarkerIdToObjectIdSet();
-		Set<String> srcSideIdSet = new HashSet<>(markerIdToObjectIdSet.get(DeltaMarkerManager.DELTA_MARKER_ID));
-		Set<String> dstSideIdSet = new HashSet<>(markerIdToObjectIdSet.get(DeltaMarkerManager.DELTA_MARKER_ID_2));
-//		Set<String> idSet = new HashSet<>(DeltaMarkerManager.getInstance().getIdSet());
+	public void expandParticularNodes(Map<String, List<IMarker>> markers) {
+		Set<String> srcSideIdSet = new HashSet<>();
+		Set<String> dstSideIdSet = new HashSet<>();		
+		for (Map.Entry<String, List<IMarker>> entry : markers.entrySet()) {
+			String markerId = entry.getKey();
+			List<IMarker> markerList = entry.getValue();
+			for (IMarker marker : markerList) {
+				try {
+					Object obj = marker.getAttribute("data");
+					if (!(obj instanceof Alias)) continue;
+					String objId = ((Alias)obj).getObjectId();
+					if (markerId.equals(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER)) {
+						srcSideIdSet.add(objId);
+					} else if (markerId.equals(DeltaMarkerManager.DST_SIDE_DELTA_MARKER)) {
+						dstSideIdSet.add(objId);
+					}
+				} catch (CoreException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 		Set<TreeNode> expandNodes = new HashSet<>();
 		Object obj = viewer.getTree().getTopItem().getData();
 		if (!(obj instanceof TreeNode)) return;
@@ -182,9 +202,21 @@ public class VariableView extends ViewPart {
 		expandParticularNodes(srcSideIdSet, dstSideIdSet, expandNodes, node);
 		viewer.setExpandedElements(expandNodes.toArray(new Object[expandNodes.size()]));
 	}
+		
+//	public void expandParticularNodes(Map<String, Set<String>> markerIdToObjectIdSet) {
+//		Set<String> srcSideIdSet = new HashSet<>(markerIdToObjectIdSet.get(DeltaMarkerManager.DELTA_MARKER_ID));
+//		Set<String> dstSideIdSet = new HashSet<>(markerIdToObjectIdSet.get(DeltaMarkerManager.DELTA_MARKER_ID_2));
+//		Set<TreeNode> expandNodes = new HashSet<>();
+//		Object obj = viewer.getTree().getTopItem().getData();
+//		if (!(obj instanceof TreeNode)) return;
+//		TreeNode node = (TreeNode)obj;
+//		Object value = node.getValue();
+//		if (!(value instanceof Variable)) return;
+//		expandParticularNodes(srcSideIdSet, dstSideIdSet, expandNodes, node);
+//		viewer.setExpandedElements(expandNodes.toArray(new Object[expandNodes.size()]));
+//	}
 	
 	private void expandParticularNodes(Set<String> srcSideIdSet, Set<String> dstSideIdSet, Set<TreeNode> expandNodes, TreeNode node) {
-//		if (idSet.isEmpty()) return;
 		Object value = node.getValue();
 		if (!(value instanceof Variable)) return;
 		Variable variable = (Variable)value;

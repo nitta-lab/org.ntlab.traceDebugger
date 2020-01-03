@@ -1,9 +1,9 @@
 package org.ntlab.traceDebugger.analyzerProvider;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IMarker;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Reference;
@@ -11,23 +11,19 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
-import org.ntlab.traceDebugger.JavaEditorOperator;
+import org.ntlab.traceDebugger.DeltaMarkerView;
 import org.ntlab.traceDebugger.Variable;
 
 public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 	private static DeltaExtractionAnalyzer theInstance = null;
 	private DeltaExtractorJSON deltaExtractor;
 	private ExtractedStructure extractedStructure;
-	private TracePoint bottomPoint;
-	private TracePoint coordinatorPoint;
+	private Map<String, DeltaMarkerView> deltaMarkerViews = new HashMap<>();
 	
 	public DeltaExtractionAnalyzer(Trace trace) {
 		super(trace);
 		deltaExtractor = new DeltaExtractorJSON((TraceJSON)trace);
-		DeltaMarkerManager mgr = DeltaMarkerManager.getInstance();
-		mgr.deleteMarkers(DeltaMarkerManager.DELTA_MARKER_ID);
-		mgr.deleteMarkers(DeltaMarkerManager.DELTA_MARKER_ID_2);
-		mgr.deleteMarkerIdToObjectIdSet();
+		reset();
 	}
 	
 	private static DeltaExtractionAnalyzer getInstance() {
@@ -37,19 +33,12 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		return theInstance;
 	}
 	
-	public TracePoint getBottomPoint() {
-		return bottomPoint;
-	}
-	
-	public TracePoint getCoordinatorPoint() {
-		return coordinatorPoint;
-	}
-	
 	public ExtractedStructure geExtractedStructure() {
 		return extractedStructure;
 	}
 
-	public void extractDelta(Variable variable) {
+	public void extractDelta(Variable variable, DeltaMarkerView deltaMarkerView, String deltaMarkerViewSubId) {
+		addDeltaMarkerView(deltaMarkerViewSubId, deltaMarkerView);
 		String srcId = variable.getContainerId();
 		String srcClassName = variable.getContainerClassName();
 		String dstId = variable.getId();
@@ -58,47 +47,31 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		Reference reference = new Reference(srcId, dstId, srcClassName, dstClassName);
 		
 		// デルタ抽出
-		reset();
 		DeltaRelatedAliasCollector aliasCollector = new DeltaRelatedAliasCollector(srcId, dstId);
 		extractedStructure = deltaExtractor.extract(reference, before.duplicate(), aliasCollector);
 		MethodExecution creationCallTree = extractedStructure.getCreationCallTree();
 		List<Alias> srcSideRelatedAliases = aliasCollector.getSrcSideRelatedAliases();
 		List<Alias> dstSideRelatedAliases = aliasCollector.getDstSideRelatedAliases();
 		MethodExecution coordinator = extractedStructure.getCoordinator();
-		bottomPoint = findTracePoint(reference, creationCallTree, before.getStatement().getTimeStamp());
-
+		TracePoint bottomPoint = findTracePoint(reference, creationCallTree, before.getStatement().getTimeStamp());
+		deltaMarkerView.setBottomPoint(bottomPoint);
+		
 		MethodExecution me = bottomPoint.getMethodExecution();
 		MethodExecution childMe = null;
-		coordinatorPoint = null;
 		while (me != null) {
 			childMe = me;
 			me = me.getParent();
 			if (coordinator.equals(me)) {
-				coordinatorPoint = childMe.getCallerTracePoint();
+				TracePoint coordinatorPoint = childMe.getCallerTracePoint();
+				deltaMarkerView.setCoordinatorPoint(coordinatorPoint);		
 				break;
 			}
 		}
 
 		// デルタ抽出の結果を元にソースコードを反転表示する
-		mark(bottomPoint, srcSideRelatedAliases, dstSideRelatedAliases, coordinator);
-	}
-	
-	private void mark(TracePoint bottomPoint, List<Alias> srcSideRelatedAliases, List<Alias> dstSideRelatedAliases, MethodExecution coordinator) {
-		String message = String.format("Bottom %s", "");
-		markAndOpenJavaFile(bottomPoint.getMethodExecution(), bottomPoint.getStatement().getLineNo(), message, DeltaMarkerManager.DELTA_MARKER_ID);
-		int cnt = 1;
-		for (Alias alias: srcSideRelatedAliases) {
-			message = String.format("SrcSide%03d %s (id = %s)", cnt, alias.getAliasType().toString(), alias.getObjectId());
-			markAndOpenJavaFile(alias, message, DeltaMarkerManager.DELTA_MARKER_ID);
-			cnt++;
-		}
-		cnt = 1;
-		for (Alias alias : dstSideRelatedAliases) {
-			message = String.format("DstSide%03d %s (id = %s)", cnt, alias.getAliasType().toString(), alias.getObjectId());
-			markAndOpenJavaFile(alias, message, DeltaMarkerManager.DELTA_MARKER_ID_2);
-			cnt++;
-		}
-		markAndOpenJavaFile(coordinator, -1 , "Coordinator", DeltaMarkerManager.DELTA_MARKER_ID);		
+		DeltaMarkerManager mgr = deltaMarkerView.getDeltaMarkerManager();
+		mark(mgr, bottomPoint, srcSideRelatedAliases, dstSideRelatedAliases, coordinator);
+		deltaMarkerView.update();
 	}
 	
 	private TracePoint findTracePoint(Reference reference, MethodExecution methodExecution, long beforeTime) {
@@ -115,26 +88,37 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		}
 		return null;
 	}
-	
+
+	private void mark(DeltaMarkerManager mgr, TracePoint bottomPoint, List<Alias> srcSideRelatedAliases, List<Alias> dstSideRelatedAliases, MethodExecution coordinator) {
+		mgr.markAndOpenJavaFile(bottomPoint, "Bottom", DeltaMarkerManager.BOTTOM_DELTA_MARKER);
+		mgr.markAndOpenJavaFile(coordinator, -1 , "Coordinator", DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
+		int cnt = 1;
+		for (Alias alias: srcSideRelatedAliases) {
+			String message = String.format("SrcSide%03d", cnt);
+			mgr.markAndOpenJavaFile(alias, message, DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
+			cnt++;
+		}
+		cnt = 1;
+		for (Alias alias : dstSideRelatedAliases) {
+			String message = String.format("DstSide%03d", cnt);
+			mgr.markAndOpenJavaFile(alias, message, DeltaMarkerManager.DST_SIDE_DELTA_MARKER);
+			cnt++;
+		}
+	}
+
 	private void reset() {
-		bottomPoint = null;
-		DeltaMarkerManager mgr = DeltaMarkerManager.getInstance();
-		mgr.deleteMarkers(DeltaMarkerManager.DELTA_MARKER_ID);
-		mgr.deleteMarkers(DeltaMarkerManager.DELTA_MARKER_ID_2);
-		mgr.deleteMarkerIdToObjectIdSet();
+		for (DeltaMarkerView deltaMarkerView : deltaMarkerViews.values()) {
+			deltaMarkerView.getDeltaMarkerManager().clearAllMarkers();
+		}
+		deltaMarkerViews.clear();
+	}
+		
+	private void addDeltaMarkerView(String subId, DeltaMarkerView deltaMarkerView) {
+		deltaMarkerView.setSubId(subId);
+		deltaMarkerViews.put(subId, deltaMarkerView);
 	}
 	
-	private void markAndOpenJavaFile(Alias alias, String message, String markerId) {
-		IFile file = JavaEditorOperator.findIFile(alias.getMethodExecution());
-		DeltaMarkerManager mgr = DeltaMarkerManager.getInstance();
-		IMarker marker = mgr.addMarker(alias, file, message, markerId);
-		JavaEditorOperator.markAndOpenJavaFile(marker);
-	}
-	
-	private void markAndOpenJavaFile(MethodExecution methodExecution, int lineNo, String message, String markerId) {
-		IFile file = JavaEditorOperator.findIFile(methodExecution);
-		DeltaMarkerManager mgr = DeltaMarkerManager.getInstance();
-		IMarker marker = mgr.addMarker(methodExecution, lineNo, file, message, markerId);
-		JavaEditorOperator.markAndOpenJavaFile(marker);
+	public String getNextDeltaMarkerSubId() {
+		return String.valueOf(deltaMarkerViews.size() + 1);
 	}
 }

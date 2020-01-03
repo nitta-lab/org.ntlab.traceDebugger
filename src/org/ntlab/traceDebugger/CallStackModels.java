@@ -20,6 +20,10 @@ public class CallStackModels {
 	public List<CallStackModel> getDebuggingThreadCallStacks() {
 		return debuggingThreadCallStacks;
 	}
+	
+	public Map<String, List<CallStackModel>> getAllCallStacks() {
+		return allCallStacks;
+	}
 
 	public TreeNode[] getAllCallStacksTree() {
 		if (allCallStacks.isEmpty()) return new TreeNode[1];

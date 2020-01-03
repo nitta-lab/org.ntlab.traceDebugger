@@ -26,58 +26,119 @@ import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
+import org.eclipse.jface.viewers.TreeNode;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.editors.text.FileDocumentProvider;
+import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.part.FileEditorInput;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayCreate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldAccess;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.JavaEditorOperator;
 
 public class DeltaMarkerManager {
-	private static final DeltaMarkerManager theInstance = new DeltaMarkerManager();
 	private Map<String, List<IMarker>> markers = new HashMap<>();
-	private Map<String, Set<String>> markerIdToObjectIdSet = new HashMap<>();
-	public static final String DELTA_MARKER_ID = "org.ntlab.traceDebugger.deltaMarker";
-	public static final String DELTA_MARKER_ID_2 = "org.ntlab.traceDebugger.deltaMarker2";
-	
-	private DeltaMarkerManager() {
-		
-	}
-	
-	public static DeltaMarkerManager getInstance() {
-		return theInstance;
-	}
+	public static final String BOTTOM_DELTA_MARKER = "org.ntlab.traceDebugger.bottomDeltaMarker";
+	public static final String COORDINATOR_DELTA_MARKER = "org.ntlab.traceDebugger.coordinatorDeltaMarker";
+	public static final String SRC_SIDE_DELTA_MARKER = "org.ntlab.traceDebugger.srcSideDeltaMarker";
+	public static final String DST_SIDE_DELTA_MARKER = "org.ntlab.traceDebugger.dstSideDeltaMarker";
 	
 	public Map<String, List<IMarker>> getMarkers() {
 		return markers;
 	}
-
-	public IMarker addMarker(Alias alias, IFile file, String message, String markerId) {
-//		idSet.add(alias.getObjectId());
-		if (markerId.equals(DELTA_MARKER_ID)) {
-			Set<String> objectIdSet = markerIdToObjectIdSet.get(DELTA_MARKER_ID);
-			if (objectIdSet == null) {
-				objectIdSet = new HashSet<String>();
-				markerIdToObjectIdSet.put(DELTA_MARKER_ID, objectIdSet);
+	
+	public List<IMarker> getMarkerList() {
+		List<IMarker> markerList = new ArrayList<>();
+		List<IMarker> list;
+		list = markers.get(BOTTOM_DELTA_MARKER);
+		if (list != null) markerList.addAll(list);
+		list = markers.get(COORDINATOR_DELTA_MARKER);
+		if (list != null) markerList.addAll(list);		
+		list = markers.get(SRC_SIDE_DELTA_MARKER);
+		if (list != null) markerList.addAll(list);
+		list = markers.get(DST_SIDE_DELTA_MARKER);
+		if (list != null) markerList.addAll(list);
+		return markerList;
+	}
+	
+	public TreeNode[] getMarkerTreeNodes() {
+		TreeNode[] roots = new TreeNode[] {
+				new TreeNode("Bottom"),
+				new TreeNode("Coordinator"),
+				new TreeNode("SrcSide"),
+				new TreeNode("DstSide")
+		};
+		List<TreeNode> srcSideTreeNodeList = new ArrayList<>();
+		List<TreeNode> dstSideTreeNodeList = new ArrayList<>();
+		for (Map.Entry<String, List<IMarker>> entry : markers.entrySet()) {
+			String markerId = entry.getKey();
+			for (IMarker marker : entry.getValue()) {
+				TreeNode node = new TreeNode(marker);
+				if (markerId.equals(BOTTOM_DELTA_MARKER)) {
+					node.setParent(roots[0]);
+					roots[0].setChildren(new TreeNode[] {node});	
+				} else if (markerId.equals(COORDINATOR_DELTA_MARKER)) {
+					node.setParent(roots[1]);
+					roots[1].setChildren(new TreeNode[] {node});
+				} else if (markerId.equals(SRC_SIDE_DELTA_MARKER)) {
+					node.setParent(roots[2]);
+					srcSideTreeNodeList.add(node);
+				} else if (markerId.equals(DST_SIDE_DELTA_MARKER)) {
+					node.setParent(roots[3]);
+					dstSideTreeNodeList.add(node);
+				}
 			}
-			objectIdSet.add(alias.getObjectId());
-		} else if (markerId.equals(DELTA_MARKER_ID_2)) {
-			Set<String> objectIdSet = markerIdToObjectIdSet.get(DELTA_MARKER_ID_2);
-			if (objectIdSet == null) {
-				objectIdSet = new HashSet<String>();
-				markerIdToObjectIdSet.put(DELTA_MARKER_ID_2, objectIdSet);
-			}
-			objectIdSet.add(alias.getObjectId());			
 		}
-		
+		roots[2].setChildren(srcSideTreeNodeList.toArray(new TreeNode[srcSideTreeNodeList.size()]));
+		roots[3].setChildren(dstSideTreeNodeList.toArray(new TreeNode[dstSideTreeNodeList.size()]));
+		return roots;
+	}
+
+	public void markAndOpenJavaFile(Alias alias, String message, String markerId) {
+		IFile file = JavaEditorOperator.findIFile(alias.getMethodExecution());
+		IMarker marker = addMarker(alias, file, message, markerId);
+		JavaEditorOperator.markAndOpenJavaFile(marker);
+	}
+	
+	public void markAndOpenJavaFile(TracePoint tracePoint, String message, String markerId) {
+		MethodExecution me = tracePoint.getMethodExecution();
+		Statement statement = tracePoint.getStatement();
+		int lineNo = statement.getLineNo();
+		String objectId = null;
+		String objectType = null;
+		if (statement instanceof FieldUpdate) {
+			FieldUpdate fu = ((FieldUpdate)statement);
+			objectId = fu.getContainerObjId() + " -> " + fu.getValueObjId();
+			objectType = fu.getContainerClassName() + " -> " + fu.getValueClassName();
+		}
+		IFile file = JavaEditorOperator.findIFile(me);
+		IMarker marker = addMarker(me, lineNo, file, message, objectId, objectType, markerId);
+		JavaEditorOperator.markAndOpenJavaFile(marker);		
+	}
+	
+	public void markAndOpenJavaFile(MethodExecution methodExecution, int lineNo, String message, String markerId) {
+		IFile file = JavaEditorOperator.findIFile(methodExecution);
+		IMarker marker = addMarker(methodExecution, lineNo, file, message, null, null, markerId);
+		JavaEditorOperator.markAndOpenJavaFile(marker);
+	}
+
+	public IMarker addMarker(Alias alias, IFile file, String message, String markerId) {		
 		try {
 			IMarker marker = file.createMarker(markerId);
 			Map<String, Object> attributes = new HashMap<>();
-			setAttributesForAlias(attributes, alias, file, message, markerId);
+			setAttributesForAlias(attributes, alias, file, markerId);
+			attributes.put(IMarker.MESSAGE, message);
 			attributes.put(IMarker.TRANSIENT, true);
+			attributes.put("data", alias);
+			attributes.put("objectId", alias.getObjectId());
+			attributes.put("aliasType", alias.getAliasType());
 			marker.setAttributes(attributes);
 			addMarker(markerId, marker);
 			return marker;
@@ -87,13 +148,16 @@ public class DeltaMarkerManager {
 		return null;
 	}
 	
-	public IMarker addMarker(MethodExecution me, int lineNo, IFile file, String message, String markerId) {
+	public IMarker addMarker(MethodExecution me, int lineNo, IFile file, String message, String objectId, String objectType, String markerId) {
 		try {
 			IMarker marker = file.createMarker(markerId);
 			Map<String, Object> attributes = new HashMap<>();
 			setAttributesForMethodExecution(attributes, me, file, lineNo, markerId);
 			attributes.put(IMarker.MESSAGE, message);
 			attributes.put(IMarker.TRANSIENT, true);
+			attributes.put("data", me);
+			attributes.put("objectId", objectId);
+			attributes.put("objectType", objectType);
 			marker.setAttributes(attributes);
 			addMarker(markerId, marker);
 			return marker;
@@ -112,20 +176,11 @@ public class DeltaMarkerManager {
 		markerList.add(marker);
 	}
 
-	private void setAttributesForAlias(final Map<String, Object> attributes, Alias alias, IFile file, String message, String markerId) {
+	private void setAttributesForAlias(final Map<String, Object> attributes, Alias alias, IFile file, String markerId) {
 		try {
 			FileEditorInput input = new FileEditorInput(file);
 			FileDocumentProvider provider = new FileDocumentProvider();
-			provider.connect(input);
-			String aliasType = alias.getAliasType().toString();
-			String statement = "";
-			try {
-				statement = alias.getOccurrencePoint().getStatement().toString(); // statementÇ™Ç»Ç¢èÍçáÇ™Ç†ÇÈ
-			} catch (ArrayIndexOutOfBoundsException e) {
-				// e.printStackTrace();
-			}
-			System.out.println(aliasType + ": " + statement);
-			
+			provider.connect(input);			
 			ASTParser parser = ASTParser.newParser(AST.JLS10);
 			MethodExecution methodExecution = alias.getMethodExecution();
 			IType type = JavaEditorOperator.findIType(methodExecution);					
@@ -142,7 +197,6 @@ public class DeltaMarkerManager {
 					}
 				}
 			}
-			attributes.put(IMarker.MESSAGE, message);
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
@@ -678,25 +732,20 @@ public class DeltaMarkerManager {
 		}
 	}
 	
-	public void deleteMarkers(String markerId) {
-		List<IMarker> markerList = markers.get(markerId);
-		if (markerList == null) return;
+	private void deleteMarkers(List<IMarker> markerList) {
 		for (IMarker marker : markerList) {
 			try {
 				marker.delete();
 			} catch (CoreException e) {
 				e.printStackTrace();
 			}
+		}		
+	}
+	
+	public void clearAllMarkers() {
+		for (List<IMarker> markerList: markers.values()) {
+			deleteMarkers(markerList);
 		}
-		markerList.clear();
-		markers.remove(markerId);
-	}
-	
-	public Map<String, Set<String>> getMarkerIdToObjectIdSet() {
-		return markerIdToObjectIdSet;
-	}
-	
-	public void deleteMarkerIdToObjectIdSet() {
-		markerIdToObjectIdSet.clear();
+		markers.clear();
 	}
 }

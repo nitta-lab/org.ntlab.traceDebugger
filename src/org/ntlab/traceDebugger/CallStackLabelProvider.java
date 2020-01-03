@@ -1,13 +1,17 @@
 package org.ntlab.traceDebugger;
 
+import org.eclipse.jface.viewers.IColorProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TreeNode;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ThreadInstance;
 
-public class CallStackLabelProvider extends LabelProvider {
+public class CallStackLabelProvider extends LabelProvider implements IColorProvider {
 	
 	@Override
 	public String getText(Object element) {
@@ -33,6 +37,28 @@ public class CallStackLabelProvider extends LabelProvider {
 	public Image getImage(Object element) {
 		if (element instanceof TreeNode) {
 			return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
+		}
+		return null;
+	}
+
+	@Override
+	public Color getForeground(Object element) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Color getBackground(Object element) {
+		// TODO Auto-generated method stub
+		if (element instanceof TreeNode) {
+			Object value = ((TreeNode)element).getValue();
+			if (value instanceof CallStackModel) {
+				CallStackModel callStackModel = (CallStackModel)value;
+				if (callStackModel.isHighlighting()) {
+//					return Display.getDefault().getSystemColor(SWT.COLOR_CYAN);
+					return Display.getDefault().getSystemColor(SWT.COLOR_CYAN);
+				}
+			}
 		}
 		return null;
 	}

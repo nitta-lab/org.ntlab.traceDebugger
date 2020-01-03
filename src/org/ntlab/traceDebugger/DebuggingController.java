@@ -1,6 +1,5 @@
 package org.ntlab.traceDebugger;
 
-import org.eclipse.debug.core.model.IBreakpoint;
 import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
@@ -13,9 +12,7 @@ import org.eclipse.ui.PlatformUI;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
-import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
-import org.ntlab.traceDebugger.analyzerProvider.ReferencePoint;
 
 public class DebuggingController {
 	private static final DebuggingController theInstance = new DebuggingController();
@@ -268,7 +265,7 @@ public class DebuggingController {
 		callStackView.updateByTracePoint(debuggingTp);
 		callStackView.refresh();
 		((VariableView)getOtherView(VariableView.ID)).updateVariablesByTracePoint(debuggingTp, isReturned);
-		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
+//		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
 	}
 
 	private IViewPart getOtherView(String viewId) {
