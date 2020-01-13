@@ -8,6 +8,9 @@ public class DeltaRelatedAliasCollector implements IAliasCollector {
 	private List<Alias> dstSideRelatedAliases = new ArrayList<>();
 	private List<String> srcSideIdList = new ArrayList<>();
 	private List<String> dstSideIdList = new ArrayList<>();
+	private List<Alias> relatedAliases = new ArrayList<>();
+	public static final String SRC_SIDE = "SrcSide";
+	public static final String DST_SIDE = "DstSide";
 	
 	public DeltaRelatedAliasCollector(String srcId, String dstId) {
 		srcSideIdList.add(srcId);
@@ -16,6 +19,7 @@ public class DeltaRelatedAliasCollector implements IAliasCollector {
 	
 	@Override
 	public void addAlias(Alias alias) {
+		relatedAliases.add(alias);
 		String objId = alias.getObjectId();
 		String srcOrDst = "";
 		if (srcSideIdList.contains(objId) && !(dstSideIdList.contains(objId))) {
@@ -65,19 +69,32 @@ public class DeltaRelatedAliasCollector implements IAliasCollector {
 		}
 	}
 	
-	public List<Alias> getSrcSideRelatedAliases() {
-		return srcSideRelatedAliases;
-	}
-
-	public List<Alias> getDstSideRelatedAliases() {
-		return dstSideRelatedAliases;
-	}
-
-	public void addSrcSideRelatedAlias(Alias alias) {
-		srcSideRelatedAliases.add(alias);
+//	public List<Alias> getSrcSideRelatedAliases() {
+//		return srcSideRelatedAliases;
+//	}
+//
+//	public List<Alias> getDstSideRelatedAliases() {
+//		return dstSideRelatedAliases;
+//	}
+//
+//	public void addSrcSideRelatedAlias(Alias alias) {
+//		srcSideRelatedAliases.add(alias);
+//	}
+//	
+//	public void addDstSideRelatedAlias(Alias alias) {
+//		dstSideRelatedAliases.add(alias);
+//	}
+	
+	public List<Alias> getRelatedAliases() {
+		return relatedAliases;
 	}
 	
-	public void addDstSideRelatedAlias(Alias alias) {
-		dstSideRelatedAliases.add(alias);
+	public String resolveSideInTheDelta(Alias alias) {
+		int index;
+		index = srcSideRelatedAliases.indexOf(alias);
+		if (index != -1) return SRC_SIDE;
+		index = dstSideRelatedAliases.indexOf(alias);
+		if (index != -1) return DST_SIDE;
+		return "";
 	}
 }

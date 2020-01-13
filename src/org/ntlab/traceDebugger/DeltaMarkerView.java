@@ -67,8 +67,8 @@ public class DeltaMarkerView extends ViewPart {
 		tree.setLinesVisible(true);
 
 		// テーブルのカラムを作成
-		String[] tableColumnTexts = {"Description", "Object ID", "Object Type", "Alias Type", "Resource", "Location", "Marker"};
-		int[] tableColumnWidth = {140, 100, 100, 150, 100, 60, 100};
+		String[] tableColumnTexts = {"Description", "Object ID", "Object Type", "Alias Type", "Source", "Line"};
+		int[] tableColumnWidth = {120, 100, 80, 120, 100, 50};
 		TreeColumn[] tableColumns = new TreeColumn[tableColumnTexts.length];
 		for (int i = 0; i < tableColumns.length; i++) {
 			tableColumns[i] = new TreeColumn(tree, SWT.NULL);
@@ -88,12 +88,22 @@ public class DeltaMarkerView extends ViewPart {
 				IMarker marker = (IMarker)value;
 				try {
 					DebuggingController controller = DebuggingController.getInstance();
-					controller.jumpToTheTracePoint(coordinatorPoint);
+					Object obj = marker.getAttribute("data");
+					TracePoint jumpPoint = coordinatorPoint;
+					if (obj instanceof Alias) {
+						jumpPoint = ((Alias)obj).getOccurrencePoint();
+					} else if (obj instanceof TracePoint) {
+						jumpPoint = (TracePoint)obj;
+					}
+					controller.jumpToTheTracePoint(jumpPoint);
+					
 					IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 					IDE.openEditor(page, marker);
-					highlightInCallStacks(marker);
+//					highlightInCallStack(marker);
+					highlightInCallStack(deltaMarkerManager.getCoordinatorDeltaMarker());
 					VariableView variableView = (VariableView)getOtherView(VariableView.ID);
 					variableView.expandParticularNodes(deltaMarkerManager.getMarkers());
+					setFocus();
 				} catch (CoreException e) {
 					e.printStackTrace();
 				}
@@ -163,14 +173,16 @@ public class DeltaMarkerView extends ViewPart {
 		this.coordinatorPoint = coordinatorPoint;
 	}
 	
-	private void highlightInCallStacks(IMarker marker) {
+	private void highlightInCallStack(IMarker marker) {
 		CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
-		callStackView.updateByTracePoint(bottomPoint);
+//		callStackView.updateByTracePoint(bottomPoint);
 		try {
 			Object obj = marker.getAttribute("data");
 			String signature1 = "";
 			if (obj instanceof Alias) {
 				signature1 = ((Alias)obj).getMethodSignature();
+			} else if (obj instanceof TracePoint) {
+				signature1 = ((TracePoint)obj).getMethodExecution().getCallerSideSignature();
 			} else if (obj instanceof MethodExecution) {
 				signature1 = ((MethodExecution)obj).getCallerSideSignature();
 			}

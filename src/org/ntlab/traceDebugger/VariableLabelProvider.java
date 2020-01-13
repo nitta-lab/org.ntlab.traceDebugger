@@ -47,22 +47,21 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 
 	@Override
 	public Color getForeground(Object element, int columnIndex) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Color getBackground(Object element, int columnIndex) {
-		// TODO Auto-generated method stub
 		if (element instanceof TreeNode) {
 			Object value = ((TreeNode)element).getValue();
 			if (value instanceof Variable) {
 				Variable variable = (Variable)value;
 				if (variable.isSrcSideRelatedDelta()) {
-					org.eclipse.swt.graphics.Color color = new org.eclipse.swt.graphics.Color(Display.getDefault(), 255, 128, 0);
-					return color;
+					return new Color(Display.getDefault(), 255, 128, 0);
 				}
-				if (variable.isDstSideRelatedDelta()) return Display.getDefault().getSystemColor(SWT.COLOR_CYAN); 
+				if (variable.isDstSideRelatedDelta()) {
+					return Display.getDefault().getSystemColor(SWT.COLOR_CYAN); 
+				}
 			}
 		}
 		return null;

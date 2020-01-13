@@ -30,20 +30,35 @@ public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLab
 						return "" + marker.getAttribute(IMarker.MESSAGE);
 					case 1:
 						Object objectId = marker.getAttribute("objectId");
-						return (objectId != null) ? "" + objectId : null;
+						return (objectId != null) ? objectId.toString() : null;
 					case 2:
 						Object objectType = marker.getAttribute("objectType");
-						return (objectType != null) ? "" + objectType : null;
+						return (objectType != null) ? objectType.toString() : null;
 					case 3:
-						Object aliasType = marker.getAttribute("aliasType");
-						return (aliasType != null) ? ((Alias.AliasType)aliasType).toString() : null;
+						Object obj = marker.getAttribute("aliasType");
+						if (obj == null) return null;
+						// note: スネークケースをパスカルケース(ただし単語間を空白で区切る)に変える
+						String aliasType = obj.toString();
+						aliasType = aliasType.toLowerCase().replace("_", " ");
+						StringBuilder sb = new StringBuilder();
+						for (int index = -1;;) {
+							sb.append(aliasType.substring(index + 1, index + 2).toUpperCase());
+							int nextIndex = aliasType.indexOf(" ", index + 1);
+							if (nextIndex == -1) {
+								sb.append(aliasType.substring(index + 2));
+								break;
+							} else {
+								sb.append(aliasType.substring(index + 2, nextIndex + 1));
+								index = nextIndex;
+							}
+						}
+						aliasType = sb.toString();
+						return aliasType;
 					case 4:
-						return marker.getResource().toString();
+						String resource = marker.getResource().toString();
+						return resource.substring(resource.lastIndexOf("/") + 1);
 					case 5:
-						return "line " + marker.getAttribute(IMarker.LINE_NUMBER);
-					case 6:
-						String markerType = marker.getType();
-						return markerType.substring(markerType.lastIndexOf(".") + 1);
+						return "line: " + marker.getAttribute(IMarker.LINE_NUMBER);
 					}
 				} catch(CoreException e) {
 					e.printStackTrace();
@@ -55,12 +70,12 @@ public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLab
 	
 	@Override
 	public Image getColumnImage(Object element, int columnIndex) {
-		if (element instanceof TreeNode) {
-			Object value = ((TreeNode)element).getValue(); 
-			if (value instanceof String && columnIndex == 0) {
-				return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);	
-			}
-		}
+//		if (element instanceof TreeNode) {
+//			Object value = ((TreeNode)element).getValue(); 
+//			if (value instanceof String && columnIndex == 0) {
+//				return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);	
+//			}
+//		}
 		return null;
 	}
 

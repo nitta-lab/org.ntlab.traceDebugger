@@ -43,20 +43,18 @@ public class CallStackLabelProvider extends LabelProvider implements IColorProvi
 
 	@Override
 	public Color getForeground(Object element) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Color getBackground(Object element) {
-		// TODO Auto-generated method stub
 		if (element instanceof TreeNode) {
 			Object value = ((TreeNode)element).getValue();
 			if (value instanceof CallStackModel) {
 				CallStackModel callStackModel = (CallStackModel)value;
 				if (callStackModel.isHighlighting()) {
-//					return Display.getDefault().getSystemColor(SWT.COLOR_CYAN);
-					return Display.getDefault().getSystemColor(SWT.COLOR_CYAN);
+//					return new Color(Display.getDefault(), 0, 192, 255);
+					return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
 				}
 			}
 		}
