@@ -92,28 +92,13 @@ public class DebuggingController {
 		return true;
 	}
 	
-//	public boolean debugAction() {
-//		if (TraceDebuggerPlugin.getAnalyzer() == null) {
-//			MessageDialog.openInformation(null, "Error", "Trace file was not found");
-//			return false;
-//		}
-//		terminateAction();		
-//		traceBreakPoints.resetAll();
-//		debuggingTp = traceBreakPoints.getNextTracePoint(0L);
-//		if (debuggingTp == null) return false;
-//		refresh(false);
-//		return true;
-//	}
-	
 	public boolean debugAction() {
 		if (TraceDebuggerPlugin.getAnalyzer() == null) {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
 			return false;
 		}
 		terminateAction();		
-//		traceBreakPoints.resetAll();
 		traceBreakPoints.reset();
-//		debuggingTp = traceBreakPoints.getNextTracePoint(0L);
 		debuggingTp = traceBreakPoints.getFirstTracePoint();
 		if (debuggingTp == null) return false;
 		refresh(false);
@@ -135,7 +120,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-//		traceBreakPoints.forwardAll(debuggingTp.getStatement().getTimeStamp());
 		refresh(false);
 		return true;
 	}
@@ -153,7 +137,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-//		traceBreakPoints.forwardAll(debuggingTp.getStatement().getTimeStamp());
 		refresh(isReturned);
 		return true;
 	}
@@ -167,7 +150,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-//		traceBreakPoints.forwardAll(debuggingTp.getStatement().getTimeStamp());
 		refresh(true);
 		return true;
 	}
@@ -181,7 +163,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-//		traceBreakPoints.forwardAll(debuggingTp.getStatement().getTimeStamp());
 		refresh(false);
 		return true;
 	}
@@ -195,7 +176,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-//		traceBreakPoints.reverseAll(debuggingTp.getStatement().getTimeStamp());
 		refresh(true);
 		return true;
 	}
@@ -213,7 +193,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-//		traceBreakPoints.reverseAll(debuggingTp.getStatement().getTimeStamp());
 		refresh(!isReturned);
 		return true;
 	}
@@ -227,7 +206,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-//		traceBreakPoints.reverseAll(debuggingTp.getStatement().getTimeStamp());
 		refresh(false);
 		return true;
 	}
@@ -241,7 +219,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-//		traceBreakPoints.reverseAll(debuggingTp.getStatement().getTimeStamp());
 		refresh(false);
 		return true;
 	}
@@ -265,7 +242,6 @@ public class DebuggingController {
 		callStackView.updateByTracePoint(debuggingTp);
 		callStackView.refresh();
 		((VariableView)getOtherView(VariableView.ID)).updateVariablesByTracePoint(debuggingTp, isReturned);
-//		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
 	}
 
 	private IViewPart getOtherView(String viewId) {

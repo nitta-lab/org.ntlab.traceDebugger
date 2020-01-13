@@ -2,11 +2,8 @@ package org.ntlab.traceDebugger.analyzerProvider;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.runtime.CoreException;
@@ -27,11 +24,7 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.viewers.TreeNode;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.editors.text.FileDocumentProvider;
-import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.part.FileEditorInput;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayCreate;
@@ -86,37 +79,6 @@ public class DeltaMarkerManager {
 		roots[1].setChildren(treeNodeList.toArray(new TreeNode[treeNodeList.size()]));
 		return roots;
 	}
-	
-//	public TreeNode[] getMarkerTreeNodes() {
-//		TreeNode[] roots = new TreeNode[] {
-//				new TreeNode("Bottom"),
-//				new TreeNode("Coordinator"),
-//				new TreeNode("SrcSide"),
-//				new TreeNode("DstSide")
-//		};
-//		List<TreeNode> srcSideTreeNodeList = new ArrayList<>();
-//		List<TreeNode> dstSideTreeNodeList = new ArrayList<>();
-//		for (Map.Entry<String, List<IMarker>> entry : markers.entrySet()) {
-//			String markerId = entry.getKey();
-//			for (IMarker marker : entry.getValue()) {
-//				TreeNode node = new TreeNode(marker);
-//				if (markerId.equals(BOTTOM_DELTA_MARKER)) {
-//					roots[0] = node;
-//				} else if (markerId.equals(COORDINATOR_DELTA_MARKER)) {
-//					roots[1] = node;
-//				} else if (markerId.equals(SRC_SIDE_DELTA_MARKER)) {
-//					node.setParent(roots[2]);
-//					srcSideTreeNodeList.add(node);
-//				} else if (markerId.equals(DST_SIDE_DELTA_MARKER)) {
-//					node.setParent(roots[3]);
-//					dstSideTreeNodeList.add(node);
-//				}
-//			}
-//		}
-//		roots[2].setChildren(srcSideTreeNodeList.toArray(new TreeNode[srcSideTreeNodeList.size()]));
-//		roots[3].setChildren(dstSideTreeNodeList.toArray(new TreeNode[dstSideTreeNodeList.size()]));
-//		return roots;
-//	}
 	
 	public IMarker getCoordinatorDeltaMarker() {
 		List<IMarker> markers = markerIdToMarkers.get(COORDINATOR_DELTA_MARKER);

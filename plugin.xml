@@ -48,7 +48,7 @@
    <extension
          point="org.ntlab.traceAnalysisPlatform.additionalClasspaths">
       <classpath
-            class="org.ntlab.traceDebugger.analyzerProvider.ObjectFlowAnalyzerLaunchConfiguration">
+            class="org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzerLaunchConfiguration">
       </classpath>
    </extension>
    <extension

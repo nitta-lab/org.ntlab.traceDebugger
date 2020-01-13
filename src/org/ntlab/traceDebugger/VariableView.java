@@ -14,12 +14,9 @@ import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
-import org.eclipse.jface.viewers.IBaseLabelProvider;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.jface.viewers.ITableColorProvider;
 import org.eclipse.jface.viewers.ITreeViewerListener;
-import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TreeExpansionEvent;
 import org.eclipse.jface.viewers.TreeNode;
@@ -202,19 +199,6 @@ public class VariableView extends ViewPart {
 		expandParticularNodes(srcSideIdSet, dstSideIdSet, expandNodes, node);
 		viewer.setExpandedElements(expandNodes.toArray(new Object[expandNodes.size()]));
 	}
-		
-//	public void expandParticularNodes(Map<String, Set<String>> markerIdToObjectIdSet) {
-//		Set<String> srcSideIdSet = new HashSet<>(markerIdToObjectIdSet.get(DeltaMarkerManager.DELTA_MARKER_ID));
-//		Set<String> dstSideIdSet = new HashSet<>(markerIdToObjectIdSet.get(DeltaMarkerManager.DELTA_MARKER_ID_2));
-//		Set<TreeNode> expandNodes = new HashSet<>();
-//		Object obj = viewer.getTree().getTopItem().getData();
-//		if (!(obj instanceof TreeNode)) return;
-//		TreeNode node = (TreeNode)obj;
-//		Object value = node.getValue();
-//		if (!(value instanceof Variable)) return;
-//		expandParticularNodes(srcSideIdSet, dstSideIdSet, expandNodes, node);
-//		viewer.setExpandedElements(expandNodes.toArray(new Object[expandNodes.size()]));
-//	}
 	
 	private void expandParticularNodes(Set<String> srcSideIdSet, Set<String> dstSideIdSet, Set<TreeNode> expandNodes, TreeNode node) {
 		Object value = node.getValue();

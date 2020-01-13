@@ -51,9 +51,6 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		DeltaRelatedAliasCollector aliasCollector = new DeltaRelatedAliasCollector(srcId, dstId);
 		extractedStructure = deltaExtractor.extract(reference, before.duplicate(), aliasCollector);
 		MethodExecution creationCallTree = extractedStructure.getCreationCallTree();
-//		List<Alias> srcSideRelatedAliases = aliasCollector.getSrcSideRelatedAliases();
-//		List<Alias> dstSideRelatedAliases = aliasCollector.getDstSideRelatedAliases();
-//		List<Alias> relatedAliases = aliasCollector.getRelatedAliases();
 		MethodExecution coordinator = extractedStructure.getCoordinator();
 		TracePoint bottomPoint = findTracePoint(reference, creationCallTree, before.getStatement().getTimeStamp());
 		deltaMarkerView.setBottomPoint(bottomPoint);
@@ -73,7 +70,6 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 
 		// デルタ抽出の結果を元にソースコードを反転表示する
 		DeltaMarkerManager mgr = deltaMarkerView.getDeltaMarkerManager();
-//		mark(mgr, bottomPoint, relatedAliases, coordinator);
 		mark(mgr, coordinator, aliasCollector, bottomPoint);
 		deltaMarkerView.update();
 	}
@@ -113,23 +109,6 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		}
 		mgr.markAndOpenJavaFile(bottomPoint, "Bottom", DeltaMarkerManager.BOTTOM_DELTA_MARKER);
 	}	
-	
-//	private void mark(DeltaMarkerManager mgr, TracePoint bottomPoint, List<Alias> srcSideRelatedAliases, List<Alias> dstSideRelatedAliases, MethodExecution coordinator) {
-//		mgr.markAndOpenJavaFile(bottomPoint, "Bottom", DeltaMarkerManager.BOTTOM_DELTA_MARKER);
-//		mgr.markAndOpenJavaFile(coordinator, -1 , "Coordinator", DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
-//		int cnt = 1;
-//		for (Alias alias: srcSideRelatedAliases) {
-//			String message = String.format("SrcSide%03d", cnt);
-//			mgr.markAndOpenJavaFile(alias, message, DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
-//			cnt++;
-//		}
-//		cnt = 1;
-//		for (Alias alias : dstSideRelatedAliases) {
-//			String message = String.format("DstSide%03d", cnt);
-//			mgr.markAndOpenJavaFile(alias, message, DeltaMarkerManager.DST_SIDE_DELTA_MARKER);
-//			cnt++;
-//		}
-//	}
 
 	private void reset() {
 		for (DeltaMarkerView deltaMarkerView : deltaMarkerViews.values()) {

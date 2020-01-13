@@ -69,22 +69,6 @@ public class DeltaRelatedAliasCollector implements IAliasCollector {
 		}
 	}
 	
-//	public List<Alias> getSrcSideRelatedAliases() {
-//		return srcSideRelatedAliases;
-//	}
-//
-//	public List<Alias> getDstSideRelatedAliases() {
-//		return dstSideRelatedAliases;
-//	}
-//
-//	public void addSrcSideRelatedAlias(Alias alias) {
-//		srcSideRelatedAliases.add(alias);
-//	}
-//	
-//	public void addDstSideRelatedAlias(Alias alias) {
-//		dstSideRelatedAliases.add(alias);
-//	}
-	
 	public List<Alias> getRelatedAliases() {
 		return relatedAliases;
 	}

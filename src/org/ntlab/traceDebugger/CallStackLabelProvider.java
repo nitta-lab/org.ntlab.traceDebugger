@@ -9,7 +9,6 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
-import org.ntlab.traceAnalysisPlatform.tracer.trace.ThreadInstance;
 
 public class CallStackLabelProvider extends LabelProvider implements IColorProvider {
 	
@@ -53,7 +52,6 @@ public class CallStackLabelProvider extends LabelProvider implements IColorProvi
 			if (value instanceof CallStackModel) {
 				CallStackModel callStackModel = (CallStackModel)value;
 				if (callStackModel.isHighlighting()) {
-//					return new Color(Display.getDefault(), 0, 192, 255);
 					return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
 				}
 			}

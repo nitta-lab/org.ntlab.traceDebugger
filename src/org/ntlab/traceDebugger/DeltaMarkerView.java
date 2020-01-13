@@ -28,25 +28,6 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.analyzerProvider.Alias;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
-//public class DeltaMarkerView extends MarkerSupportView {
-//	private DeltaMarkerManager deltaMarkerManager;
-//	public static String ID = "org.ntlab.traceDebugger.deltaMarkerView";
-//	
-//	public DeltaMarkerView() {
-//		super("org.ntlab.traceDebugger.markerContentGenerator");
-//	}
-//	
-//	@Override
-//	public void init(IViewSite site, IMemento m) throws PartInitException {
-//		// note: このメソッドをオーバーライドしてIMementoをnullにしておかないとコンストラクタで設定したGeneratorが無視される
-//		super.init(site, null);
-//	}
-//	
-//	public DeltaMarkerManager getDeltaMarkerManager() {
-//		return deltaMarkerManager;
-//	}
-//}
-
 public class DeltaMarkerView extends ViewPart {
 	private TreeViewer viewer;
 	private Shell shell;
@@ -99,7 +80,6 @@ public class DeltaMarkerView extends ViewPart {
 					
 					IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 					IDE.openEditor(page, marker);
-//					highlightInCallStack(marker);
 					highlightInCallStack(deltaMarkerManager.getCoordinatorDeltaMarker());
 					VariableView variableView = (VariableView)getOtherView(VariableView.ID);
 					variableView.expandParticularNodes(deltaMarkerManager.getMarkers());
@@ -175,7 +155,6 @@ public class DeltaMarkerView extends ViewPart {
 	
 	private void highlightInCallStack(IMarker marker) {
 		CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
-//		callStackView.updateByTracePoint(bottomPoint);
 		try {
 			Object obj = marker.getAttribute("data");
 			String signature1 = "";

@@ -10,9 +10,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
-import org.ntlab.traceDebugger.analyzerProvider.Alias;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLabelProvider, ITableColorProvider {
