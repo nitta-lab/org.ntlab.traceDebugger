@@ -227,10 +227,10 @@ public class DebuggingController {
 	 * 現在のデバッグ位置を指定したトレースポイントに合わせる
 	 * @return
 	 */
-	public boolean jumpToTheTracePoint(TracePoint tp) {
+	public boolean jumpToTheTracePoint(TracePoint tp, boolean isReturned) {
 		if (tp == null) return false;
 		debuggingTp = tp.duplicate();
-		refresh(false);
+		refresh(isReturned);
 		return true;
 	}
 	
@@ -240,7 +240,6 @@ public class DebuggingController {
 		JavaEditorOperator.openSrcFileOfMethodExecution(me, lineNo);		
 		CallStackView callStackView = ((CallStackView)getOtherView(CallStackView.ID));
 		callStackView.updateByTracePoint(debuggingTp);
-		callStackView.refresh();
 		((VariableView)getOtherView(VariableView.ID)).updateVariablesByTracePoint(debuggingTp, isReturned);
 	}
 

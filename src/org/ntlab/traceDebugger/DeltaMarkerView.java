@@ -1,7 +1,5 @@
 package org.ntlab.traceDebugger;
 
-import java.util.List;
-import java.util.Map;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.action.IMenuManager;
@@ -26,6 +24,8 @@ import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.analyzerProvider.Alias;
+import org.ntlab.traceDebugger.analyzerProvider.Alias.AliasType;
+
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class DeltaMarkerView extends ViewPart {
@@ -66,23 +66,38 @@ public class DeltaMarkerView extends ViewPart {
 				if (!(element instanceof TreeNode)) return;
 				Object value = ((TreeNode)element).getValue();
 				if (!(value instanceof IMarker)) return;
-				IMarker marker = (IMarker)value;
+				IMarker selectionMarker = (IMarker)value;
 				try {
 					DebuggingController controller = DebuggingController.getInstance();
-					Object obj = marker.getAttribute("data");
-					TracePoint jumpPoint = coordinatorPoint;
+					Object obj = selectionMarker.getAttribute("data");
+					TracePoint jumpPoint;
+					MethodExecution selectionME;
+					boolean isReturned = false;
 					if (obj instanceof Alias) {
-						jumpPoint = ((Alias)obj).getOccurrencePoint();
+						Alias alias = (Alias)obj;
+						jumpPoint = alias.getOccurrencePoint();
+						selectionME = jumpPoint.getMethodExecution();
+						Alias.AliasType type = alias.getAliasType();
+						isReturned = type.equals(AliasType.METHOD_INVOCATION)
+										|| type.equals(AliasType.CONSTRACTOR_INVOCATION); 
 					} else if (obj instanceof TracePoint) {
 						jumpPoint = (TracePoint)obj;
+						selectionME = jumpPoint.getMethodExecution();
+					} else {
+						jumpPoint = coordinatorPoint;
+						selectionME = coordinatorPoint.getMethodExecution();
 					}
-					controller.jumpToTheTracePoint(jumpPoint);
-					
+					controller.jumpToTheTracePoint(jumpPoint, isReturned);
 					IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-					IDE.openEditor(page, marker);
-					highlightInCallStack(deltaMarkerManager.getCoordinatorDeltaMarker());
-					VariableView variableView = (VariableView)getOtherView(VariableView.ID);
-					variableView.expandParticularNodes(deltaMarkerManager.getMarkers());
+					IDE.openEditor(page, selectionMarker);
+
+					CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID, null);
+					callStackView.highlight(coordinatorPoint.getMethodExecution());
+					VariableView variableView = (VariableView)getOtherView(VariableView.ID, null);
+					variableView.markAndExpandVariablesByDeltaMarker(deltaMarkerManager.getMarkers());
+					CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID, null));
+//					CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID, subId));
+					callTreeView.highlight(selectionME);
 					setFocus();
 				} catch (CoreException e) {
 					e.printStackTrace();
@@ -153,40 +168,16 @@ public class DeltaMarkerView extends ViewPart {
 		this.coordinatorPoint = coordinatorPoint;
 	}
 	
-	private void highlightInCallStack(IMarker marker) {
-		CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
-		try {
-			Object obj = marker.getAttribute("data");
-			String signature1 = "";
-			if (obj instanceof Alias) {
-				signature1 = ((Alias)obj).getMethodSignature();
-			} else if (obj instanceof TracePoint) {
-				signature1 = ((TracePoint)obj).getMethodExecution().getCallerSideSignature();
-			} else if (obj instanceof MethodExecution) {
-				signature1 = ((MethodExecution)obj).getCallerSideSignature();
-			}
-			Map<String, List<CallStackModel>> threadIdTocallStackModels = callStackView.getCallStackModels();
-			for (List<CallStackModel> callStackModels : threadIdTocallStackModels.values()) {
-				for (CallStackModel callStackModel : callStackModels) {
-					String signature2 = callStackModel.getMethodExecution().getCallerSideSignature();
-					callStackModel.setHighlighting(signature1.equals(signature2));
-				}
-			}
-			callStackView.refresh();
-		} catch (CoreException e) {
-			e.printStackTrace();
-		}
-	}
-	
 	public void dispose() {
 		deltaMarkerManager.clearAllMarkers();
 		super.dispose();
 	}
 	
-	private IViewPart getOtherView(String viewId) {
+	private IViewPart getOtherView(String viewId, String subId) {
 		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		try {
-			return workbenchPage.showView(viewId);
+			if (subId == null) return workbenchPage.showView(viewId);
+			return workbenchPage.showView(viewId, subId, IWorkbenchPage.VIEW_ACTIVATE);
 		} catch (PartInitException e) {
 			throw new RuntimeException(e);
 		}	

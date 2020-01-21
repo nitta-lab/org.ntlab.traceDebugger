@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.jdt.core.Flags;
 import org.eclipse.jdt.core.IField;
@@ -29,8 +31,7 @@ public class Variable {
 	private DeepHierarchy deepHierarchy;
 	private boolean alreadyCreatedChildHierarchy = false;
 	private boolean alreadyCreatedGrandChildHierarchy = false;
-	private boolean isSrcSideRelatedDelta = false;
-	private boolean isDstSideRelatedDelta = false;
+	private Map<String, Object> additionalAttributes = new HashMap<>();
 	
 	public Variable(String variableName, String containerClassName, String containerId,
 			String className, String id, TracePoint before, boolean isReturned) {
@@ -221,23 +222,14 @@ public class Variable {
 		}
 	}
 	
-	public boolean isSrcSideRelatedDelta() {
-		return isSrcSideRelatedDelta;
+	public void addAdditionalAttribute(String key, Object value) {
+		additionalAttributes.put(key, value);
 	}
 	
-	public void setSrcSideRelatedDelta(boolean isSrcSideRelatedDelta) {
-		this.isSrcSideRelatedDelta = isSrcSideRelatedDelta;
+	public Object getAdditionalAttribute(String key) {
+		return additionalAttributes.get(key);
 	}
-	
-	public boolean isDstSideRelatedDelta() {
-		return isDstSideRelatedDelta;
-	}
-	
-	public void setDstSideRelatedDelta(boolean isDstSideRelatedDelta) {
-		this.isDstSideRelatedDelta = isDstSideRelatedDelta;
-	}
-	
-	
+
 	private enum DeepHierarchy {
 		NONE, FIELD, ARRAY;
 	}

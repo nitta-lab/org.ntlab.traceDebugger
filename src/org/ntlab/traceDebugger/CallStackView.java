@@ -96,6 +96,7 @@ public class CallStackView extends ViewPart {
 	
 	public void updateByTracePoint(TracePoint tp) {
 		callStackModels.updateByTracePoint(tp);
+		refresh();
 	}
 
 	public void refresh() {
@@ -120,6 +121,11 @@ public class CallStackView extends ViewPart {
 		return callStackModels.getAllCallStacks();
 	}
 	
+	public void highlight(MethodExecution methodExecution) {
+		callStackModels.highlight(methodExecution);
+		viewer.refresh();
+	}
+
 	private IViewPart getOtherView(String viewId) {
 		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		try {

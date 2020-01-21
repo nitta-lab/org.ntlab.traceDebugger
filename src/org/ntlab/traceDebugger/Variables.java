@@ -2,6 +2,8 @@ package org.ntlab.traceDebugger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IType;
@@ -14,24 +16,22 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 
 public class Variables {
 	private static final Variables theInstance = new Variables();
-	private Variable rootThisObjData;
-	private List<Variable> argsData = new ArrayList<>();
-	private List<Variable> allObjData = new ArrayList<>();
+	private List<Variable> roots = new ArrayList<>();
 
 	public static Variables getInstance() {
 		return theInstance;
 	}
 
 	public TreeNode[] getVariablesTreeNodes() {
-		TreeNode[] roots = new TreeNode[allObjData.size()];
-		if (allObjData.isEmpty()) {
-			return roots;
+		TreeNode[] rootNodes = new TreeNode[roots.size()];
+		if (roots.isEmpty()) {
+			return rootNodes;
 		}
-		for (int i = 0; i < allObjData.size(); i++) {
-			Variable rootVariableData = allObjData.get(i);
-			createVariablesTreeNode(null, roots, i, rootVariableData);
+		for (int i = 0; i < roots.size(); i++) {
+			Variable rootVariableData = roots.get(i);
+			createVariablesTreeNode(null, rootNodes, i, rootVariableData);
 		}
-		return roots;
+		return rootNodes;
 	}
 
 	private void createVariablesTreeNode(TreeNode parentNode, TreeNode[] addingNodes, int index, Variable addingVariableData) {
@@ -46,45 +46,38 @@ public class Variables {
 		}
 	}
 
-	public List<Variable> getAllObjectDataByMethodExecution(MethodExecution methodExecution) {
-		if (methodExecution == null) return new ArrayList<>();			
+	public void updateAllObjectDataByMethodExecution(MethodExecution methodExecution) {
+		if (methodExecution == null) return;			
 		List<Statement> statements = methodExecution.getStatements();
 		int lastOrder = statements.size() - 1;
 		TracePoint tp  = methodExecution.getTracePoint(lastOrder);
-		getAllObjectData(methodExecution, tp, false);
-		return allObjData;
+		updateAllObjectData(methodExecution, tp, false);
 	}
 	
-	public List<Variable> getAllObjectDataByTracePoint(TracePoint tp, boolean isReturned) {
+	public void updateAllObjectDataByTracePoint(TracePoint tp, boolean isReturned) {
 		MethodExecution methodExecution = tp.getMethodExecution();
-		getAllObjectData(methodExecution, tp, isReturned);
-		return allObjData;
+		updateAllObjectData(methodExecution, tp, isReturned);
 	}
 	
 	public void resetData() {
-		rootThisObjData = null;
-		argsData.clear();
-		allObjData.clear();
+		roots.clear();
 	}	
 	
-	private void getAllObjectData(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
+	private void updateAllObjectData(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
 		resetData();
-		getRootThisState(methodExecution, tp, isReturned);		
-		getArgsState(methodExecution, tp, isReturned);
-		allObjData.add(rootThisObjData);
-		for (Variable argData : argsData) {
-			allObjData.add(argData);
-		}
+		updateRootThisState(methodExecution, tp, isReturned);		
+		updateArgsState(methodExecution, tp, isReturned);
 	}
 	
-	private void getRootThisState(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
+	private void updateRootThisState(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
 		String thisObjId = methodExecution.getThisObjId();
 		String thisClassName = methodExecution.getThisClassName();
-		rootThisObjData = new Variable("this", null, null, thisClassName, thisObjId, tp, isReturned);
-		rootThisObjData.createNextHierarchyState();
+		Variable variable = new Variable("this", null, null, thisClassName, thisObjId, tp, isReturned);
+		roots.add(variable);
+		variable.createNextHierarchyState();
 	}
 
-	private void getArgsState(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
+	private void updateArgsState(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
 		// methodExecutionが持つargumentsを取得(ArrayList)し、そのargumentsのサイズも取得(int)
 		List<ObjectReference> args = methodExecution.getArguments();
 		if (args.size() > 0) {
@@ -99,7 +92,7 @@ public class Variables {
 				String argType = arg.getActualType();
 				Variable argData = new Variable(argName, null, null, argType, argId, tp, isReturned);
 				argData.createNextHierarchyState();
-				argsData.add(argData);
+				roots.add(argData);
 			}
 		}
 	}
@@ -114,5 +107,23 @@ public class Variables {
 			}
 		}
 		return argNames;
-	}	
+	}
+	
+	public void addAdditionalAttributes(final Set<String> idSet, final Map<String, Object> additionalAttributes) {
+		for (Variable root : roots) {
+			addAdditionalAttributes(root, idSet, additionalAttributes);
+		}
+	}
+	
+	private void addAdditionalAttributes(Variable variable, final Set<String> idSet, final Map<String, Object> additionalAttributes) {
+		if (variable == null) return;
+		if (idSet.contains(variable.getId())) {
+			for (Map.Entry<String, Object> entry : additionalAttributes.entrySet()) {
+				variable.addAdditionalAttribute(entry.getKey(), entry.getValue());	
+			}			
+		}
+		for (Variable child : variable.getChildren()) {
+			addAdditionalAttributes(child, idSet, additionalAttributes);
+		}
+	}
 }

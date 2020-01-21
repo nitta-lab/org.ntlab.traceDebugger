@@ -10,6 +10,7 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
+import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class VariableLabelProvider extends LabelProvider implements ITableLabelProvider, ITableColorProvider {
 	@Override
@@ -56,11 +57,15 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 			Object value = ((TreeNode)element).getValue();
 			if (value instanceof Variable) {
 				Variable variable = (Variable)value;
-				if (variable.isSrcSideRelatedDelta()) {
+				Object markerId = variable.getAdditionalAttribute("markerId");
+				if (!(markerId instanceof String)) return null;
+				switch ((String)markerId) {
+				case DeltaMarkerManager.SRC_SIDE_DELTA_MARKER:
 					return new Color(Display.getDefault(), 255, 128, 0);
-				}
-				if (variable.isDstSideRelatedDelta()) {
-					return Display.getDefault().getSystemColor(SWT.COLOR_CYAN); 
+				case DeltaMarkerManager.DST_SIDE_DELTA_MARKER:
+					return Display.getDefault().getSystemColor(SWT.COLOR_CYAN);
+				case DeltaMarkerManager.COORDINATOR_DELTA_MARKER:
+					return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
 				}
 			}
 		}
