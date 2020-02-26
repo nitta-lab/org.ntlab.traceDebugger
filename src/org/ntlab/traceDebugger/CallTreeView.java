@@ -67,7 +67,7 @@ public class CallTreeView extends ViewPart {
 						}
 						VariableView variableView = ((VariableView)getOtherView(VariableView.ID, null));
 						variableView.updateVariablesByTracePoint(tp, false);
-						variableView.markAndExpandVariablesByDeltaMarker(deltaMarkerManager.getMarkers());
+						variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
 					}
 				}
 			}

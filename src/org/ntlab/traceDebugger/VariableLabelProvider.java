@@ -29,7 +29,10 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 					}
 					return variableName;
 				case 1:
-					return variableData.getClassName() + " (" + "id = " + variableData.getId() + ")";
+					String simpleName = variableData.getClassName();
+					simpleName = simpleName.substring(simpleName.lastIndexOf(".") + 1);
+//					return variableData.getClassName() + " (" + "id = " + variableData.getId() + ")";
+					return simpleName + " (" + "id = " + variableData.getId() + ")";
 				}				
 			}
 		}

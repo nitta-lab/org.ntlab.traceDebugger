@@ -26,13 +26,21 @@ public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLab
 					case 0:
 						return "" + marker.getAttribute(IMarker.MESSAGE);
 					case 1:
-						Object objectId = marker.getAttribute("objectId");
+						Object objectId = marker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_OBJECT_ID);
 						return (objectId != null) ? objectId.toString() : null;
 					case 2:
-						Object objectType = marker.getAttribute("objectType");
-						return (objectType != null) ? objectType.toString() : null;
+						Object objectType = marker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_OBJECT_TYPE);
+						if (objectType == null) return null;
+						StringBuilder simpleObjectTypeName = new StringBuilder();
+						String[] simpleNames = objectType.toString().split(" -> ");
+						simpleObjectTypeName.append(simpleNames[0].substring(simpleNames[0].lastIndexOf(".") + 1));
+						if (simpleNames.length == 2) {
+							simpleObjectTypeName.append(" -> ");
+							simpleObjectTypeName.append(simpleNames[1].substring(simpleNames[1].lastIndexOf(".") + 1));
+						}
+						return simpleObjectTypeName.toString();
 					case 3:
-						Object obj = marker.getAttribute("aliasType");
+						Object obj = marker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_ALIAS_TYPE);
 						if (obj == null) return null;
 						// note: スネークケースをパスカルケース(ただし単語間を空白で区切る)に変える
 						String aliasType = obj.toString();

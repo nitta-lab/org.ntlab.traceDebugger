@@ -162,7 +162,7 @@ public class VariableView extends ViewPart {
 						controller.jumpToTheTracePoint(coordinatorPoint, false);
 
 						DeltaMarkerManager deltaMarkerManager = newDeltaMarkerView.getDeltaMarkerManager();
-						markAndExpandVariablesByDeltaMarker(deltaMarkerManager.getMarkers());
+						markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
 						MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();
 						MethodExecution bottomME = newDeltaMarkerView.getBottomPoint().getMethodExecution();
 						CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
@@ -216,7 +216,7 @@ public class VariableView extends ViewPart {
 		viewer.setInput(variables.getVariablesTreeNodes());
 	}
 	
-	public void markAndExpandVariablesByDeltaMarker(Map<String, List<IMarker>> markers) {
+	public void markAndExpandVariablesByDeltaMarkers(Map<String, List<IMarker>> markers) {
 		List<IMarker> srcSideDeltaMarkers = markers.get(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
 		List<IMarker> dstSideDeltaMarkers = markers.get(DeltaMarkerManager.DST_SIDE_DELTA_MARKER);
 		List<IMarker> coordinatorMarker = markers.get(DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
@@ -233,7 +233,7 @@ public class VariableView extends ViewPart {
 		additionalAttributesForVariables.put("markerId", markerId);
 		for (IMarker marker : markerList) {
 			try {
-				Object data = marker.getAttribute("data");
+				Object data = marker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_DATA);
 				if (data instanceof Alias) {
 					idSet.add(((Alias)data).getObjectId());
 				} else if (data instanceof MethodExecution) {
@@ -251,12 +251,12 @@ public class VariableView extends ViewPart {
 		for (TreeItem item : viewer.getTree().getItems()) {
 			Object obj = item.getData();
 			if (!(obj instanceof TreeNode)) continue;
-			expandMarkedNodes((TreeNode)obj, expandedNodes);
+			collectNodes((TreeNode)obj, expandedNodes);
 		}
 		viewer.setExpandedElements(expandedNodes.toArray(new Object[expandedNodes.size()]));
 	}
 	
-	private void expandMarkedNodes(TreeNode node, final Set<TreeNode> expandedNodes) {
+	private void collectNodes(TreeNode node, final Set<TreeNode> expandedNodes) {
 		Object value = node.getValue();
 		if (!(value instanceof Variable)) return;
 		Variable variable = (Variable)value;
@@ -269,7 +269,7 @@ public class VariableView extends ViewPart {
 		TreeNode[] children = node.getChildren();
 		if (children == null) return;
 		for (TreeNode child : children) {
-			expandMarkedNodes(child, expandedNodes);
+			collectNodes(child, expandedNodes);
 		}
 	}
 	

@@ -18,6 +18,7 @@ import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.Javadoc;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jface.text.BadLocationException;
@@ -43,6 +44,10 @@ public class DeltaMarkerManager {
 	public static final String COORDINATOR_DELTA_MARKER = "org.ntlab.traceDebugger.coordinatorDeltaMarker";
 	public static final String SRC_SIDE_DELTA_MARKER = "org.ntlab.traceDebugger.srcSideDeltaMarker";
 	public static final String DST_SIDE_DELTA_MARKER = "org.ntlab.traceDebugger.dstSideDeltaMarker";
+	public static final String DELTA_MARKER_ATR_DATA = "data";
+	public static final String DELTA_MARKER_ATR_OBJECT_ID = "objectId";
+	public static final String DELTA_MARKER_ATR_OBJECT_TYPE = "objectType";
+	public static final String DELTA_MARKER_ATR_ALIAS_TYPE = "aliasType";
 	
 	public Map<String, List<IMarker>> getMarkers() {
 		return markerIdToMarkers;
@@ -52,7 +57,7 @@ public class DeltaMarkerManager {
 		TreeNode[] roots = new TreeNode[] {
 				new TreeNode("Coordinator"),
 				new TreeNode("Related Aliases"),
-				new TreeNode("Creation Point (Bottom)")
+				new TreeNode("Creation Point")
 		};
 		List<TreeNode> treeNodeList = new ArrayList<>();
 		for (IMarker marker : allMarkers) {
@@ -128,10 +133,10 @@ public class DeltaMarkerManager {
 			setAttributesForAlias(attributes, alias, file, markerId);
 			attributes.put(IMarker.MESSAGE, message);
 			attributes.put(IMarker.TRANSIENT, true);
-			attributes.put("data", alias);
-			attributes.put("objectId", alias.getObjectId());
-			attributes.put("objectType", alias.getObjectType());
-			attributes.put("aliasType", alias.getAliasType());
+			attributes.put(DELTA_MARKER_ATR_DATA, alias);
+			attributes.put(DELTA_MARKER_ATR_OBJECT_ID, alias.getObjectId());
+			attributes.put(DELTA_MARKER_ATR_OBJECT_TYPE, alias.getObjectType());
+			attributes.put(DELTA_MARKER_ATR_ALIAS_TYPE, alias.getAliasType());			
 			marker.setAttributes(attributes);
 			addMarker(markerId, marker);
 			return marker;
@@ -150,9 +155,9 @@ public class DeltaMarkerManager {
 			setAttributesForMethodExecution(attributes, me, file, lineNo, markerId);
 			attributes.put(IMarker.MESSAGE, message);
 			attributes.put(IMarker.TRANSIENT, true);
-			attributes.put("data", tp);
-			attributes.put("objectId", objectId);
-			attributes.put("objectType", objectType);
+			attributes.put(DELTA_MARKER_ATR_DATA, tp);
+			attributes.put(DELTA_MARKER_ATR_OBJECT_ID, objectId);
+			attributes.put(DELTA_MARKER_ATR_OBJECT_TYPE, objectType);
 			marker.setAttributes(attributes);
 			addMarker(markerId, marker);
 			return marker;
@@ -227,7 +232,8 @@ public class DeltaMarkerManager {
 						String src1 = node.toString().replaceAll(" ", "");
 						src1 = src1.substring(0, src1.lastIndexOf("\n"));
 						String src1Head = src1.substring(0, src1.indexOf(")") + 1);
-						String src2 = method.getSource().replaceAll(" |\t|\r", "");						
+						src1Head = src1Head.replaceAll(" |\t|\r|\n", "");
+						String src2 = method.getSource().replaceAll(" |\t|\r|\n", "");
 						return src2.contains(src1Head);
 					} catch (JavaModelException e) {
 						e.printStackTrace();
@@ -276,12 +282,12 @@ public class DeltaMarkerManager {
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
 							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
-							attributes.put(IMarker.CHAR_START, start);
+							int end = start;
 							if (source.startsWith("this.", start)) {
-								attributes.put(IMarker.CHAR_END, start + "this".length());
-							} else {
-								attributes.put(IMarker.CHAR_END, start + node.getLength());
+								end = start + "this".length();
 							}
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}
@@ -290,12 +296,12 @@ public class DeltaMarkerManager {
 							int lineNo = cUnit.getLineNumber(node.getStartPosition());
 							if (lineNo != alias.getLineNo()) return true;
 							int start = node.getStartPosition();
-							attributes.put(IMarker.CHAR_START, start);
+							int end = start;
 							if (source.startsWith("this.", start)) {
-								attributes.put(IMarker.CHAR_END, start + "this".length());
-							} else {
-								attributes.put(IMarker.CHAR_END, start + node.getLength());
+								end = start + "this".length();
 							}
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return true;
 						}
@@ -310,12 +316,12 @@ public class DeltaMarkerManager {
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
 							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
-							attributes.put(IMarker.CHAR_START, start);
+							int end = start;
 							if (source.startsWith("this.", start)) {
-								attributes.put(IMarker.CHAR_END, start + "this".length());
-							} else {
-								attributes.put(IMarker.CHAR_END, start + node.getLength());
+								end = start + "this".length();
 							}
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}						
@@ -323,12 +329,12 @@ public class DeltaMarkerManager {
 						public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
 							int lineNo = cUnit.getLineNumber(node.getStartPosition());
 							int start = node.getExpression().getStartPosition();
-							attributes.put(IMarker.CHAR_START, start);
+							int end = start;
 							if (source.startsWith("this.", start)) {
-								attributes.put(IMarker.CHAR_END, start + "this".length());
-							} else {
-								attributes.put(IMarker.CHAR_END, start + node.getExpression().getLength());
+								end = start + "this".length();
 							}
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}						
@@ -364,10 +370,10 @@ public class DeltaMarkerManager {
 							String name1 = node.toString();
 							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
 							String name2 = calledMe.getCallerSideSignature();
-							name2 = name2.substring(0, name2.indexOf("(") + 1);
+							name2 = name2.substring(name2.lastIndexOf(".") + 1, name2.indexOf("(") + 1);
 							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
-							int end = start + node.getLength();
+							int end = start; // note: コンストラクタ呼び出しに対応するthisはコード中には出てこないため長さ0のマーカーにする
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
@@ -411,7 +417,7 @@ public class DeltaMarkerManager {
 							String name1 = node.toString();
 							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
 							String name2 = calledMe.getCallerSideSignature();
-							name2 = name2.substring(0, name2.indexOf("(") + 1);
+							name2 = name2.substring(name2.lastIndexOf(".") + 1, name2.indexOf("(") + 1);
 							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
 							int end = start + node.getLength();
@@ -425,7 +431,6 @@ public class DeltaMarkerManager {
 				return visitor;
 			}
 			case CONSTRACTOR_INVOCATION: {
-				// note: コンストラクタ呼び出しの際もエイリアスタイプはMETHOD_INVOCATIONになっている?
 				if (statement instanceof MethodInvocation) {
 					final MethodInvocation mi = (MethodInvocation)statement;
 					final MethodExecution calledMe = mi.getCalledMethodExecution();
@@ -437,7 +442,7 @@ public class DeltaMarkerManager {
 							String name1 = node.toString();
 							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
 							String name2 = calledMe.getCallerSideSignature();
-							name2 = name2.substring(0, name2.indexOf("(") + 1);
+							name2 = name2.substring(name2.lastIndexOf(".") + 1, name2.indexOf("(") + 1);
 							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
 							int end = start + node.getLength();
@@ -538,7 +543,6 @@ public class DeltaMarkerManager {
 							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
 							int end = start + node.getLength();
-							// end = start + source.substring(start, end).lastIndexOf(".");
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
@@ -663,9 +667,13 @@ public class DeltaMarkerManager {
 							name2 = name2.substring(0, name2.indexOf("("));
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
 							if (!(name1.equals(name2))) return true;
-							String receiverName = node.getExpression().toString();
 							int start = node.getStartPosition();
-							int end = start + (receiverName).length();
+							int end = start;
+							Expression expression = node.getExpression(); // note: メソッド呼び出しのレシーバ名を取得
+							if (expression != null) {
+								String receiverName = expression.toString(); // note: メソッド呼び出しのレシーバ名まで
+								end = start + receiverName.length();
+							}
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
@@ -727,9 +735,16 @@ public class DeltaMarkerManager {
 								src1 = src1.substring(0, src1.lastIndexOf("\n"));
 								String src1Head = src1.substring(0, src1.indexOf(")") + 1);
 								String src2 = method.getSource().replaceAll(" |\t|\r", "");
-								if (!(src2.contains(src1Head))) return false;
+								if (!(src2.contains(src1Head))) return false;								
 								int start = node.getStartPosition();
 								int end = start + node.toString().indexOf(")") + 1;
+								Javadoc javadoc = node.getJavadoc();
+								if (javadoc != null) {
+									start += javadoc.getLength();
+									start += 5; // note: node.toString()と実際のコードのスペース数の差分だけ詰める仮処理
+									String tmp = node.toString().replace(javadoc.toString(), "");
+									end = start + tmp.indexOf(")") + 1;
+								}
 								int lineNo = cUnit.getLineNumber(node.getStartPosition());
 								attributes.put(IMarker.CHAR_START, start);
 								attributes.put(IMarker.CHAR_END, end);

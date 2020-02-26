@@ -49,7 +49,7 @@ public class DeltaMarkerView extends ViewPart {
 
 		// テーブルのカラムを作成
 		String[] tableColumnTexts = {"Description", "Object ID", "Object Type", "Alias Type", "Source", "Line"};
-		int[] tableColumnWidth = {120, 100, 80, 120, 100, 50};
+		int[] tableColumnWidth = {120, 100, 120, 120, 100, 80};
 		TreeColumn[] tableColumns = new TreeColumn[tableColumnTexts.length];
 		for (int i = 0; i < tableColumns.length; i++) {
 			tableColumns[i] = new TreeColumn(tree, SWT.NULL);
@@ -69,7 +69,7 @@ public class DeltaMarkerView extends ViewPart {
 				IMarker selectionMarker = (IMarker)value;
 				try {
 					DebuggingController controller = DebuggingController.getInstance();
-					Object obj = selectionMarker.getAttribute("data");
+					Object obj = selectionMarker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_DATA);
 					TracePoint jumpPoint;
 					MethodExecution selectionME;
 					boolean isReturned = false;
@@ -94,7 +94,7 @@ public class DeltaMarkerView extends ViewPart {
 					CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID, null);
 					callStackView.highlight(coordinatorPoint.getMethodExecution());
 					VariableView variableView = (VariableView)getOtherView(VariableView.ID, null);
-					variableView.markAndExpandVariablesByDeltaMarker(deltaMarkerManager.getMarkers());
+					variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
 					CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID, null));
 //					CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID, subId));
 					callTreeView.highlight(selectionME);

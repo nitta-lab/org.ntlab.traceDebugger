@@ -35,7 +35,13 @@ public class CallTreeModels {
 			MethodExecution child = children.get(i);
 			boolean isTheLast = createCallTreeModels(childNodes, i, child, theLast);
 			childNodes[i].setParent(nodes[index]);
-			if (isTheLast) return true;
+//			if (isTheLast) return true;
+			if (isTheLast) {
+				for (int j = i + 1; j < children.size(); j++) {
+					childNodes[j] = new TreeNode(null);
+				}
+				return true;
+			}
 		}
 		return false;
 	}

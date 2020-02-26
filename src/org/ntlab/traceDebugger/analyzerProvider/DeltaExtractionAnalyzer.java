@@ -107,7 +107,7 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 				dstSideCnt++;				
 			}
 		}
-		mgr.markAndOpenJavaFile(bottomPoint, "Bottom", DeltaMarkerManager.BOTTOM_DELTA_MARKER);
+		mgr.markAndOpenJavaFile(bottomPoint, "CreationPoint", DeltaMarkerManager.BOTTOM_DELTA_MARKER);
 	}	
 
 	private void reset() {

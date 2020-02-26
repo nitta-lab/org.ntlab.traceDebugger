@@ -11,21 +11,21 @@
             category="org.ntlab.traceDebugger.category"
             class="org.ntlab.traceDebugger.CallStackView"
             id="org.ntlab.traceDebugger.callStackView"
-            name="CallStack (Offline)"
+            name="CallStack"
             restorable="true">
       </view>
       <view
             category="org.ntlab.traceDebugger.category"
             class="org.ntlab.traceDebugger.VariableView"
             id="org.ntlab.traceDebugger.variableView"
-            name="Variable (Offline)"
+            name="Variables"
             restorable="true">
       </view>
       <view
             category="org.ntlab.traceDebugger.category"
             class="org.ntlab.traceDebugger.BreakPointView"
             id="org.ntlab.traceDebugger.breakPointView"
-            name="BreakPoint"
+            name="Breakpoints"
             restorable="true">
       </view>
       <view
@@ -33,7 +33,7 @@
             category="org.ntlab.traceDebugger.category"
             class="org.ntlab.traceDebugger.DeltaMarkerView"
             id="org.ntlab.traceDebugger.deltaMarkerView"
-            name="DeltaMarker"
+            name="DeltaMarkers"
             restorable="true">
       </view>
       <view
