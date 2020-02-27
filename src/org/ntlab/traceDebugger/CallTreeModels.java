@@ -66,21 +66,25 @@ public class CallTreeModels {
 		MethodExecution coordinatorME = deltaMarkerManager.getMethodExecution(coordinatorMarker);
 		CallTreeModel coordinator = new CallTreeModel(coordinatorME);
 		callTreeModelsMemo.put(coordinatorME, coordinator);
-		for (IMarker srcSideMarker : srcSideMarkers) {
-			MethodExecution me = deltaMarkerManager.getMethodExecution(srcSideMarker);
-			CallTreeModel callTreeModel = new CallTreeModel(me);
-			if (!(callTreeModelsMemo.containsKey(me))) {
-				callTreeModelsMemo.put(me, callTreeModel);
-				create(callTreeModel, coordinatorME);
+		if (srcSideMarkers != null) {
+			for (IMarker srcSideMarker : srcSideMarkers) {
+				MethodExecution me = deltaMarkerManager.getMethodExecution(srcSideMarker);
+				CallTreeModel callTreeModel = new CallTreeModel(me);
+				if (!(callTreeModelsMemo.containsKey(me))) {
+					callTreeModelsMemo.put(me, callTreeModel);
+					create(callTreeModel, coordinatorME);
+				}
 			}
 		}
-		for (IMarker dstSideMarker : dstSideMarkers) {
-			MethodExecution me = deltaMarkerManager.getMethodExecution(dstSideMarker);
-			CallTreeModel callTreeModel = new CallTreeModel(me);
-			if (!(callTreeModelsMemo.containsKey(me))) {
-				callTreeModelsMemo.put(me, callTreeModel);
-				create(callTreeModel, coordinatorME);
-			}
+		if (dstSideMarkers != null) {
+			for (IMarker dstSideMarker : dstSideMarkers) {
+				MethodExecution me = deltaMarkerManager.getMethodExecution(dstSideMarker);
+				CallTreeModel callTreeModel = new CallTreeModel(me);
+				if (!(callTreeModelsMemo.containsKey(me))) {
+					callTreeModelsMemo.put(me, callTreeModel);
+					create(callTreeModel, coordinatorME);
+				}
+			}	
 		}
 		MethodExecution bottomME = deltaMarkerManager.getMethodExecution(bottomMarker);
 		CallTreeModel bottom = new CallTreeModel(bottomME);

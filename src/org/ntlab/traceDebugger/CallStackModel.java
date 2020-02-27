@@ -38,7 +38,13 @@ public class CallStackModel {
 		String declaringType = Trace.getDeclaringType(signature, isConstructor);
 		declaringType = declaringType.substring(declaringType.lastIndexOf(".") + 1);
 		String methodName = Trace.getMethodName(signature);
-		String args = "(" + signature.split("\\(")[1];
+		String args = "(";
+		String delimiter = "";
+		String[] argArray = signature.split("\\(")[1].split(",");
+		for (String arg : argArray) {
+			args += (delimiter + arg.substring(arg.lastIndexOf(".") + 1));
+			delimiter = ", ";
+		}
 		
 		StringBuilder sb = new StringBuilder();
 		sb.append(objectType);

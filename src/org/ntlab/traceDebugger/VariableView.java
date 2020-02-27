@@ -222,8 +222,12 @@ public class VariableView extends ViewPart {
 		List<IMarker> srcSideDeltaMarkers = markers.get(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
 		List<IMarker> dstSideDeltaMarkers = markers.get(DeltaMarkerManager.DST_SIDE_DELTA_MARKER);
 		List<IMarker> coordinatorMarker = markers.get(DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
-		markVariables(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER, srcSideDeltaMarkers);
-		markVariables(DeltaMarkerManager.DST_SIDE_DELTA_MARKER, dstSideDeltaMarkers);
+		if (srcSideDeltaMarkers != null) {
+			markVariables(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER, srcSideDeltaMarkers);	
+		}
+		if (dstSideDeltaMarkers != null) {
+			markVariables(DeltaMarkerManager.DST_SIDE_DELTA_MARKER, dstSideDeltaMarkers);	
+		}
 		markVariables(DeltaMarkerManager.COORDINATOR_DELTA_MARKER, coordinatorMarker);
 		viewer.refresh();
 		expandAllMarkedNodes();

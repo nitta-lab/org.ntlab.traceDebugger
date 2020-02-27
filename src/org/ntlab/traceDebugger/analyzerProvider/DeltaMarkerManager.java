@@ -415,10 +415,17 @@ public class DeltaMarkerManager {
 							name2 = name2.substring(0, name2.indexOf("(") + 1);
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
 							if (!(name1.equals(name2))) return true;
-							String receiverName = node.getExpression().toString();
+//							String receiverName = node.getExpression().toString();
+							Expression expression = node.getExpression();
+							String receiverName = "";
+							if (expression != null) {
+								receiverName = expression.toString();
+							}
 							int start = node.getStartPosition();
 							if (source.startsWith("this.", start)) {
 								start += ("this." + receiverName + ".").length();
+							} else if (source.startsWith("super.", start)) {
+								start += ("super." + receiverName + ".").length();
 							} else {
 								start += (receiverName + ".").length();
 							}

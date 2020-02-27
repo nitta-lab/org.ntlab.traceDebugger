@@ -59,13 +59,23 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		MethodExecution me = bottomPoint.getMethodExecution();
 		MethodExecution childMe = null;
 		while (me != null) {
-			childMe = me;
-			me = me.getParent();
 			if (coordinator.equals(me)) {
-				TracePoint coordinatorPoint = childMe.getCallerTracePoint();
+				TracePoint coordinatorPoint;
+				if (childMe != null) {
+					coordinatorPoint = childMe.getCallerTracePoint();
+				} else {
+					coordinatorPoint = bottomPoint;
+				}
 				deltaMarkerView.setCoordinatorPoint(coordinatorPoint);		
 				break;
 			}
+			childMe = me;
+			me = me.getParent();
+//			if (coordinator.equals(me)) {
+//				TracePoint coordinatorPoint = childMe.getCallerTracePoint();
+//				deltaMarkerView.setCoordinatorPoint(coordinatorPoint);		
+//				break;
+//			}
 		}
 
 		// デルタ抽出の結果を元にソースコードを反転表示する
