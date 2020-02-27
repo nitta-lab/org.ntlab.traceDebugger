@@ -168,8 +168,10 @@ public class VariableView extends ViewPart {
 						CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
 						callStackView.highlight(coordinatorME);
 						CallTreeView callTreeView = (CallTreeView)getOtherView(CallTreeView.ID);
-						callTreeView.setSubId(subIdWithNewView);
-						callTreeView.update(coordinatorME, bottomME);
+//						callTreeView.setSubId(subIdWithNewView);
+//						callTreeView.update(coordinatorME, bottomME);
+//						callTreeView.highlight(coordinatorME);
+						callTreeView.update(deltaMarkerManager);
 						callTreeView.highlight(coordinatorME);
 					} catch (PartInitException e) {
 						e.printStackTrace();

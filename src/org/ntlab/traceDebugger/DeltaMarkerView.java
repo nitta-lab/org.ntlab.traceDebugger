@@ -170,6 +170,8 @@ public class DeltaMarkerView extends ViewPart {
 	
 	public void dispose() {
 		deltaMarkerManager.clearAllMarkers();
+		CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID, null));
+		callTreeView.reset();
 		super.dispose();
 	}
 	

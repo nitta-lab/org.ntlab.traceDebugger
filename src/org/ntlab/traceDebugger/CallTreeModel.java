@@ -9,6 +9,8 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
 public class CallTreeModel {
 	private MethodExecution methodExecution;
 	private boolean isHighlighting;
+	private CallTreeModel parent;
+	private List<CallTreeModel> children = new ArrayList<>();
 	
 	public CallTreeModel(MethodExecution methodExecution) {
 		this.methodExecution = methodExecution;
@@ -51,12 +53,28 @@ public class CallTreeModel {
 		this.isHighlighting = isHighlighting;
 	}
 
+//	public List<CallTreeModel> getChildren() {
+//		List<MethodExecution> children = methodExecution.getChildren();
+//		List<CallTreeModel> childrenCallTreeModels = new ArrayList<>();
+//		for (MethodExecution child : children) {
+//			childrenCallTreeModels.add(new CallTreeModel(child));
+//		}
+//		return childrenCallTreeModels;
+//	}
+	
+	public CallTreeModel getParent() {
+		return parent;
+	}
+	
 	public List<CallTreeModel> getChildren() {
-		List<MethodExecution> children = methodExecution.getChildren();
-		List<CallTreeModel> childrenCallTreeModels = new ArrayList<>();
-		for (MethodExecution child : children) {
-			childrenCallTreeModels.add(new CallTreeModel(child));
-		}
-		return childrenCallTreeModels;
+		return children;
+	}
+	
+	public void setParent(CallTreeModel parent) {
+		this.parent = parent;
+	}
+	
+	public void addChildren(CallTreeModel child) {
+		this.children.add(child);
 	}
 }

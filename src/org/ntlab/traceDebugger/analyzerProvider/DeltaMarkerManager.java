@@ -96,6 +96,24 @@ public class DeltaMarkerManager {
 		if (markers == null || markers.isEmpty()) return null;
 		return markers.get(0);
 	}
+	
+	public MethodExecution getMethodExecution(IMarker deltaMarker) {
+		try {
+			Object data = deltaMarker.getAttribute(DELTA_MARKER_ATR_DATA);
+			if (data instanceof MethodExecution) {
+				return (MethodExecution) data;
+			} else if (data instanceof TracePoint) {
+				TracePoint tp = (TracePoint)data;
+				return tp.getMethodExecution();
+			} else if (data instanceof Alias) {
+				Alias alias = (Alias)data;
+				return alias.getMethodExecution();
+			}
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 
 	public void markAndOpenJavaFile(Alias alias, String message, String markerId) {
 		IFile file = JavaEditorOperator.findIFile(alias.getMethodExecution());
