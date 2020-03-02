@@ -1,16 +1,13 @@
 package org.ntlab.traceDebugger;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.core.IClasspathEntry;
@@ -33,7 +30,6 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.ntlab.traceAnalysisPlatform.PathUtility;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ClassInfo;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
@@ -183,32 +179,28 @@ public class JavaEditorOperator {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IProject[] projects = workspace.getRoot().getProjects();
 		String projectName = "";
+		String srcForderName = "/src";
+		boolean hasFoundSrcForderName = false;
 		for (IProject project : projects) {
 			projectName = project.getFullPath().toString();
-			if (tmp.contains(projectName + "/")) break;
-//			IJavaProject javaProject = JavaCore.create(project);
-//			javaProject.getAllPackageFragmentRoots();
-//			try {
-//				for (IClasspathEntry entry : javaProject.getResolvedClasspath(true)) {
-//					switch (entry.getEntryKind()) {
-//					case IClasspathEntry.CPE_SOURCE:
-//						IPath outputLocation = entry.getOutputLocation();
-//						if (outputLocation != null) {
-//							// If the output folder is specified individually.
-//							URI path = PathUtility.workspaceRelativePathToAbsoluteURI(outputLocation, workspace);
-//							String outputClassPath = PathUtility.URIPathToPath(path.getPath());
-//							System.out.println(outputClassPath);
-//						}
-//						break;
-//					}
-//				}
-//			} catch (JavaModelException e) {
-//				e.printStackTrace();
-//			}
+//			if (tmp.contains(projectName + "/")) break;
+			if (!(tmp.contains(projectName + "/"))) continue;
+			IJavaProject javaProject = JavaCore.create(project);
+			try {
+				for (IClasspathEntry entry : javaProject.getResolvedClasspath(true)) {
+					if (entry.getEntryKind() != IClasspathEntry.CPE_SOURCE) continue;
+					IPath srcForderPath = entry.getPath();
+					srcForderName = srcForderPath.toString();
+					hasFoundSrcForderName = true;
+					break;
+				}
+			} catch (JavaModelException e) {
+				e.printStackTrace();
+			}
+			if (hasFoundSrcForderName) break;
 		}
 		tmp = tmp.replace(tmp.substring(0, tmp.lastIndexOf(projectName)), "");
-//		tmp = tmp.replace("/bin/", "/src/");
-		tmp = tmp.replace("/bin/", "/java/");
+		tmp = tmp.replace("/bin", srcForderName.substring(srcForderName.lastIndexOf("/")));
 		tmp = tmp.replace(".class", ".java");
 		String filePath = tmp;
 		IPath path = new Path(filePath);
