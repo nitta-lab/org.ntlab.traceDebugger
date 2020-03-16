@@ -23,9 +23,10 @@ import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
+import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.Alias;
 import org.ntlab.traceDebugger.analyzerProvider.Alias.AliasType;
-
+import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class DeltaMarkerView extends ViewPart {
@@ -131,6 +132,10 @@ public class DeltaMarkerView extends ViewPart {
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
+		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
+		if (analyzer instanceof DeltaExtractionAnalyzer) {
+			((DeltaExtractionAnalyzer)analyzer).setActiveDeltaMarkerView(this);
+		}
 		viewer.getControl().setFocus();
 	}
 	

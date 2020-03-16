@@ -36,6 +36,10 @@ public class DebuggingController {
 		this.selectedTraceBreakPoint = tbp;
 	}
 	
+	public TracePoint getCurrentTp() {
+		return debuggingTp.duplicate();
+	}
+	
 	public boolean fileOpenAction(Shell shell) {
 		FileDialog fileDialog = new FileDialog(shell, SWT.OPEN);
 		fileDialog.setText("Open Trace File");

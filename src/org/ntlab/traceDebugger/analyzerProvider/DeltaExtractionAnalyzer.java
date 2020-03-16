@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.ui.IViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Reference;
@@ -13,6 +14,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.DeltaMarkerView;
+import org.ntlab.traceDebugger.TraceDebuggerPlugin;
 import org.ntlab.traceDebugger.Variable;
 
 public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
@@ -20,6 +22,7 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 	private DeltaExtractorJSON deltaExtractor;
 	private ExtractedStructure extractedStructure;
 	private Map<String, DeltaMarkerView> deltaMarkerViews = new HashMap<>();
+	private DeltaMarkerView activeDeltaMarkerView;
 	
 	public DeltaExtractionAnalyzer(Trace trace) {
 		super(trace);
@@ -27,6 +30,10 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		reset();
 	}
 	
+	/**
+	 * note: ÉIÉìÉâÉCÉìâêÕóp
+	 * @return
+	 */
 	private static DeltaExtractionAnalyzer getInstance() {
 		if (theInstance == null) {
 			theInstance = new DeltaExtractionAnalyzer(TraceJSON.getInstance());
@@ -134,5 +141,13 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 	
 	public String getNextDeltaMarkerSubId() {
 		return String.valueOf(deltaMarkerViews.size() + 1);
+	}
+	
+	public DeltaMarkerView getActiveDeltaMarkerView() {
+		return activeDeltaMarkerView;
+	}
+	
+	public void setActiveDeltaMarkerView(DeltaMarkerView deltaMarkerView) {
+		this.activeDeltaMarkerView = deltaMarkerView;
 	}
 }

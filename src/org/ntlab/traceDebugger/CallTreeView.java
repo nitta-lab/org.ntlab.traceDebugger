@@ -51,8 +51,9 @@ public class CallTreeView extends ViewPart {
 					if (value instanceof CallTreeModel) {
 						CallTreeModel callTreeModel = (CallTreeModel)value;
 						MethodExecution methodExecution = callTreeModel.getMethodExecution();
+						highlight(methodExecution);
 						TracePoint tp = methodExecution.getEntryPoint();
-						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, -1);		
+						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, -1);
 						DeltaMarkerView deltaMarkerView = ((DeltaMarkerView)getOtherView(DeltaMarkerView.ID, subId));
 						DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
 						CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID, null);

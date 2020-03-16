@@ -173,6 +173,8 @@ public class VariableView extends ViewPart {
 //						callTreeView.highlight(coordinatorME);
 						callTreeView.update(deltaMarkerManager);
 						callTreeView.highlight(coordinatorME);
+						TracePointsView tracePointsView = (TracePointsView)getOtherView(TracePointsView.ID);
+						tracePointsView.addTracePoint(coordinatorPoint);
 					} catch (PartInitException e) {
 						e.printStackTrace();
 					}
@@ -228,7 +230,9 @@ public class VariableView extends ViewPart {
 		if (dstSideDeltaMarkers != null) {
 			markVariables(DeltaMarkerManager.DST_SIDE_DELTA_MARKER, dstSideDeltaMarkers);	
 		}
-		markVariables(DeltaMarkerManager.COORDINATOR_DELTA_MARKER, coordinatorMarker);
+		if (coordinatorMarker != null) {
+			markVariables(DeltaMarkerManager.COORDINATOR_DELTA_MARKER, coordinatorMarker);	
+		}
 		viewer.refresh();
 		expandAllMarkedNodes();
 	}

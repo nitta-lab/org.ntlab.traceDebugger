@@ -3,6 +3,7 @@ package org.ntlab.traceDebugger;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuManager;
@@ -22,6 +23,9 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
+import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
+import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
+import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class CallStackView extends ViewPart {
 	private TreeViewer viewer;
@@ -56,7 +60,22 @@ public class CallStackView extends ViewPart {
 						MethodExecution methodExecution = callStackModel.getMethodExecution();
 						TracePoint tp = callStackModel.getTracePoint();
 						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, callStackModel.getCallLineNo());
-						((VariableView)getOtherView(VariableView.ID)).updateVariablesByTracePoint(tp, false);
+						CallTreeView callTreeView = (CallTreeView)(getOtherView(CallTreeView.ID));
+						callTreeView.highlight(methodExecution);
+
+						VariableView variableView = (VariableView)(getOtherView(VariableView.ID));
+						variableView.updateVariablesByTracePoint(tp, false);						
+						AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
+						if (analyzer instanceof DeltaExtractionAnalyzer) {
+							DeltaMarkerView deltaMarkerView = ((DeltaExtractionAnalyzer)analyzer).getActiveDeltaMarkerView();
+							if (deltaMarkerView != null) {
+								DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
+								Map<String, List<IMarker>> deltaMarkers = deltaMarkerManager.getMarkers();
+								if (deltaMarkers != null) {
+									variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkers);	
+								}
+							}
+						}
 					}
 				}
 			}
