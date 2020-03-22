@@ -9,6 +9,7 @@ import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.BlockEnter;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
@@ -101,11 +102,11 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
 			return false;
 		}
-		terminateAction();		
+		terminateAction();
 		traceBreakPoints.reset();
 		debuggingTp = traceBreakPoints.getFirstTracePoint();
 		if (debuggingTp == null) return false;
-		refresh(false);
+		refresh(null, debuggingTp, false);
 		return true;
 	}
 
@@ -117,36 +118,45 @@ public class DebuggingController {
 
 	public boolean stepIntoAction() {
 		if (debuggingTp == null) return false;
+		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		debuggingTp.stepFull();
+		if (debuggingTp.getStatement() instanceof BlockEnter) {
+			debuggingTp.stepFull();
+		}
 		if (!debuggingTp.isValid()) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-		refresh(false);
+		refresh(null, debuggingTp, false);
 		return true;
 	}
 	
 	public boolean stepOverAction() {
 		if (debuggingTp == null) return false;
+		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		int currentLineNo = debuggingTp.getStatement().getLineNo();
 		boolean isReturned;
 		while (!(isReturned = !(debuggingTp.stepOver()))) {
 			if (currentLineNo != debuggingTp.getStatement().getLineNo()) break;
 		}
+		if (debuggingTp.getStatement() instanceof BlockEnter) {
+			debuggingTp.stepFull();
+		}
 		if (!debuggingTp.isValid()) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-		refresh(isReturned);
+		refresh(previousTp, debuggingTp, isReturned);
 		return true;
 	}
 	
 	public boolean stepReturnAction() {
 		if (debuggingTp == null) return false;
+		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		while (debuggingTp.stepOver());
 		if (!debuggingTp.isValid()) {
@@ -154,25 +164,27 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-		refresh(true);
+		refresh(null, debuggingTp, true);
 		return true;
 	}
 	
 	public boolean resumeAction() {
 		if (debuggingTp == null) return false;
 		long currentTime = debuggingTp.getStatement().getTimeStamp();
+		TracePoint previousTp = debuggingTp;
 		debuggingTp = traceBreakPoints.getNextTracePoint(currentTime);
 		if (debuggingTp == null) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-		refresh(false);
+		refresh(null, debuggingTp, false);
 		return true;
 	}
 	
 	public boolean stepBackIntoAction() {
 		if (debuggingTp == null) return false;
+		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		debuggingTp.stepBackFull();
 		if (!debuggingTp.isValid()) {
@@ -180,12 +192,13 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-		refresh(true);
+		refresh(null, debuggingTp, true);
 		return true;
 	}
 	
 	public boolean stepBackOverAction() {
 		if (debuggingTp == null) return false;
+		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		int currentLineNo = debuggingTp.getStatement().getLineNo();
 		boolean isReturned;
@@ -197,12 +210,13 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-		refresh(!isReturned);
+		refresh(null, debuggingTp, !isReturned);
 		return true;
 	}
 	
 	public boolean stepBackReturnAction() {
 		if (debuggingTp == null) return false;
+		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		while (debuggingTp.stepBackOver());
 		if (!debuggingTp.isValid()) {
@@ -210,20 +224,21 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-		refresh(false);
+		refresh(null, debuggingTp, false);
 		return true;
 	}
 	
 	public boolean backResumeAction() {
 		if (debuggingTp == null) return false;
 		long currentTime = debuggingTp.getStatement().getTimeStamp();
+		TracePoint previousTp = debuggingTp;
 		debuggingTp = traceBreakPoints.getPreviousTracePoint(currentTime);
 		if (debuggingTp == null) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-		refresh(false);
+		refresh(null, debuggingTp, false);
 		return true;
 	}
 
@@ -233,19 +248,29 @@ public class DebuggingController {
 	 */
 	public boolean jumpToTheTracePoint(TracePoint tp, boolean isReturned) {
 		if (tp == null) return false;
+		TracePoint previousTp = debuggingTp;
 		debuggingTp = tp.duplicate();
-		refresh(isReturned);
+		refresh(null, debuggingTp, isReturned);
 		return true;
 	}
 	
-	private void refresh(boolean isReturned) {
-		MethodExecution me = debuggingTp.getMethodExecution();
-		int lineNo = debuggingTp.getStatement().getLineNo();
+	private void refresh(TracePoint from, TracePoint to, boolean isReturned) {
+		MethodExecution me = to.getMethodExecution();
+		int lineNo = to.getStatement().getLineNo();
 		JavaEditorOperator.openSrcFileOfMethodExecution(me, lineNo);		
 		CallStackView callStackView = ((CallStackView)getOtherView(CallStackView.ID));
-		callStackView.updateByTracePoint(debuggingTp);
-		((VariableView)getOtherView(VariableView.ID)).updateVariablesByTracePoint(debuggingTp, isReturned);
+		callStackView.updateByTracePoint(to);
+		((VariableView)getOtherView(VariableView.ID)).updateVariablesByTracePoint(from, to, isReturned);
 	}
+
+//	private void refresh(boolean isReturned) {
+//		MethodExecution me = debuggingTp.getMethodExecution();
+//		int lineNo = debuggingTp.getStatement().getLineNo();
+//		JavaEditorOperator.openSrcFileOfMethodExecution(me, lineNo);		
+//		CallStackView callStackView = ((CallStackView)getOtherView(CallStackView.ID));
+//		callStackView.updateByTracePoint(debuggingTp);
+//		((VariableView)getOtherView(VariableView.ID)).updateVariablesByTracePoint(debuggingTp, isReturned);
+//	}
 
 	private IViewPart getOtherView(String viewId) {
 		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();

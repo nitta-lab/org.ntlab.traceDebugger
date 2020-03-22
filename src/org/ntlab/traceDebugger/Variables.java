@@ -10,6 +10,7 @@ import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jface.viewers.TreeNode;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ObjectReference;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
@@ -51,22 +52,35 @@ public class Variables {
 		List<Statement> statements = methodExecution.getStatements();
 		int lastOrder = statements.size() - 1;
 		TracePoint tp  = methodExecution.getTracePoint(lastOrder);
-		updateAllObjectData(methodExecution, tp, false);
+		updateAllObjectData(null, tp, false);
 	}
-	
-	public void updateAllObjectDataByTracePoint(TracePoint tp, boolean isReturned) {
-		MethodExecution methodExecution = tp.getMethodExecution();
-		updateAllObjectData(methodExecution, tp, isReturned);
+
+	public void updateAllObjectDataByTracePoint(TracePoint from, TracePoint to, boolean isReturned) {
+		updateAllObjectData(from, to, isReturned);
 	}
-	
-	public void resetData() {
-		roots.clear();
-	}	
-	
-	private void updateAllObjectData(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
+
+	private void updateAllObjectData(TracePoint from, TracePoint to, boolean isReturned) {
 		resetData();
-		updateRootThisState(methodExecution, tp, isReturned);		
-		updateArgsState(methodExecution, tp, isReturned);
+		if (from != null) updateReturnValue(from, to, isReturned);
+		MethodExecution me = to.getMethodExecution();
+		updateRootThisState(me, to, isReturned);
+		updateArgsState(me, to, isReturned);
+	}
+	
+	private void updateReturnValue(TracePoint from, TracePoint to, boolean isReturned) {
+		Statement statement = from.getStatement();
+		if (statement instanceof MethodInvocation) {
+			MethodInvocation mi = (MethodInvocation)statement;
+			ObjectReference ref = mi.getCalledMethodExecution().getReturnValue();
+			String returnValueClassName = ref.getActualType();
+			if (returnValueClassName.equals("void")) return;
+			String returnValueId = ref.getId();
+			String thisObjId = to.getMethodExecution().getThisObjId();
+			String thisClassName = to.getMethodExecution().getThisClassName();
+			Variable variable = new Variable("Return", thisObjId, thisClassName, returnValueClassName, returnValueId, from, isReturned);
+			roots.add(variable);
+			variable.createNextHierarchyState();
+		}
 	}
 	
 	private void updateRootThisState(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
@@ -125,5 +139,9 @@ public class Variables {
 		for (Variable child : variable.getChildren()) {
 			addAdditionalAttributes(child, idSet, additionalAttributes);
 		}
+	}
+	
+	public void resetData() {
+		roots.clear();
 	}
 }

@@ -216,9 +216,18 @@ public class VariableView extends ViewPart {
 	}
 	
 	public void updateVariablesByTracePoint(TracePoint tp, boolean isReturned) {
-		variables.updateAllObjectDataByTracePoint(tp, isReturned);
+		updateVariablesByTracePoint(null, tp, isReturned);
+	}
+	
+	public void updateVariablesByTracePoint(TracePoint from, TracePoint to, boolean isReturned) {
+		variables.updateAllObjectDataByTracePoint(from, to, isReturned);
 		viewer.setInput(variables.getVariablesTreeNodes());
 	}
+
+//	public void updateVariablesByTracePoint(TracePoint tp, boolean isReturned) {
+//		variables.updateAllObjectDataByTracePoint(tp, isReturned);
+//		viewer.setInput(variables.getVariablesTreeNodes());
+//	}
 	
 	public void markAndExpandVariablesByDeltaMarkers(Map<String, List<IMarker>> markers) {
 		List<IMarker> srcSideDeltaMarkers = markers.get(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
