@@ -16,8 +16,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
-
-
+ 
 /**
  * デルタ抽出アルゴリズム(配列へのアクセスを検知できるJavassist版JSONトレースに対応し、アルゴリズムを単純化)
  * 
@@ -28,7 +27,7 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 	public DeltaExtractorJSON(String traceFile) {
 		super(new TraceJSON(traceFile));
 	}
-
+ 
 	public DeltaExtractorJSON(TraceJSON trace) {
 		super(trace);
 	}
@@ -104,7 +103,7 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 				removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
 			}
 		}
-
+ 
 		// 戻り値に探索対象が含まれていればcalleeSearchを再帰呼び出し
 		while (tracePoint.stepBackOver()) {
 			Statement statement = tracePoint.getStatement();
@@ -233,7 +232,7 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 		if (methodExecution.isCollectionType()) {
 			objList.add(thisObjectId);
 		}		
-
+ 
 		// 引数の取得
 		ArrayList<ObjectReference> arguments = methodExecution.getArguments();
 		
@@ -367,7 +366,7 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 		finalCount = 0;
 		return methodExecution;
 	}
-
+ 
 	/**
 	 * デルタ抽出アルゴリズムの呼び出し先探索部分(再帰呼び出しになっている)
 	 * @param trace 解析対象トレース
@@ -389,7 +388,7 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 		((DeltaAugmentationInfo)methodExecution.getAugmentation()).setSetterSide(false);		// 基本的にgetter呼び出しのはずだが、注意
 		ArrayList<ObjectReference> arguments = methodExecution.getArguments();
 		ObjectReference trackingObj = null;
-
+ 
 		aliasCollector.addAlias(new Alias(Alias.AliasType.RETURN_VALUE, 0, objectId, tracePoint.duplicate()));
 		//staticを経由するとnullが入っている時がある
 		if (objectId != null) {
@@ -489,6 +488,9 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 							dstObject = thisObj;
 							trackingObj = dstObject;
 						}
+						aliasCollector.addAlias(new Alias(Alias.AliasType.ARRAY_CREATE, 0, ac.getArrayObjectId(), tracePoint.duplicate()));
+						aliasCollector.changeTrackingObject(ac.getArrayObjectId(), thisObjectId);
+						aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, tracePoint.duplicate()));
 						if (Trace.isNull(thisObjectId)) objectId = null;	// static変数の場合
 						else objectId = thisObjectId;
 						objList.set(index, objectId);
@@ -502,8 +504,12 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 						((DeltaAugmentationInfo)childMethodExecution.getAugmentation()).setTraceObjectId(Integer.parseInt(objectId));
 						TracePoint childTracePoint = tracePoint.duplicate();
 						childTracePoint.stepBackNoReturn();
-						aliasCollector.addAlias(new Alias(Alias.AliasType.METHOD_INVOCATION, 0, ret.getId(), tracePoint.duplicate()));
-						calleeSearch(trace, childTracePoint, objList, childMethodExecution.isStatic(), index, aliasCollector);		// 呼び出し先をさらに探索	
+						if (!childMethodExecution.isConstructor()) {
+							aliasCollector.addAlias(new Alias(Alias.AliasType.METHOD_INVOCATION, 0, ret.getId(), tracePoint.duplicate()));
+							calleeSearch(trace, childTracePoint, objList, childMethodExecution.isStatic(), index, aliasCollector);		// 呼び出し先をさらに探索	
+						} else {
+							aliasCollector.addAlias(new Alias(Alias.AliasType.CONSTRACTOR_INVOCATION, 0, ret.getId(), tracePoint.duplicate()));
+						}
 						if (childMethodExecution.isConstructor()) {
 							// コンストラクタ呼び出しだった場合
 							if (objectId.equals(srcObject.getId())) {
@@ -512,12 +518,16 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 								eStructure.addSrcSide(r);
 								srcObject = thisObj;
 								trackingObj = srcObject;
+								aliasCollector.changeTrackingObject(objectId, thisObjectId);
+								aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, tracePoint.duplicate()));
 							} else if (objectId.equals(dstObject.getId())) {
 								r = new Reference(thisObj, dstObject);
 								r.setCreation(true);
 								eStructure.addDstSide(r);
 								dstObject = thisObj;
 								trackingObj = dstObject;
+								aliasCollector.changeTrackingObject(objectId, thisObjectId);
+								aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, tracePoint.duplicate()));
 							}
 							if (Trace.isNull(thisObjectId)) objectId = null;	// static変数の場合
 							else objectId = thisObjectId;
@@ -567,11 +577,15 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 					r.setCollection(true);
 					eStructure.addSrcSide(r);
 					srcObject = thisObj;
+					aliasCollector.changeTrackingObject(objectId, thisObjectId);
+					aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, tracePoint.duplicate()));
 				} else if(objectId.equals(dstObject.getId())) {
 					r = new Reference(thisObj, dstObject);
 					r.setCollection(true);
 					eStructure.addDstSide(r);
 					dstObject =thisObj;
+					aliasCollector.changeTrackingObject(objectId, thisObjectId);
+					aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, tracePoint.duplicate()));
 				}
 			}
 			objList.set(index, methodExecution.getThisObjId());

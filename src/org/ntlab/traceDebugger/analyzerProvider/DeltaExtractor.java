@@ -11,7 +11,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.Reference;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
-
+ 
 /**
  * デルタ抽出アルゴリズム(配列へのアクセスを推測する従来のバージョン)
  *    extract(...)メソッド群で抽出する。
@@ -48,7 +48,7 @@ public class DeltaExtractor {
 	public DeltaExtractor(String traceFile) {
 		trace = new Trace(traceFile);
 	}
-
+ 
 	public DeltaExtractor(Trace trace) {
 		this.trace = trace;
 	}
@@ -80,7 +80,7 @@ public class DeltaExtractor {
 //			Reference[] lastRef) throws TraceFileException {
 //		return trace.getLastCallTree(refs, colls, arrys, endLine, lastRef);
 //	}
-
+ 
 	/**
 	 * デルタ抽出アルゴリズムの呼び出し元探索部分（calleeSearchと相互再帰になっている）
 	 * @param trace　解析対象トレース
@@ -93,7 +93,7 @@ public class DeltaExtractor {
 	protected MethodExecution callerSearch(Trace trace, TracePoint tracePoint, ArrayList<String> objList, MethodExecution childMethodExecution) {
 		return callerSearch(trace, tracePoint, objList, childMethodExecution, defaultAliasCollector);
 	}
-
+ 
 	/**
 	 * デルタ抽出アルゴリズムの呼び出し元探索部分（calleeSearchと相互再帰になっている）
 	 * @param trace　解析対象トレース
@@ -155,7 +155,7 @@ public class DeltaExtractor {
 				removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
 			}
 		}
-
+ 
 		// 戻り値に探索対象が含まれていればcalleeSearchを再帰呼び出し
 		while (tracePoint.stepBackOver()) {
 			Statement statement = tracePoint.getStatement();
@@ -293,7 +293,7 @@ public class DeltaExtractor {
 		if (methodExecution.isCollectionType()) {
 			objList.add(thisObjectId);
 		}		
-
+ 
 		// 引数の取得
 		ArrayList<ObjectReference> argments = methodExecution.getArguments();
 		
@@ -500,7 +500,7 @@ public class DeltaExtractor {
 		finalCount = 0;
 		return methodExecution;
 	}
-
+ 
 	/**
 	 * デルタ抽出アルゴリズムの呼び出し先探索部分(再帰呼び出しになっている)
 	 * @param trace 解析対象トレース
@@ -855,7 +855,7 @@ public class DeltaExtractor {
 			return null;
 		}
 	}
-
+ 
 	private ExtractedStructure extractSub(TracePoint creationTracePoint, Reference targetRef, IAliasCollector aliasCollector) {
 		eStructure = new ExtractedStructure();
 		ArrayList<String> objList = new ArrayList<String>(); 
@@ -880,7 +880,7 @@ if (DEBUG1) {
 	public ExtractedStructure extract(TracePoint tracePoint, ObjectReference argObj) {
 		return extract(tracePoint, argObj, defaultAliasCollector);
 	}
-
+ 
 	public ExtractedStructure extract(TracePoint tracePoint, ObjectReference argObj, IAliasCollector aliasCollector) {
 		MethodExecution methodExecution = tracePoint.getMethodExecution();
 		eStructure = new ExtractedStructure();
@@ -985,7 +985,7 @@ if (DEBUG2) {
 	public MethodExecution getCurrentMethodExecution(Thread thread) {
 		return trace.getCurrentMethodExecution(thread);
 	}
-
+ 
 	/**
 	 * methodSignature に前方一致するメソッド名を持つメソッドの最後の実行
 	 * @param methodSignature メソッド名(前方一致で検索する)
@@ -994,7 +994,7 @@ if (DEBUG2) {
 	public MethodExecution getLastMethodExecution(String methodSignature) {
 		return trace.getLastMethodExecution(methodSignature);
 	}
-
+ 
 	/**
 	 * methodSignature に前方一致するメソッド名を持つメソッドの before 以前の最後の実行
 	 * @param methodSignature メソッド名(前方一致で検索する)
@@ -1004,7 +1004,7 @@ if (DEBUG2) {
 	public MethodExecution getLastMethodExecution(String methodSignature, TracePoint before) {
 		return trace.getLastMethodExecution(methodSignature, before);
 	}
-
+ 
 	public ArrayList<MethodExecution> getMethodExecutions(String methodSignature) {
 		return trace.getMethodExecutions(methodSignature);
 	}

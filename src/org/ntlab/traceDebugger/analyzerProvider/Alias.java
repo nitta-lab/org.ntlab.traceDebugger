@@ -2,13 +2,17 @@ package org.ntlab.traceDebugger.analyzerProvider;
 
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayCreate;
-import org.ntlab.traceAnalysisPlatform.tracer.trace.BlockEnter;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
- 
+
+/**
+ * オブジェクトの参照情報(エイリアス)を表すクラス
+ * @author Isitani
+ *
+ */
 public class Alias {
 	private String objectId;
 	private TracePoint occurrencePoint; // 当該オブジェクトの参照が行われている実行箇所に対応するTracePoint
@@ -28,7 +32,7 @@ public class Alias {
 		ARRAY_ELEMENT, 
 		ARRAY, 
 		ARRAY_CREATE, 
-
+ 
 		// メソッドからの出口
 		ACTUAL_ARGUMENT, 
 		RECEIVER, 
@@ -63,12 +67,19 @@ public class Alias {
 	}
 	
 	public String getMethodSignature() {
-		return occurrencePoint.getMethodExecution().getCallerSideSignature();
+		String signature = occurrencePoint.getMethodExecution().getCallerSideSignature();
+		if (signature != null) return signature;
+		return occurrencePoint.getMethodExecution().getSignature();
+//		return occurrencePoint.getMethodExecution().getCallerSideSignature();
 	}
 	
 	public int getLineNo() {
-		Statement statement = occurrencePoint.getStatement();
-		return statement.getLineNo();
+		try {
+			Statement statement = occurrencePoint.getStatement();
+			return statement.getLineNo();
+		} catch (Exception e) {
+			return -1;
+		}
 	}
 	
 	public void setIndex(int index) {
