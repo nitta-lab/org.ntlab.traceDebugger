@@ -188,14 +188,18 @@ public class Variable {
 //				FieldUpdate fieldUpdate = trace.getRecentlyFieldUpdate(thisObjData.getId(), fieldName, tp);
 //				FieldUpdate fieldUpdate = trace.getFieldUpdate(id, fullyQualifiedFieldName, before, isReturned);
 				TracePoint updateTracePoint = trace.getFieldUpdateTracePoint(id, fullyQualifiedFieldName, before, isReturned);
-				if (updateTracePoint == null) continue;
-				FieldUpdate fieldUpdate = (FieldUpdate)updateTracePoint.getStatement();
-
-				// フィールドのIDとTypeを取得(String)
-				String fieldObjId = (fieldUpdate != null) ? fieldUpdate.getValueObjId()     : "0";
-				String fieldType  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : "---";
-				Variable fieldData = new Variable(fieldName, className, id, fieldType, fieldObjId, updateTracePoint, before, isReturned);
-				this.addChild(fieldData);
+//				if (updateTracePoint == null) continue;
+				if (updateTracePoint != null) {
+					FieldUpdate fieldUpdate = (FieldUpdate)updateTracePoint.getStatement();
+					// フィールドのIDとTypeを取得(String)
+					String fieldObjId = (fieldUpdate != null) ? fieldUpdate.getValueObjId()     : "0";
+					String fieldType  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : "---";
+					Variable fieldData = new Variable(fieldName, className, id, fieldType, fieldObjId, updateTracePoint, before, isReturned);
+					this.addChild(fieldData);
+				} else {
+					Variable fieldData = new Variable(fieldName, className, id, "?", "???", updateTracePoint, before, isReturned);
+					this.addChild(fieldData);					
+				}
 			}
 		} catch (JavaModelException e) {
 			e.printStackTrace();

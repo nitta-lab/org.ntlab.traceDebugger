@@ -36,6 +36,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 
 public class JavaEditorOperator {
 //	private static List<IMarker> markers = new ArrayList<>();
+	private static String previousJavaProjectPath = "";
 
 	/**
 	 * 引数で渡したmeCaller内にあるmethodExecutionが定義されているクラスのソースコードを対象Eclipseのエディタで開かせる
@@ -227,22 +228,48 @@ public class JavaEditorOperator {
 		declaringClassName = declaringClassName.replace(".<clinit>", "");
 		return findIType(methodExecution, declaringClassName);
 	}
-	
+
 	public static IType findIType(MethodExecution methodExecution, String declaringClassName) {
 		String projectPath = getLoaderPath(methodExecution, declaringClassName);
 		IType type = null;
 		if (projectPath != null) {
 			IJavaProject javaProject = findJavaProject(projectPath);
 			if (javaProject != null) {
+				previousJavaProjectPath = projectPath;
 				try {
 					type = javaProject.findType(declaringClassName);
 				} catch (JavaModelException e) {
 					e.printStackTrace();
 				}
 			}
+		} else {
+			IJavaProject javaProject = findJavaProject(previousJavaProjectPath);
+			if (javaProject != null) {
+				try {
+					type = javaProject.findType(declaringClassName);
+				} catch (JavaModelException e) {
+					e.printStackTrace();
+				}					
+			}
 		}
 		return type;		
 	}
+	
+//	public static IType findIType(MethodExecution methodExecution, String declaringClassName) {
+//		String projectPath = getLoaderPath(methodExecution, declaringClassName);
+//		IType type = null;
+//		if (projectPath != null) {
+//			IJavaProject javaProject = findJavaProject(projectPath);
+//			if (javaProject != null) {
+//				try {
+//					type = javaProject.findType(declaringClassName);
+//				} catch (JavaModelException e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		}
+//		return type;		
+//	}
 
 	private static String getLoaderPath(MethodExecution methodExecution, String declaringClassName) {
 		TraceJSON traceJSON = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();

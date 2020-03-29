@@ -15,6 +15,8 @@ import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
+import org.eclipse.jface.dialogs.InputDialog;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.ITreeViewerListener;
@@ -47,6 +49,7 @@ public class VariableView extends ViewPart {
 	private TreeViewer viewer;
 	private IAction jumpAction;
 	private IAction deltaAction;
+	private IAction deltaActionForCollection;
 	private Variable selectedVariable;
 	private Variables variables = Variables.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.variableView";
@@ -147,42 +150,30 @@ public class VariableView extends ViewPart {
 		deltaAction = new Action() {
 			@Override
 			public void run() {
-				AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
-				if (analyzer instanceof DeltaExtractionAnalyzer) {
-					DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;					
-					IWorkbench workbench = PlatformUI.getWorkbench();
-					IWorkbenchPage workbenchPage = workbench.getActiveWorkbenchWindow().getActivePage();
-					try {
-						// note: 同一ビューを複数開くテスト
-						String subIdWithNewView = deltaAnalyzer.getNextDeltaMarkerSubId();
-						DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)workbenchPage.showView(DeltaMarkerView.ID, subIdWithNewView, IWorkbenchPage.VIEW_ACTIVATE);
-						deltaAnalyzer.extractDelta(selectedVariable, newDeltaMarkerView, subIdWithNewView);
-						TracePoint coordinatorPoint = newDeltaMarkerView.getCoordinatorPoint();
-						DebuggingController controller = DebuggingController.getInstance();
-						controller.jumpToTheTracePoint(coordinatorPoint, false);
-
-						DeltaMarkerManager deltaMarkerManager = newDeltaMarkerView.getDeltaMarkerManager();
-						markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
-						MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();
-						MethodExecution bottomME = newDeltaMarkerView.getBottomPoint().getMethodExecution();
-						CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
-						callStackView.highlight(coordinatorME);
-						CallTreeView callTreeView = (CallTreeView)getOtherView(CallTreeView.ID);
-						callTreeView.setSubId(subIdWithNewView);
-//						callTreeView.update(coordinatorME, bottomME);
-//						callTreeView.highlight(coordinatorME);
-						callTreeView.update(deltaMarkerManager);
-						callTreeView.highlight(coordinatorME);
-						TracePointsView tracePointsView = (TracePointsView)getOtherView(TracePointsView.ID);
-						tracePointsView.addTracePoint(coordinatorPoint);
-					} catch (PartInitException e) {
-						e.printStackTrace();
-					}
-				}
+				delta(selectedVariable, false);
 			}
 		};
 		deltaAction.setText("Extract Delta");
 		deltaAction.setToolTipText("Extract Delta");
+		
+		deltaActionForCollection = new Action() {
+			@Override
+			public void run() {
+				InputDialog inputContainerIdDialog = new InputDialog(null, "Extract Delta for Collection", "Input cotainer id", "87478208", null);
+				if (inputContainerIdDialog.open() != InputDialog.OK) return;
+				String containerId = inputContainerIdDialog.getValue();
+				InputDialog inputContainerTypeDialog = new InputDialog(null, "Extract Delta for Collection", "Input cotainer type", "java.util.LinkedHashSet", null);
+				if (inputContainerTypeDialog.open() != InputDialog.OK) return;
+				String containerType = inputContainerTypeDialog.getValue();
+				String valueId = selectedVariable.getId();
+				String valueType = selectedVariable.getClassName();
+				TracePoint tp = DebuggingController.getInstance().getCurrentTp();
+				Variable variable = new Variable("tmp", containerType, containerId, valueType, valueId, tp, false);
+				delta(variable, true);
+			}
+		};
+		deltaActionForCollection.setText("Extract Delta for Collection");
+		deltaActionForCollection.setToolTipText("Extract Delta for Collection");		
 	}
 	
 	private void createToolBar() {
@@ -201,6 +192,7 @@ public class VariableView extends ViewPart {
 			public void menuAboutToShow(IMenuManager manager) {
 				manager.add(jumpAction);
 				manager.add(deltaAction);
+				manager.add(deltaActionForCollection);
 				manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 			}
 		});
@@ -213,6 +205,42 @@ public class VariableView extends ViewPart {
 		variables.resetData();
 		viewer.setInput(variables.getVariablesTreeNodes());
 		viewer.refresh();
+	}
+	
+	private void delta(Variable variable, boolean isCollection) {
+		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
+		if (analyzer instanceof DeltaExtractionAnalyzer) {
+			DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;					
+			IWorkbench workbench = PlatformUI.getWorkbench();
+			IWorkbenchPage workbenchPage = workbench.getActiveWorkbenchWindow().getActivePage();
+			try {
+				// note: 同一ビューを複数開くテスト
+				String subIdWithNewView = deltaAnalyzer.getNextDeltaMarkerSubId();
+				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)workbenchPage.showView(DeltaMarkerView.ID, subIdWithNewView, IWorkbenchPage.VIEW_ACTIVATE);
+//				deltaAnalyzer.extractDelta(selectedVariable, newDeltaMarkerView, subIdWithNewView);
+				deltaAnalyzer.extractDelta(variable, isCollection, newDeltaMarkerView, subIdWithNewView);
+				TracePoint coordinatorPoint = newDeltaMarkerView.getCoordinatorPoint();
+				DebuggingController controller = DebuggingController.getInstance();
+				controller.jumpToTheTracePoint(coordinatorPoint, false);
+
+				DeltaMarkerManager deltaMarkerManager = newDeltaMarkerView.getDeltaMarkerManager();
+				markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
+				MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();
+				MethodExecution bottomME = newDeltaMarkerView.getBottomPoint().getMethodExecution();
+				CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
+				callStackView.highlight(coordinatorME);
+				CallTreeView callTreeView = (CallTreeView)getOtherView(CallTreeView.ID);
+				callTreeView.setSubId(subIdWithNewView);
+//				callTreeView.update(coordinatorME, bottomME);
+//				callTreeView.highlight(coordinatorME);
+				callTreeView.update(deltaMarkerManager);
+				callTreeView.highlight(coordinatorME);
+				TracePointsView tracePointsView = (TracePointsView)getOtherView(TracePointsView.ID);
+				tracePointsView.addTracePoint(coordinatorPoint);
+			} catch (PartInitException e) {
+				e.printStackTrace();
+			}
+		}		
 	}
 	
 	public void updateVariablesByTracePoint(TracePoint tp, boolean isReturned) {

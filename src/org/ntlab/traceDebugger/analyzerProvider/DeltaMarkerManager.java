@@ -33,6 +33,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.Reference;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.JavaEditorOperator;
@@ -115,32 +116,26 @@ public class DeltaMarkerManager {
 		return null;
 	}
 
-	public void markAndOpenJavaFile(Alias alias, String message, String markerId) {
+	public void markAndOpenJavaFileForAlias(Alias alias, String message, String markerId) {
 		IFile file = JavaEditorOperator.findIFile(alias.getMethodExecution());
 		IMarker marker = addMarker(alias, file, message, markerId);
 		JavaEditorOperator.markAndOpenJavaFile(marker);
 	}
-	
-	public void markAndOpenJavaFile(TracePoint tracePoint, String message, String markerId) {
-		MethodExecution me = tracePoint.getMethodExecution();
-		Statement statement = tracePoint.getStatement();
-		String objectId = null;
-		String objectType = null;
-		if (statement instanceof FieldUpdate) {
-			FieldUpdate fu = ((FieldUpdate)statement);
-			objectId = fu.getContainerObjId() + " -> " + fu.getValueObjId();
-			objectType = fu.getContainerClassName() + " -> " + fu.getValueClassName();
-		}
+
+	public void markAndOpenJavaFileForCreationPoint(TracePoint creationPoint, Reference reference, String message, String markerId) {
+		MethodExecution me = creationPoint.getMethodExecution();
+		String objectId = reference.getSrcObjectId() + " -> " + reference.getDstObjectId();
+		String objectType = reference.getSrcClassName() + " -> " + reference.getDstClassName();
 		IFile file = JavaEditorOperator.findIFile(me);
-		IMarker marker = addMarker(tracePoint, file, message, objectId, objectType, markerId);
+		IMarker marker = addMarkerForCreationPoint(creationPoint, file, message, objectId, objectType, markerId);
 		JavaEditorOperator.markAndOpenJavaFile(marker);		
 	}
 	
-	public void markAndOpenJavaFile(MethodExecution methodExecution, int lineNo, String message, String markerId) {
+	public void markAndOpenJavaFileForCoordinator(MethodExecution methodExecution, String message, String markerId) {
 		IFile file = JavaEditorOperator.findIFile(methodExecution);
 		String objectId = methodExecution.getThisObjId();
 		String objectType = methodExecution.getThisClassName();
-		IMarker marker = addMarker(methodExecution, lineNo, file, message, objectId, objectType, markerId);
+		IMarker marker = addMarkerForCoordinator(methodExecution, file, message, objectId, objectType, markerId);
 		JavaEditorOperator.markAndOpenJavaFile(marker);
 	}
 
@@ -164,13 +159,13 @@ public class DeltaMarkerManager {
 		return null;
 	}
 	
-	private IMarker addMarker(TracePoint tp, IFile file, String message, String objectId, String objectType, String markerId) {
+	private IMarker addMarkerForCreationPoint(TracePoint tp, IFile file, String message, String objectId, String objectType, String markerId) {
 		try {
 			MethodExecution me = tp.getMethodExecution();
 			int lineNo = tp.getStatement().getLineNo();
 			IMarker marker = file.createMarker(markerId);
 			Map<String, Object> attributes = new HashMap<>();
-			setAttributesForMethodExecution(attributes, me, file, lineNo, markerId);
+			setAttributesForCreationPoint(attributes, me, file, lineNo, markerId);
 			attributes.put(IMarker.MESSAGE, message);
 			attributes.put(IMarker.TRANSIENT, true);
 			attributes.put(DELTA_MARKER_ATR_DATA, tp);
@@ -185,11 +180,11 @@ public class DeltaMarkerManager {
 		return null;
 	}
 		
-	private IMarker addMarker(MethodExecution me, int lineNo, IFile file, String message, String objectId, String objectType, String markerId) {
+	private IMarker addMarkerForCoordinator(MethodExecution me, IFile file, String message, String objectId, String objectType, String markerId) {
 		try {
 			IMarker marker = file.createMarker(markerId);
 			Map<String, Object> attributes = new HashMap<>();
-			setAttributesForMethodExecution(attributes, me, file, lineNo, markerId);
+			setAttributesForCoordinator(attributes, me, file);
 			attributes.put(IMarker.MESSAGE, message);
 			attributes.put(IMarker.TRANSIENT, true);
 			attributes.put("data", me);
@@ -342,7 +337,27 @@ public class DeltaMarkerManager {
 							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
-						}						
+						}
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.ClassInstanceCreation node) {
+							// note: コンストラクタ呼び出しの引数にthisがある場合
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							String name1 = node.toString();
+							name1 = name1.substring(name1.indexOf("("));
+							String name2 = fa.getFieldName();
+							name2 = name2.substring(name2.lastIndexOf(".") + 1);
+							if (!(name1.contains(name2))) return true;
+							int start = node.getStartPosition();
+							int end = start;
+							if (source.startsWith("this.", start)) {
+								end = start + "this".length();
+							}
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
 						@Override
 						public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
 							int lineNo = cUnit.getLineNumber(node.getStartPosition());
@@ -415,7 +430,6 @@ public class DeltaMarkerManager {
 							name2 = name2.substring(0, name2.indexOf("(") + 1);
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
 							if (!(name1.equals(name2))) return true;
-//							String receiverName = node.getExpression().toString();
 							Expression expression = node.getExpression();
 							String receiverName = "";
 							if (expression != null) {
@@ -426,8 +440,8 @@ public class DeltaMarkerManager {
 								start += ("this." + receiverName + ".").length();
 							} else if (source.startsWith("super.", start)) {
 								start += ("super." + receiverName + ".").length();
-							} else {
-								start += (receiverName + ".").length();
+							} else if (!(receiverName.isEmpty())) {
+								start += (receiverName + ".").length(); 
 							}
 							int end = node.getStartPosition() + node.getLength();
 							attributes.put(IMarker.CHAR_START, start);
@@ -541,15 +555,37 @@ public class DeltaMarkerManager {
 							return false;
 						}
 						@Override
-						public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
+						public boolean visit(org.eclipse.jdt.core.dom.ClassInstanceCreation node) {
+							// note: コンストラクタ呼び出しの引数にフィールドがある場合
 							int lineNo = cUnit.getLineNumber(node.getStartPosition());
-							int start = node.getExpression().getStartPosition();
-							int end = start + node.getExpression().getLength();
+							if (lineNo != alias.getLineNo()) return true;
+							String name1 = node.toString();
+							name1 = name1.substring(name1.indexOf("("));
+							String name2 = fa.getFieldName();
+							name2 = name2.substring(name2.lastIndexOf(".") + 1);
+							if (!(name1.contains(name2))) return true;
+							int start = node.getStartPosition();
+							start += (node.toString().indexOf("(") + name1.indexOf(name2));
+							int end = start + name2.length();
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
-						}
+						}						
+
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							Expression expression = node.getExpression();
+							String fieldName = fa.getFieldName();
+							fieldName = fieldName.substring(fieldName.lastIndexOf(".") + 1);
+							int start = expression.getStartPosition();
+							int end = start + fieldName.length();
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}						
 					};
 				}
 				return visitor;
@@ -728,64 +764,64 @@ public class DeltaMarkerManager {
 		}
 		return visitor;
 	}
-
-	private void setAttributesForMethodExecution(final Map<String, Object> attributes, MethodExecution methodExecution, IFile file, int lineNo, String markerId) {
+	
+	private void setAttributesForCoordinator(final Map<String, Object> attributes, MethodExecution methodExecution, IFile file) {
+		// note: メソッドシグネチャをハイライト
+		IType type = JavaEditorOperator.findIType(methodExecution);				
+		final IMethod method = JavaEditorOperator.findIMethod(methodExecution, type);
+		if (method == null) return;
+		ASTParser parser = ASTParser.newParser(AST.JLS10);
+		ICompilationUnit unit = method.getCompilationUnit();
+		parser.setSource(unit);
+		ASTNode node = parser.createAST(new NullProgressMonitor());
+		if (node instanceof CompilationUnit) {
+			final CompilationUnit cUnit = (CompilationUnit)node;
+			node.accept(new ASTVisitor() {			
+				@Override
+				public boolean visit(MethodDeclaration node) {
+					try {
+						if (attributes.containsKey(IMarker.LINE_NUMBER)) return false;
+						String src1 = node.toString().replaceAll(" ", "");
+						src1 = src1.substring(0, src1.lastIndexOf("\n"));
+						String src1Head = src1.substring(0, src1.indexOf(")") + 1);
+						String src2 = method.getSource().replaceAll(" |\t|\r|\n", "");
+						if (!(src2.contains(src1Head))) return false;								
+						int start = node.getStartPosition();
+						int end = start + node.toString().indexOf(")") + 1;
+						Javadoc javadoc = node.getJavadoc();
+						if (javadoc != null) {
+							start += javadoc.getLength();
+							start += 5; // note: node.toString()と実際のコードのスペース数の差分だけ詰める仮処理
+							String tmp = node.toString().replace(javadoc.toString(), "");
+							end = start + tmp.indexOf(")") + 1;
+						}
+						int lineNo = cUnit.getLineNumber(node.getStartPosition());
+						attributes.put(IMarker.CHAR_START, start);
+						attributes.put(IMarker.CHAR_END, end);
+						attributes.put(IMarker.LINE_NUMBER, lineNo);
+					} catch (JavaModelException e) {
+						e.printStackTrace();
+					}
+					return false;
+				}
+			});
+		}
+	}
+	
+	private void setAttributesForCreationPoint(final Map<String, Object> attributes, MethodExecution methodExecution, IFile file, int lineNo, String markerId) {
 		try {
 			FileEditorInput input = new FileEditorInput(file);
 			FileDocumentProvider provider = new FileDocumentProvider();
 			provider.connect(input);
 			IDocument document = provider.getDocument(input);
-			if (lineNo > 1) {
-				IRegion lineRegion = document.getLineInformation(lineNo - 1);
-				attributes.put(IMarker.CHAR_START, lineRegion.getOffset());
-				attributes.put(IMarker.CHAR_END, lineRegion.getOffset() + lineRegion.getLength());
-				attributes.put(IMarker.LINE_NUMBER, lineNo);
-			} else {
-				// note: メソッドシグネチャをハイライト
-				IType type = JavaEditorOperator.findIType(methodExecution);				
-				final IMethod method = JavaEditorOperator.findIMethod(methodExecution, type);
-				if (method == null) return;
-				ASTParser parser = ASTParser.newParser(AST.JLS10);
-				ICompilationUnit unit = method.getCompilationUnit();
-				parser.setSource(unit);
-				ASTNode node = parser.createAST(new NullProgressMonitor());
-				if (node instanceof CompilationUnit) {
-					final CompilationUnit cUnit = (CompilationUnit)node;
-					node.accept(new ASTVisitor() {			
-						@Override
-						public boolean visit(MethodDeclaration node) {
-							try {
-								if (attributes.containsKey(IMarker.LINE_NUMBER)) return false;
-								String src1 = node.toString().replaceAll(" ", "");
-								src1 = src1.substring(0, src1.lastIndexOf("\n"));
-								String src1Head = src1.substring(0, src1.indexOf(")") + 1);
-								String src2 = method.getSource().replaceAll(" |\t|\r", "");
-								if (!(src2.contains(src1Head))) return false;								
-								int start = node.getStartPosition();
-								int end = start + node.toString().indexOf(")") + 1;
-								Javadoc javadoc = node.getJavadoc();
-								if (javadoc != null) {
-									start += javadoc.getLength();
-									start += 5; // note: node.toString()と実際のコードのスペース数の差分だけ詰める仮処理
-									String tmp = node.toString().replace(javadoc.toString(), "");
-									end = start + tmp.indexOf(")") + 1;
-								}
-								int lineNo = cUnit.getLineNumber(node.getStartPosition());
-								attributes.put(IMarker.CHAR_START, start);
-								attributes.put(IMarker.CHAR_END, end);
-								attributes.put(IMarker.LINE_NUMBER, lineNo);
-							} catch (JavaModelException e) {
-								e.printStackTrace();
-							}
-							return false;
-						}
-					});
-				}
-			}
+			IRegion lineRegion = document.getLineInformation(lineNo - 1);
+			attributes.put(IMarker.CHAR_START, lineRegion.getOffset());
+			attributes.put(IMarker.CHAR_END, lineRegion.getOffset() + lineRegion.getLength());
+			attributes.put(IMarker.LINE_NUMBER, lineNo);
 		} catch (CoreException | BadLocationException e) {
 			e.printStackTrace();
-		}
-	}
+		}		
+	}	
 	
 	private void deleteMarkers(List<IMarker> markerList) {
 		for (IMarker marker : markerList) {

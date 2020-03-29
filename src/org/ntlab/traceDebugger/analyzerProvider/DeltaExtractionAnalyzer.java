@@ -8,6 +8,8 @@ import java.util.Map;
 import org.eclipse.ui.IViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.ObjectReference;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Reference;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
@@ -45,7 +47,7 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		return extractedStructure;
 	}
 
-	public void extractDelta(Variable variable, DeltaMarkerView deltaMarkerView, String deltaMarkerViewSubId) {
+	public void extractDelta(Variable variable, boolean isColection, DeltaMarkerView deltaMarkerView, String deltaMarkerViewSubId) {
 		addDeltaMarkerView(deltaMarkerViewSubId, deltaMarkerView);
 		String srcId = variable.getContainerId();
 		String srcClassName = variable.getContainerClassName();
@@ -53,6 +55,7 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		String dstClassName = variable.getClassName();
 		TracePoint before = variable.getBeforeTracePoint();
 		Reference reference = new Reference(srcId, dstId, srcClassName, dstClassName);
+		reference.setCollection(isColection);
 		
 		// デルタ抽出
 		DeltaRelatedAliasCollector aliasCollector = new DeltaRelatedAliasCollector(srcId, dstId);
@@ -78,53 +81,74 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 			}
 			childMe = me;
 			me = me.getParent();
-//			if (coordinator.equals(me)) {
-//				TracePoint coordinatorPoint = childMe.getCallerTracePoint();
-//				deltaMarkerView.setCoordinatorPoint(coordinatorPoint);		
-//				break;
-//			}
 		}
 
 		// デルタ抽出の結果を元にソースコードを反転表示する
 		DeltaMarkerManager mgr = deltaMarkerView.getDeltaMarkerManager();
-		mark(mgr, coordinator, aliasCollector, bottomPoint);
+		mark(mgr, coordinator, aliasCollector, bottomPoint, reference);
 		deltaMarkerView.update();
 	}
-	
+
 	private TracePoint findTracePoint(Reference reference, MethodExecution methodExecution, long beforeTime) {
 		List<Statement> statements = methodExecution.getStatements();
 		for (int i = statements.size() - 1; i >= 0; i--) {
 			Statement statement = statements.get(i);
-			if (!(statement instanceof FieldUpdate)) continue;
 			if (statement.getTimeStamp() > beforeTime) continue;
-			FieldUpdate fu = (FieldUpdate)statement;
-			if (fu.getContainerObjId().equals(reference.getSrcObjectId())
-					&& fu.getValueObjId().equals(reference.getDstObjectId())) {
-				return new TracePoint(methodExecution, i);
+			if (statement instanceof FieldUpdate) {
+				FieldUpdate fu = (FieldUpdate)statement;
+				if (fu.getContainerObjId().equals(reference.getSrcObjectId())
+						&& fu.getValueObjId().equals(reference.getDstObjectId())) {
+					return new TracePoint(methodExecution, i);
+				}				
+			} else if (statement instanceof MethodInvocation) {
+				MethodInvocation mi = (MethodInvocation)statement;
+				MethodExecution me = mi.getCalledMethodExecution();
+				if (me.getThisObjId().equals(reference.getSrcObjectId())) {
+					for (ObjectReference arg : me.getArguments()) {
+						if (arg.getId().equals(reference.getDstObjectId())) {
+							return new TracePoint(methodExecution, i);		
+						}
+					}
+				}
 			}
 		}
 		return null;
 	}
+	
+//	private TracePoint findTracePoint(Reference reference, MethodExecution methodExecution, long beforeTime) {
+//		List<Statement> statements = methodExecution.getStatements();
+//		for (int i = statements.size() - 1; i >= 0; i--) {
+//			Statement statement = statements.get(i);
+//			if (!(statement instanceof FieldUpdate)) continue;
+//			if (statement.getTimeStamp() > beforeTime) continue;
+//			FieldUpdate fu = (FieldUpdate)statement;
+//			if (fu.getContainerObjId().equals(reference.getSrcObjectId())
+//					&& fu.getValueObjId().equals(reference.getDstObjectId())) {
+//				return new TracePoint(methodExecution, i);
+//			}
+//		}
+//		return null;
+//	}
 
-	private void mark(DeltaMarkerManager mgr, MethodExecution coordinator, DeltaRelatedAliasCollector aliasCollector, TracePoint bottomPoint) {
+	private void mark(DeltaMarkerManager mgr, MethodExecution coordinator, DeltaRelatedAliasCollector aliasCollector, TracePoint bottomPoint, Reference creationReference) {
 		int srcSideCnt = 1;
 		int dstSideCnt = 1;
-		mgr.markAndOpenJavaFile(coordinator, -1 , "Coordinator", DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
+		mgr.markAndOpenJavaFileForCoordinator(coordinator, "Coordinator", DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
 		List<Alias> relatedAliases = aliasCollector.getRelatedAliases();
 		Collections.reverse(relatedAliases);
 		for (Alias alias : relatedAliases) {
 			String side = aliasCollector.resolveSideInTheDelta(alias);
 			if (side.contains(DeltaRelatedAliasCollector.SRC_SIDE)) {
 				String message = String.format("SrcSide%03d", srcSideCnt);
-				mgr.markAndOpenJavaFile(alias, message, DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
+				mgr.markAndOpenJavaFileForAlias(alias, message, DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
 				srcSideCnt++;
 			} else if (side.contains(DeltaRelatedAliasCollector.DST_SIDE)) {
 				String message = String.format("DstSide%03d", dstSideCnt);
-				mgr.markAndOpenJavaFile(alias, message, DeltaMarkerManager.DST_SIDE_DELTA_MARKER);
+				mgr.markAndOpenJavaFileForAlias(alias, message, DeltaMarkerManager.DST_SIDE_DELTA_MARKER);
 				dstSideCnt++;				
 			}
 		}
-		mgr.markAndOpenJavaFile(bottomPoint, "CreationPoint", DeltaMarkerManager.BOTTOM_DELTA_MARKER);
+		mgr.markAndOpenJavaFileForCreationPoint(bottomPoint, creationReference, "CreationPoint", DeltaMarkerManager.BOTTOM_DELTA_MARKER);
 	}	
 
 	private void reset() {
