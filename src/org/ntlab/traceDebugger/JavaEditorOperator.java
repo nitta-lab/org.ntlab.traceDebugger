@@ -35,8 +35,6 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 
 public class JavaEditorOperator {
-//	private static List<IMarker> markers = new ArrayList<>();
-	private static String previousJavaProjectPath = "";
 
 	/**
 	 * 引数で渡したmeCaller内にあるmethodExecutionが定義されているクラスのソースコードを対象Eclipseのエディタで開かせる
@@ -77,7 +75,6 @@ public class JavaEditorOperator {
 			IDocument document = provider.getDocument(editor.getEditorInput());
 			try {
 				editor.selectAndReveal(document.getLineOffset(lineNo - 1), document.getLineLength(lineNo - 1));
-//				tmp();
 			} catch (BadLocationException e) {
 				e.printStackTrace();
 			}
@@ -91,92 +88,16 @@ public class JavaEditorOperator {
 		} catch (PartInitException e) {
 			e.printStackTrace();
 		}
-	}	
-	
-//	public static void markAndOpenJavaFile(Alias alias, int lineNo, String markerId) {
-//		try {
-//			IFile file = findIFile(alias.getMethodExecution());
-//			DeltaMarkerManager mgr = DeltaMarkerManager.getInstance();
-//			IMarker marker = mgr.addMarker(alias, file, lineNo, markerId);		
-//			IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();			
-//			IDE.openEditor(page, marker);
-//		} catch (PartInitException e) {
-//			e.printStackTrace();
-//		}
-//	}
+	}
 
-//	public static void markAndOpenJavaFile(MethodExecution methodExecution, int lineNo, String findString, String message, String markerId) {
-//		IFile file = findIFile(methodExecution);	
-//		try {
-//			FileEditorInput input = new FileEditorInput(file);
-//			FileDocumentProvider provider = new FileDocumentProvider();
-//			provider.connect(input);
-//			IDocument document = provider.getDocument(input);
-//			FindReplaceDocumentAdapter findAdapter = new FindReplaceDocumentAdapter(document);			
-//			IMarker marker = file.createMarker(markerId);
-//			Map<String, Object> attributes = new HashMap<>();
-//			attributes.put(IMarker.MESSAGE, message);
-//			attributes.put(IMarker.TRANSIENT, true);
-//			if (lineNo > 1) {
-//				// 特定行中の指定した文字列部分をハイライト (存在しない場合は特定行全体をハイライト)
-//				IRegion lineRegion = document.getLineInformation(lineNo - 1);
-//				IRegion findStringRegion = findAdapter.find(lineRegion.getOffset(), findString, true, true, true, false);
-//				if (findStringRegion != null) {
-//					attributes.put(IMarker.CHAR_START, findStringRegion.getOffset());
-//					attributes.put(IMarker.CHAR_END, findStringRegion.getOffset() + findStringRegion.getLength());
-//				} else {
-//					attributes.put(IMarker.CHAR_START, lineRegion.getOffset());
-//					attributes.put(IMarker.CHAR_END, lineRegion.getOffset() + lineRegion.getLength());					
-//				}
-//				attributes.put(IMarker.LINE_NUMBER, lineNo);
-//			} else {
-//				// メソッドシグネチャをハイライト
-//				IType type = findIType(methodExecution);
-//				IMethod method = findIMethod(methodExecution, type);
-//				int start = method.getSourceRange().getOffset();
-//				int end = start + method.getSource().indexOf(")") + 1;
-//				attributes.put(IMarker.CHAR_START, start);
-//				attributes.put(IMarker.CHAR_END, end);
-//			}
-//
-//			marker.setAttributes(attributes);
-//			markers.add(marker);
-//			IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-//			IDE.openEditor(page, marker);
-//		} catch (CoreException | BadLocationException e) {
-//			e.printStackTrace();
-//		}
-//	}
-	
-//	private static void tmp() {
-//		IBreakpointManager mgr = DebugPlugin.getDefault().getBreakpointManager();
-//		IBreakpoint[] bps = mgr.getBreakpoints();
-//		for (IBreakpoint bp : bps) {
-//			IMarker marker = bp.getMarker();
-//			int lineNo = marker.getAttribute(IMarker.LINE_NUMBER, -1);
-//			String name = marker.getAttribute("org.eclipse.jdt.debug.core.typeName", "");
-////			TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
-////			ClassInfo classInfo = trace.getClassInfo(name);
-////			if (classInfo == null) continue;
-//			
-//			
-////			name = mgr.getTypeName(bp);
-//			try {
-//				for (Map.Entry<String, Object> entry: marker.getAttributes().entrySet()) {
-//					System.out.println(entry.getKey() + ": " + entry.getValue());
-//				}
-//			} catch (CoreException e) {
-//				e.printStackTrace();
-//			}
-//			System.out.println("Name: " + name + ", lineNo: " + lineNo);
-//		}
-//	}
-	
 	public static IFile findIFile(MethodExecution methodExecution) {
 		TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
 		String declaringClassName = methodExecution.getDeclaringClassName();
 		declaringClassName = declaringClassName.replace(".<clinit>", "");
-		String tmp = trace.getClassInfo(declaringClassName).getPath();
+		ClassInfo info = trace.getClassInfo(declaringClassName);
+		if (info == null) return null;
+
+		String tmp = info.getPath();
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IProject[] projects = workspace.getRoot().getProjects();
 		String projectName = "";
@@ -184,7 +105,6 @@ public class JavaEditorOperator {
 		boolean hasFoundSrcForderName = false;
 		for (IProject project : projects) {
 			projectName = project.getFullPath().toString();
-//			if (tmp.contains(projectName + "/")) break;
 			if (!(tmp.contains(projectName + "/"))) continue;
 			IJavaProject javaProject = JavaCore.create(project);
 			try {
@@ -200,28 +120,14 @@ public class JavaEditorOperator {
 			}
 			if (hasFoundSrcForderName) break;
 		}
-		tmp = tmp.replace(tmp.substring(0, tmp.lastIndexOf(projectName)), "");
+//		tmp = tmp.replace(tmp.substring(0, tmp.lastIndexOf(projectName)), "");
+		tmp = tmp.replace(tmp.substring(0, tmp.indexOf(projectName)), "");
 		tmp = tmp.replace("/bin", srcForderName.substring(srcForderName.lastIndexOf("/")));
 		tmp = tmp.replace(".class", ".java");
 		String filePath = tmp;
 		IPath path = new Path(filePath);
 		return ResourcesPlugin.getWorkspace().getRoot().getFile(path);
 	}
-
-//	public static void deleteMarkers(String markerId) {
-//		Iterator<IMarker> it = markers.iterator();
-//		while (it.hasNext()) {
-//			IMarker marker = it.next();
-//			try {
-//				if (marker.getType().equals(markerId)) {
-//					marker.delete();
-//					it.remove();
-//				}
-//			} catch (CoreException e) {
-//				e.printStackTrace();
-//			}
-//		}
-//	}
 
 	public static IType findIType(MethodExecution methodExecution) {		
 		String declaringClassName = methodExecution.getDeclaringClassName();
@@ -231,45 +137,20 @@ public class JavaEditorOperator {
 
 	public static IType findIType(MethodExecution methodExecution, String declaringClassName) {
 		String projectPath = getLoaderPath(methodExecution, declaringClassName);
-		IType type = null;
+//		if (projectPath == null) projectPath = previousJavaProjectPath;
 		if (projectPath != null) {
 			IJavaProject javaProject = findJavaProject(projectPath);
 			if (javaProject != null) {
-				previousJavaProjectPath = projectPath;
+//				previousJavaProjectPath = projectPath;
 				try {
-					type = javaProject.findType(declaringClassName);
+					return javaProject.findType(declaringClassName);
 				} catch (JavaModelException e) {
 					e.printStackTrace();
 				}
-			}
-		} else {
-			IJavaProject javaProject = findJavaProject(previousJavaProjectPath);
-			if (javaProject != null) {
-				try {
-					type = javaProject.findType(declaringClassName);
-				} catch (JavaModelException e) {
-					e.printStackTrace();
-				}					
-			}
+			}			
 		}
-		return type;		
+		return null;
 	}
-	
-//	public static IType findIType(MethodExecution methodExecution, String declaringClassName) {
-//		String projectPath = getLoaderPath(methodExecution, declaringClassName);
-//		IType type = null;
-//		if (projectPath != null) {
-//			IJavaProject javaProject = findJavaProject(projectPath);
-//			if (javaProject != null) {
-//				try {
-//					type = javaProject.findType(declaringClassName);
-//				} catch (JavaModelException e) {
-//					e.printStackTrace();
-//				}
-//			}
-//		}
-//		return type;		
-//	}
 
 	private static String getLoaderPath(MethodExecution methodExecution, String declaringClassName) {
 		TraceJSON traceJSON = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();

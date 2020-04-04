@@ -202,8 +202,10 @@ public class TracePointsView extends ViewPart {
 					variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkers);
 				}
 				IMarker coordinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
-				MethodExecution coordinatorME = deltaMarkerManager.getMethodExecution(coordinatorMarker);
-				callStackView.highlight(coordinatorME);
+				if (coordinatorMarker != null) {
+					MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coordinatorMarker);
+					callStackView.highlight(coordinatorME);					
+				}
 				CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID));
 				callTreeView.highlight(currentME);
 			}

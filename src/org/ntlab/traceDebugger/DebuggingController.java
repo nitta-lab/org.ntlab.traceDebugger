@@ -62,7 +62,9 @@ public class DebuggingController {
 		}
 //		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void Company.pay(Money,Person)", null);
 //		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void worstCase.P.setM(worstCase.M)", null);
-		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public void org.jhotdraw.draw.DefaultDrawingView.addToSelection(org.jhotdraw.draw.Figure)", null);
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public void org.jhotdraw.draw.DefaultDrawingView.addToSelection(org.jhotdraw.draw.Figure)", null);
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "protected void org.tigris.gef.base.SelectionManager.addFig(org.tigris.gef.presentation.Fig)", null);
+		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public static org.tigris.gef.base.Selection org.tigris.gef.base.SelectionManager.makeSelectionFor(org.tigris.gef.presentation.Fig)", null);
 //		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void E.setC(C)", null);
 //		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void _arraySample.D.setC(_arraySample.C)", null);		
 		if (inputDialog.open() != InputDialog.OK) return false;
@@ -164,7 +166,7 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-		refresh(null, debuggingTp, true);
+		refresh(previousTp, debuggingTp, true);
 		return true;
 	}
 	

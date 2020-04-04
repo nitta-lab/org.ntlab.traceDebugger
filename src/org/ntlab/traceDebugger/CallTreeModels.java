@@ -28,74 +28,25 @@ public class CallTreeModels {
 		callTreeModelsMemo.clear();
 	}
 	
-//	public void update(MethodExecution from, MethodExecution to) {
-//		reset();
-//		createCallTreeModels(roots, 0, from, to);
-//	}
-//	
-//	private boolean createCallTreeModels(TreeNode[] nodes, int index, MethodExecution me, final MethodExecution theLast) {
-//		CallTreeModel callTreeModel = new CallTreeModel(me);
-//		nodes[index] = new TreeNode(callTreeModel);
-//		callTreeModelList.add(callTreeModel);
-//		if (me.equals(theLast)) return true;
-//		List<MethodExecution> children = me.getChildren();
-//		TreeNode[] childNodes = new TreeNode[children.size()];
-//		nodes[index].setChildren(childNodes);
-//		for (int i = 0; i < children.size(); i++) {
-//			MethodExecution child = children.get(i);
-//			boolean isTheLast = createCallTreeModels(childNodes, i, child, theLast);
-//			childNodes[i].setParent(nodes[index]);
-////			if (isTheLast) return true;
-//			if (isTheLast) {
-//				for (int j = i + 1; j < children.size(); j++) {
-//					childNodes[j] = new TreeNode(null);
-//				}
-//				return true;
-//			}
-//		}
-//		return false;
-//	}
-	
 	public void update(DeltaMarkerManager deltaMarkerManager) {
 		reset();
 		IMarker coordinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
-		List<IMarker> srcSideMarkers = deltaMarkerManager.getMarkers().get(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
-		List<IMarker> dstSideMarkers = deltaMarkerManager.getMarkers().get(DeltaMarkerManager.DST_SIDE_DELTA_MARKER);
-		IMarker bottomMarker = deltaMarkerManager.getBottomDeltaMarker();
-
-		MethodExecution coordinatorME = deltaMarkerManager.getMethodExecution(coordinatorMarker);
-		CallTreeModel coordinator = new CallTreeModel(coordinatorME);
-		callTreeModelsMemo.put(coordinatorME, coordinator);
-		if (srcSideMarkers != null) {
-			for (IMarker srcSideMarker : srcSideMarkers) {
-				MethodExecution me = deltaMarkerManager.getMethodExecution(srcSideMarker);
-				CallTreeModel callTreeModel = new CallTreeModel(me);
-				if (!(callTreeModelsMemo.containsKey(me))) {
-					callTreeModelsMemo.put(me, callTreeModel);
-					create(callTreeModel, coordinatorME);
+		MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coordinatorMarker);
+		List<IMarker> markersOrderByAdding = deltaMarkerManager.getMarkersByOrder();
+		for (IMarker marker : markersOrderByAdding) {
+			MethodExecution me = DeltaMarkerManager.getMethodExecution(marker);
+			CallTreeModel callTreeModel = new CallTreeModel(me);
+			if (!(callTreeModelsMemo.containsKey(me))) {
+				callTreeModelsMemo.put(me, callTreeModel);
+				if (!(me.equals(coordinatorME))) {
+					linkTreeToCoordinator(callTreeModel, coordinatorME);	
 				}
-			}
+			}			
 		}
-		if (dstSideMarkers != null) {
-			for (IMarker dstSideMarker : dstSideMarkers) {
-				MethodExecution me = deltaMarkerManager.getMethodExecution(dstSideMarker);
-				CallTreeModel callTreeModel = new CallTreeModel(me);
-				if (!(callTreeModelsMemo.containsKey(me))) {
-					callTreeModelsMemo.put(me, callTreeModel);
-					create(callTreeModel, coordinatorME);
-				}
-			}	
-		}
-		MethodExecution bottomME = deltaMarkerManager.getMethodExecution(bottomMarker);
-		CallTreeModel bottom = new CallTreeModel(bottomME);
-		if (!(callTreeModelsMemo.containsKey(bottomME))) {
-			callTreeModelsMemo.put(bottomME, bottom);
-			create(bottom, coordinatorME);
-		}
-		createCallTreeModels(coordinator);
+		createCallTreeModels(callTreeModelsMemo.get(coordinatorME));
 	}
 	
-	private void create(CallTreeModel currentModel, final MethodExecution coordinatorME) {
+	private void linkTreeToCoordinator(CallTreeModel currentModel, final MethodExecution coordinatorME) {
 		MethodExecution currentME = currentModel.getMethodExecution();
 		MethodExecution parentME = currentME.getParent();
 		if (parentME == null) return;
@@ -108,17 +59,17 @@ public class CallTreeModels {
 		currentModel.setParent(parentModel);
 		parentModel.addChildren(currentModel);
 		if (isNewParentModel && !(parentME.equals(coordinatorME))) {
-			create(parentModel, coordinatorME);
+			linkTreeToCoordinator(parentModel, coordinatorME);
 		}
 	}
 	
 	private void createCallTreeModels(CallTreeModel coordinator) {
 		roots = new TreeNode[1];
 		callTreeModelList.clear();
-		create(roots, 0, coordinator, null);
+		createCallTreeModels(roots, 0, coordinator, null);
 	}
 	
-	private void create(TreeNode[] nodes, int index, CallTreeModel callTreeModel, TreeNode parent) {
+	private void createCallTreeModels(TreeNode[] nodes, int index, CallTreeModel callTreeModel, TreeNode parent) {
 		callTreeModelList.add(callTreeModel);
 		nodes[index] = new TreeNode(callTreeModel);
 		nodes[index].setParent(parent);
@@ -127,7 +78,7 @@ public class CallTreeModels {
 		nodes[index].setChildren(childNodes);
 		for (int i = 0; i < childNodes.length; i++) {
 			CallTreeModel child = children.get(i);
-			create(childNodes, i, child, nodes[index]);
+			createCallTreeModels(childNodes, i, child, nodes[index]);
 		}
 	}	
 }

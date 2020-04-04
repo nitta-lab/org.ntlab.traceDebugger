@@ -159,10 +159,12 @@ public class VariableView extends ViewPart {
 		deltaActionForCollection = new Action() {
 			@Override
 			public void run() {
-				InputDialog inputContainerIdDialog = new InputDialog(null, "Extract Delta for Collection", "Input cotainer id", "87478208", null);
+//				InputDialog inputContainerIdDialog = new InputDialog(null, "Extract Delta for Collection", "Input cotainer id", "87478208", null);
+				InputDialog inputContainerIdDialog = new InputDialog(null, "Extract Delta for Collection", "Input cotainer id", "155140910", null);
 				if (inputContainerIdDialog.open() != InputDialog.OK) return;
 				String containerId = inputContainerIdDialog.getValue();
-				InputDialog inputContainerTypeDialog = new InputDialog(null, "Extract Delta for Collection", "Input cotainer type", "java.util.LinkedHashSet", null);
+//				InputDialog inputContainerTypeDialog = new InputDialog(null, "Extract Delta for Collection", "Input cotainer type", "java.util.LinkedHashSet", null);
+				InputDialog inputContainerTypeDialog = new InputDialog(null, "Extract Delta for Collection", "Input cotainer type", "java.util.ArrayList", null);
 				if (inputContainerTypeDialog.open() != InputDialog.OK) return;
 				String containerType = inputContainerTypeDialog.getValue();
 				String valueId = selectedVariable.getId();

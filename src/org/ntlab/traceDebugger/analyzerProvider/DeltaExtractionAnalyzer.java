@@ -65,23 +65,23 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		TracePoint bottomPoint = findTracePoint(reference, creationCallTree, before.getStatement().getTimeStamp());
 		deltaMarkerView.setBottomPoint(bottomPoint);
 		
-//		deltaMarkerView.setCoordinatorPoint(coordinator.getEntryPoint());		
-		MethodExecution me = bottomPoint.getMethodExecution();
-		MethodExecution childMe = null;
-		while (me != null) {
-			if (coordinator.equals(me)) {
-				TracePoint coordinatorPoint;
-				if (childMe != null) {
-					coordinatorPoint = childMe.getCallerTracePoint();
-				} else {
-					coordinatorPoint = bottomPoint;
-				}
-				deltaMarkerView.setCoordinatorPoint(coordinatorPoint);		
-				break;
-			}
-			childMe = me;
-			me = me.getParent();
-		}
+		deltaMarkerView.setCoordinatorPoint(coordinator.getEntryPoint());		
+//		MethodExecution me = bottomPoint.getMethodExecution();
+//		MethodExecution childMe = null;
+//		while (me != null) {
+//			if (coordinator.equals(me)) {
+//				TracePoint coordinatorPoint;
+//				if (childMe != null) {
+//					coordinatorPoint = childMe.getCallerTracePoint();
+//				} else {
+//					coordinatorPoint = bottomPoint;
+//				}
+//				deltaMarkerView.setCoordinatorPoint(coordinatorPoint);		
+//				break;
+//			}
+//			childMe = me;
+//			me = me.getParent();
+//		}
 
 		// デルタ抽出の結果を元にソースコードを反転表示する
 		DeltaMarkerManager mgr = deltaMarkerView.getDeltaMarkerManager();
@@ -114,21 +114,6 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		}
 		return null;
 	}
-	
-//	private TracePoint findTracePoint(Reference reference, MethodExecution methodExecution, long beforeTime) {
-//		List<Statement> statements = methodExecution.getStatements();
-//		for (int i = statements.size() - 1; i >= 0; i--) {
-//			Statement statement = statements.get(i);
-//			if (!(statement instanceof FieldUpdate)) continue;
-//			if (statement.getTimeStamp() > beforeTime) continue;
-//			FieldUpdate fu = (FieldUpdate)statement;
-//			if (fu.getContainerObjId().equals(reference.getSrcObjectId())
-//					&& fu.getValueObjId().equals(reference.getDstObjectId())) {
-//				return new TracePoint(methodExecution, i);
-//			}
-//		}
-//		return null;
-//	}
 
 	private void mark(DeltaMarkerManager mgr, MethodExecution coordinator, DeltaRelatedAliasCollector aliasCollector, TracePoint bottomPoint, Reference creationReference) {
 		int srcSideCnt = 1;

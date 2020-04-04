@@ -104,12 +104,6 @@ public class CallTreeView extends ViewPart {
 		this.subId = subId;
 	}
 	
-//	public void update(MethodExecution from, MethodExecution to) {
-//		callTreeModels.update(from, to);
-//		viewer.setInput(callTreeModels.getCallTreeModels());
-//		viewer.expandAll();
-//	}
-	
 	public void update(DeltaMarkerManager deltaMarkerManager) {
 		callTreeModels.update(deltaMarkerManager);
 		viewer.setInput(callTreeModels.getCallTreeModels());
@@ -131,7 +125,6 @@ public class CallTreeView extends ViewPart {
 	
 	public void reset() {
 		callTreeModels.reset();
-//		callTreeModels.setInput();
 		viewer.setInput(callTreeModels.getCallTreeModelList());
 		viewer.refresh();
 	}

@@ -262,7 +262,7 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 					}
 					aliasCollector.addAlias(aliasList.get(removeId));
 					aliasCollector.changeTrackingObject(removeId, thisObjectId);
-					aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, aliasList.get(removeId).getOccurrencePoint()));
+					if (aliasList.get(removeId) != null) aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, aliasList.get(removeId).getOccurrencePoint()));
 				}
 			}
 		}
