@@ -63,25 +63,6 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		MethodExecution creationCallTree = extractedStructure.getCreationCallTree();
 		MethodExecution coordinator = extractedStructure.getCoordinator();
 		TracePoint bottomPoint = findTracePoint(reference, creationCallTree, before.getStatement().getTimeStamp());
-		deltaMarkerView.setBottomPoint(bottomPoint);
-		
-		deltaMarkerView.setCoordinatorPoint(coordinator.getEntryPoint());		
-//		MethodExecution me = bottomPoint.getMethodExecution();
-//		MethodExecution childMe = null;
-//		while (me != null) {
-//			if (coordinator.equals(me)) {
-//				TracePoint coordinatorPoint;
-//				if (childMe != null) {
-//					coordinatorPoint = childMe.getCallerTracePoint();
-//				} else {
-//					coordinatorPoint = bottomPoint;
-//				}
-//				deltaMarkerView.setCoordinatorPoint(coordinatorPoint);		
-//				break;
-//			}
-//			childMe = me;
-//			me = me.getParent();
-//		}
 
 		// デルタ抽出の結果を元にソースコードを反転表示する
 		DeltaMarkerManager mgr = deltaMarkerView.getDeltaMarkerManager();
@@ -99,17 +80,16 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 				if (fu.getContainerObjId().equals(reference.getSrcObjectId())
 						&& fu.getValueObjId().equals(reference.getDstObjectId())) {
 					return new TracePoint(methodExecution, i);
-				}				
+				}
 			} else if (statement instanceof MethodInvocation) {
 				MethodInvocation mi = (MethodInvocation)statement;
 				MethodExecution me = mi.getCalledMethodExecution();
-				if (me.getThisObjId().equals(reference.getSrcObjectId())) {
-					for (ObjectReference arg : me.getArguments()) {
-						if (arg.getId().equals(reference.getDstObjectId())) {
-							return new TracePoint(methodExecution, i);		
-						}
+				if (!(me.getThisObjId().equals(reference.getSrcObjectId()))) continue;
+				for (ObjectReference arg : me.getArguments()) {
+					if (arg.getId().equals(reference.getDstObjectId())) {
+						return new TracePoint(methodExecution, i);		
 					}
-				}
+				}				
 			}
 		}
 		return null;

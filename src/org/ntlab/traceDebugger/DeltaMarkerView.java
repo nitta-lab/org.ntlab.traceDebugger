@@ -32,8 +32,7 @@ import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 public class DeltaMarkerView extends ViewPart {
 	private TreeViewer viewer;
 	private Shell shell;
-	private TracePoint bottomPoint;
-	private TracePoint coordinatorPoint;
+	private IMarker selectionMarker;
 	private DeltaMarkerManager deltaMarkerManager = new DeltaMarkerManager();
 	private String subId;
 	public static String ID = "org.ntlab.traceDebugger.deltaMarkerView";
@@ -67,42 +66,9 @@ public class DeltaMarkerView extends ViewPart {
 				if (!(element instanceof TreeNode)) return;
 				Object value = ((TreeNode)element).getValue();
 				if (!(value instanceof IMarker)) return;
-				IMarker selectionMarker = (IMarker)value;
-				try {
-					DebuggingController controller = DebuggingController.getInstance();
-					Object obj = selectionMarker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_DATA);
-					TracePoint jumpPoint;
-					MethodExecution selectionME;
-					boolean isReturned = false;
-					if (obj instanceof Alias) {
-						Alias alias = (Alias)obj;
-						jumpPoint = alias.getOccurrencePoint();
-						selectionME = jumpPoint.getMethodExecution();
-						Alias.AliasType type = alias.getAliasType();
-						isReturned = type.equals(AliasType.METHOD_INVOCATION)
-										|| type.equals(AliasType.CONSTRACTOR_INVOCATION); 
-					} else if (obj instanceof TracePoint) {
-						jumpPoint = (TracePoint)obj;
-						selectionME = jumpPoint.getMethodExecution();
-					} else {
-						jumpPoint = coordinatorPoint;
-						selectionME = coordinatorPoint.getMethodExecution();
-					}
-					controller.jumpToTheTracePoint(jumpPoint, isReturned);
-					IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-					IDE.openEditor(page, selectionMarker);
-
-					CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID, null);
-					callStackView.highlight(coordinatorPoint.getMethodExecution());
-					VariableView variableView = (VariableView)getOtherView(VariableView.ID, null);
-					variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
-					CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID, null));
-//					CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID, subId));
-					callTreeView.highlight(selectionME);
-					setFocus();
-				} catch (CoreException e) {
-					e.printStackTrace();
-				}
+				selectionMarker = (IMarker)value;
+				updateOtherViewsByMarker(selectionMarker);
+				setFocus();
 			}
 		});
 		viewer.refresh();
@@ -136,6 +102,9 @@ public class DeltaMarkerView extends ViewPart {
 		if (analyzer instanceof DeltaExtractionAnalyzer) {
 			((DeltaExtractionAnalyzer)analyzer).setActiveDeltaMarkerView(this);
 		}
+		CallTreeView callTreeView = (CallTreeView)getOtherView(CallTreeView.ID);
+		callTreeView.update(deltaMarkerManager);
+		updateOtherViewsByMarker(selectionMarker);
 		viewer.getControl().setFocus();
 	}
 	
@@ -153,40 +122,72 @@ public class DeltaMarkerView extends ViewPart {
 		return subId;
 	}
 	
-	public TracePoint getBottomPoint() {
-		return bottomPoint;
+	public TracePoint getCreationPoint() {
+		IMarker creationPointMarker = deltaMarkerManager.getBottomDeltaMarker();
+		return DeltaMarkerManager.getTracePoint(creationPointMarker);
 	}
 	
 	public TracePoint getCoordinatorPoint() {
-		return coordinatorPoint;
+		IMarker coordinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
+		return DeltaMarkerManager.getTracePoint(coordinatorMarker);
 	}
 
 	public void setSubId(String subId) {
 		this.subId = subId;
 	}
 	
-	public void setBottomPoint(TracePoint bottomPoint) {
-		this.bottomPoint = bottomPoint;
-	}
-	
-	public void setCoordinatorPoint(TracePoint coordinatorPoint) {
-		this.coordinatorPoint = coordinatorPoint;
-	}
-	
+	@Override
 	public void dispose() {
 		deltaMarkerManager.clearAllMarkers();
-		CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID, null));
+		CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID));
 		callTreeView.reset();
 		super.dispose();
 	}
-	
-	private IViewPart getOtherView(String viewId, String subId) {
+
+	private void updateOtherViewsByMarker(IMarker marker) {
+		try {
+			DebuggingController controller = DebuggingController.getInstance();
+			Object obj = marker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_DATA);
+			IMarker coordinator = deltaMarkerManager.getCoordinatorDeltaMarker();
+			TracePoint coordinatorPoint = DeltaMarkerManager.getTracePoint(coordinator);
+			TracePoint jumpPoint;
+			MethodExecution selectionME;
+			boolean isReturned = false;
+			if (obj instanceof Alias) {
+				Alias alias = (Alias)obj;
+				jumpPoint = alias.getOccurrencePoint();
+				selectionME = jumpPoint.getMethodExecution();
+				Alias.AliasType type = alias.getAliasType();
+				isReturned = type.equals(AliasType.METHOD_INVOCATION)
+								|| type.equals(AliasType.CONSTRACTOR_INVOCATION); 
+			} else if (obj instanceof TracePoint) {
+				jumpPoint = (TracePoint)obj;
+				selectionME = jumpPoint.getMethodExecution();
+			} else {
+				jumpPoint = coordinatorPoint;
+				selectionME = coordinatorPoint.getMethodExecution();
+			}
+			controller.jumpToTheTracePoint(jumpPoint, isReturned);
+			IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+			IDE.openEditor(page, marker);
+
+			CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
+			callStackView.highlight(coordinatorPoint.getMethodExecution());
+			VariableView variableView = (VariableView)getOtherView(VariableView.ID);
+			variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
+			CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID));
+			callTreeView.highlight(selectionME);
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private IViewPart getOtherView(String viewId) {
 		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		try {
-			if (subId == null) return workbenchPage.showView(viewId);
-			return workbenchPage.showView(viewId, subId, IWorkbenchPage.VIEW_ACTIVATE);
+			return workbenchPage.showView(viewId);
 		} catch (PartInitException e) {
 			throw new RuntimeException(e);
 		}	
-	}
+	}	
 }

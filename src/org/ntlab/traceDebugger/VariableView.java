@@ -16,7 +16,6 @@ import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.dialogs.InputDialog;
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.ITreeViewerListener;
@@ -150,7 +149,7 @@ public class VariableView extends ViewPart {
 		deltaAction = new Action() {
 			@Override
 			public void run() {
-				delta(selectedVariable, false);
+				delta(selectedVariable, !false);
 			}
 		};
 		deltaAction.setText("Extract Delta");
@@ -219,26 +218,23 @@ public class VariableView extends ViewPart {
 				// note: 同一ビューを複数開くテスト
 				String subIdWithNewView = deltaAnalyzer.getNextDeltaMarkerSubId();
 				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)workbenchPage.showView(DeltaMarkerView.ID, subIdWithNewView, IWorkbenchPage.VIEW_ACTIVATE);
-//				deltaAnalyzer.extractDelta(selectedVariable, newDeltaMarkerView, subIdWithNewView);
 				deltaAnalyzer.extractDelta(variable, isCollection, newDeltaMarkerView, subIdWithNewView);
 				TracePoint coordinatorPoint = newDeltaMarkerView.getCoordinatorPoint();
+				TracePoint creationPoint = newDeltaMarkerView.getCreationPoint();
 				DebuggingController controller = DebuggingController.getInstance();
-				controller.jumpToTheTracePoint(coordinatorPoint, false);
+				controller.jumpToTheTracePoint(creationPoint, false);
 
 				DeltaMarkerManager deltaMarkerManager = newDeltaMarkerView.getDeltaMarkerManager();
 				markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
 				MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();
-				MethodExecution bottomME = newDeltaMarkerView.getBottomPoint().getMethodExecution();
+				MethodExecution bottomME = newDeltaMarkerView.getCreationPoint().getMethodExecution();
 				CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
 				callStackView.highlight(coordinatorME);
 				CallTreeView callTreeView = (CallTreeView)getOtherView(CallTreeView.ID);
-				callTreeView.setSubId(subIdWithNewView);
-//				callTreeView.update(coordinatorME, bottomME);
-//				callTreeView.highlight(coordinatorME);
 				callTreeView.update(deltaMarkerManager);
-				callTreeView.highlight(coordinatorME);
+				callTreeView.highlight(bottomME);
 				TracePointsView tracePointsView = (TracePointsView)getOtherView(TracePointsView.ID);
-				tracePointsView.addTracePoint(coordinatorPoint);
+				tracePointsView.addTracePoint(creationPoint);
 			} catch (PartInitException e) {
 				e.printStackTrace();
 			}

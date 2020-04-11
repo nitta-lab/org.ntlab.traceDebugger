@@ -2,7 +2,7 @@ package org.ntlab.traceDebugger;
 
 import java.util.List;
 
-import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
@@ -19,12 +19,13 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
+import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
+import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class CallTreeView extends ViewPart {
 	private TreeViewer viewer;
 	private CallTreeModels callTreeModels = new CallTreeModels();
-	private String subId;
 	public static final String ID = "org.ntlab.traceDebugger.callTreeView";
 	
 	public CallTreeView() {
@@ -46,30 +47,27 @@ public class CallTreeView extends ViewPart {
 			public void selectionChanged(SelectionChangedEvent event) {
 				IStructuredSelection sel = (IStructuredSelection)event.getSelection();
 				Object element = sel.getFirstElement();
-				if (element instanceof TreeNode) {
-					Object value = ((TreeNode)element).getValue();					
-					if (value instanceof CallTreeModel) {
-						CallTreeModel callTreeModel = (CallTreeModel)value;
-						MethodExecution methodExecution = callTreeModel.getMethodExecution();
-						highlight(methodExecution);
-						TracePoint tp = methodExecution.getEntryPoint();
-						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, -1);
-						DeltaMarkerView deltaMarkerView = ((DeltaMarkerView)getOtherView(DeltaMarkerView.ID, subId));
-						DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
-						CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID, null);
-						callStackView.updateByTracePoint(tp);
-						try {
-							Object coordinatorME = deltaMarkerManager.getCoordinatorDeltaMarker().getAttribute("data");
-							if (coordinatorME instanceof MethodExecution) {
-								callStackView.highlight((MethodExecution)coordinatorME);
-							}
-						} catch (CoreException e) {
-							e.printStackTrace();
-						}
-						VariableView variableView = ((VariableView)getOtherView(VariableView.ID, null));
-						variableView.updateVariablesByTracePoint(tp, false);
-						variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
-					}
+				if (!(element instanceof TreeNode)) return;
+				Object value = ((TreeNode)element).getValue();
+				if (!(value instanceof CallTreeModel)) return;
+
+				CallTreeModel callTreeModel = (CallTreeModel)value;
+				MethodExecution methodExecution = callTreeModel.getMethodExecution();
+				highlight(methodExecution);
+				TracePoint tp = methodExecution.getEntryPoint();
+				JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, -1);				
+				CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
+				callStackView.updateByTracePoint(tp);
+				VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
+				variableView.updateVariablesByTracePoint(tp, false);
+				AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
+				if (analyzer instanceof DeltaExtractionAnalyzer) {
+					DeltaMarkerView deltaMarkerView = ((DeltaExtractionAnalyzer)analyzer).getActiveDeltaMarkerView();
+					DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
+					IMarker coodinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
+					MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coodinatorMarker);
+					if (coordinatorME != null) callStackView.highlight((MethodExecution)coordinatorME);						
+					variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
 				}
 			}
 		});
@@ -96,14 +94,6 @@ public class CallTreeView extends ViewPart {
 		IMenuManager mgr = getViewSite().getActionBars().getMenuManager();
 	}
 
-	public String getSubId() {
-		return subId;
-	}
-	
-	public void setSubId(String subId) {
-		this.subId = subId;
-	}
-	
 	public void update(DeltaMarkerManager deltaMarkerManager) {
 		callTreeModels.update(deltaMarkerManager);
 		viewer.setInput(callTreeModels.getCallTreeModels());
@@ -128,14 +118,13 @@ public class CallTreeView extends ViewPart {
 		viewer.setInput(callTreeModels.getCallTreeModelList());
 		viewer.refresh();
 	}
-	
-	private IViewPart getOtherView(String viewId, String subId) {
+
+	private IViewPart getOtherView(String viewId) {
 		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		try {
-			if (subId == null) return workbenchPage.showView(viewId);
-			return workbenchPage.showView(viewId, subId, IWorkbenchPage.VIEW_ACTIVATE);
+			return workbenchPage.showView(viewId);
 		} catch (PartInitException e) {
 			throw new RuntimeException(e);
 		}	
-	}
+	}	
 }

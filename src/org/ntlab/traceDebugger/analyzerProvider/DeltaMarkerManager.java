@@ -30,7 +30,6 @@ import org.eclipse.ui.part.FileEditorInput;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayCreate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldAccess;
-import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Reference;
@@ -113,6 +112,22 @@ public class DeltaMarkerManager {
 			} else if (data instanceof Alias) {
 				Alias alias = (Alias)data;
 				return alias.getMethodExecution();
+			}
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public static TracePoint getTracePoint(IMarker deltaMarker) {
+		try {
+			Object data = deltaMarker.getAttribute(DELTA_MARKER_ATR_DATA);
+			if (data instanceof MethodExecution) {
+				return ((MethodExecution)data).getEntryPoint();
+			} else if (data instanceof TracePoint) {
+				return (TracePoint)data;
+			} else if (data instanceof Alias) {
+				return ((Alias)data).getOccurrencePoint();
 			}
 		} catch (CoreException e) {
 			e.printStackTrace();

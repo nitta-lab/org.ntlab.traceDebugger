@@ -66,55 +66,30 @@ public class Variables {
 		updateRootThisState(me, to, isReturned);
 		updateArgsState(me, to, isReturned);
 	}
-
+	
 	private void updateReturnValue(TracePoint from, TracePoint to, boolean isReturned) {
 		Statement statement = from.getStatement();
 		ObjectReference ref = null;
+		MethodExecution me = null;
 		if (statement instanceof MethodInvocation) {
 			MethodInvocation mi = (MethodInvocation)statement;
+			me = mi.getCalledMethodExecution();
 			ref = mi.getCalledMethodExecution().getReturnValue();
 		} else if (isReturned) {
-			MethodExecution me = from.getMethodExecution();
+			me = from.getMethodExecution();
 			ref = me.getReturnValue();
 		}
 		if (ref != null) {
 			String returnValueClassName = ref.getActualType();
 			if (returnValueClassName.equals("void")) return;
 			String returnValueId = ref.getId();
-			String thisObjId = to.getMethodExecution().getThisObjId();
-			String thisClassName = to.getMethodExecution().getThisClassName();
-			Variable variable = new Variable("Return", thisObjId, thisClassName, returnValueClassName, returnValueId, from, isReturned);
+			String thisObjId = me.getThisObjId();
+			String thisClassName = me.getThisClassName();
+			Variable variable = new Variable("Return", thisClassName, thisObjId, returnValueClassName, returnValueId, from, isReturned);
 			roots.add(variable);
 			variable.createNextHierarchyState();			
 		}
 	}
-	
-//	private void updateReturnValue(TracePoint from, TracePoint to, boolean isReturned) {
-//		Statement statement = from.getStatement();
-//		if (statement instanceof MethodInvocation) {
-//			MethodInvocation mi = (MethodInvocation)statement;
-//			ObjectReference ref = mi.getCalledMethodExecution().getReturnValue();
-//			String returnValueClassName = ref.getActualType();
-//			if (returnValueClassName.equals("void")) return;
-//			String returnValueId = ref.getId();
-//			String thisObjId = to.getMethodExecution().getThisObjId();
-//			String thisClassName = to.getMethodExecution().getThisClassName();
-//			Variable variable = new Variable("Return", thisObjId, thisClassName, returnValueClassName, returnValueId, from, isReturned);
-//			roots.add(variable);
-//			variable.createNextHierarchyState();
-//		} else if (isReturned) {
-//			MethodExecution me = from.getMethodExecution();
-//			ObjectReference ref = me.getReturnValue();
-//			String returnValueClassName = ref.getActualType();
-//			if (returnValueClassName.equals("void")) return;
-//			String returnValueId = ref.getId();
-//			String thisObjId = to.getMethodExecution().getThisObjId();
-//			String thisClassName = to.getMethodExecution().getThisClassName();
-//			Variable variable = new Variable("Return", thisObjId, thisClassName, returnValueClassName, returnValueId, from, isReturned);
-//			roots.add(variable);
-//			variable.createNextHierarchyState();			
-//		}
-//	}
 	
 	private void updateRootThisState(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
 		String thisObjId = methodExecution.getThisObjId();
