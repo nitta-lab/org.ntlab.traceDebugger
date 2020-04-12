@@ -145,40 +145,41 @@ public class DeltaMarkerView extends ViewPart {
 	}
 
 	private void updateOtherViewsByMarker(IMarker marker) {
-		try {
-			DebuggingController controller = DebuggingController.getInstance();
-			Object obj = marker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_DATA);
-			IMarker coordinator = deltaMarkerManager.getCoordinatorDeltaMarker();
-			TracePoint coordinatorPoint = DeltaMarkerManager.getTracePoint(coordinator);
-			TracePoint jumpPoint;
-			MethodExecution selectionME;
-			boolean isReturned = false;
-			if (obj instanceof Alias) {
-				Alias alias = (Alias)obj;
-				jumpPoint = alias.getOccurrencePoint();
-				selectionME = jumpPoint.getMethodExecution();
-				Alias.AliasType type = alias.getAliasType();
-				isReturned = type.equals(AliasType.METHOD_INVOCATION)
-								|| type.equals(AliasType.CONSTRACTOR_INVOCATION); 
-			} else if (obj instanceof TracePoint) {
-				jumpPoint = (TracePoint)obj;
-				selectionME = jumpPoint.getMethodExecution();
-			} else {
-				jumpPoint = coordinatorPoint;
-				selectionME = coordinatorPoint.getMethodExecution();
+		DebuggingController controller = DebuggingController.getInstance();
+		IMarker coordinator = deltaMarkerManager.getCoordinatorDeltaMarker();
+		TracePoint coordinatorPoint = DeltaMarkerManager.getTracePoint(coordinator);
+		if (marker != null) {
+			try {
+				Object obj = marker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_DATA);
+				TracePoint jumpPoint;
+				MethodExecution selectionME;
+				boolean isReturned = false;
+				if (obj instanceof Alias) {
+					Alias alias = (Alias)obj;
+					jumpPoint = alias.getOccurrencePoint();
+					selectionME = jumpPoint.getMethodExecution();
+					Alias.AliasType type = alias.getAliasType();
+					isReturned = type.equals(AliasType.METHOD_INVOCATION)
+									|| type.equals(AliasType.CONSTRACTOR_INVOCATION); 
+				} else if (obj instanceof TracePoint) {
+					jumpPoint = (TracePoint)obj;
+					selectionME = jumpPoint.getMethodExecution();
+				} else {
+					jumpPoint = coordinatorPoint;
+					selectionME = coordinatorPoint.getMethodExecution();
+				}
+				controller.jumpToTheTracePoint(jumpPoint, isReturned);
+				IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+				IDE.openEditor(page, marker);
+				CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID));
+				callTreeView.highlight(selectionME);
+				CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
+				callStackView.highlight(coordinatorPoint.getMethodExecution());
+				VariableView variableView = (VariableView)getOtherView(VariableView.ID);
+				variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
+			} catch (CoreException e) {
+				e.printStackTrace();
 			}
-			controller.jumpToTheTracePoint(jumpPoint, isReturned);
-			IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-			IDE.openEditor(page, marker);
-
-			CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
-			callStackView.highlight(coordinatorPoint.getMethodExecution());
-			VariableView variableView = (VariableView)getOtherView(VariableView.ID);
-			variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
-			CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID));
-			callTreeView.highlight(selectionME);
-		} catch (CoreException e) {
-			e.printStackTrace();
 		}
 	}
 

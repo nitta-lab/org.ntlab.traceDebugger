@@ -406,18 +406,29 @@ public class DeltaMarkerManager {
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
 						}
-//						@Override
-//						public boolean visit(org.eclipse.jdt.core.dom.VariableDeclarationStatement node) {
-//							int lineNo = cUnit.getLineNumber(node.getStartPosition());
-//							int lineNo2 = fa.getLineNo();
-//							String name1 = node.toString();
-//							String name2 = fa.getFieldName();
-//							System.out.println(ASTNode.nodeClassForType(node.getNodeType()));
-//							System.out.println("name1: " + name1 + ", name2: " + name2);
-//							System.out.println("line1: " + lineNo + ", line2: " + lineNo2);
-//							System.out.println();
-//							return true;
-//						}
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.IfStatement node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							String fieldName = fa.getFieldName();
+							fieldName = fieldName.substring(fieldName.lastIndexOf(".") + 1);
+							int start = node.getStartPosition();
+							int end = start;
+							Expression expression = node.getExpression();
+							if (expression != null) {
+								start = expression.getStartPosition();
+								start += expression.toString().indexOf(fieldName);
+								end = start;
+								if (source.startsWith("this.", start - "this.".length())) {
+									start -= "this.".length();
+									end = start + "this".length();
+								}
+							}
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
 					};
 				} else if (statement instanceof MethodInvocation) {
 					final MethodInvocation mi = (MethodInvocation)statement;
@@ -637,7 +648,26 @@ public class DeltaMarkerManager {
 							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
 							return false;
-						}						
+						}
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.IfStatement node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							String fieldName = fa.getFieldName();
+							fieldName = fieldName.substring(fieldName.lastIndexOf(".") + 1);
+							int start = node.getStartPosition();
+							int end = start + node.getLength();
+							Expression expression = node.getExpression();
+							if (expression != null) {
+								start = expression.getStartPosition();
+								start += expression.toString().indexOf(fieldName);
+								end = start + fieldName.length();
+							}
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
 					};
 				}
 				return visitor;
@@ -762,6 +792,26 @@ public class DeltaMarkerManager {
 							}
 							return false;
 						}
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.SuperMethodInvocation node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							String name1 = node.getName().toString();
+							String name2 = calledMe.getCallerSideSignature();
+							name2 = name2.substring(0, name2.indexOf("("));
+							name2 = name2.substring(name2.lastIndexOf(".") + 1);
+							if (!(name1.equals(name2))) return true;
+							Object obj = node.arguments().get(index);
+							if (obj instanceof Expression) {
+								Expression argument = (Expression)obj;
+								int start = argument.getStartPosition();
+								int end = start + argument.getLength();
+								attributes.put(IMarker.CHAR_START, start);
+								attributes.put(IMarker.CHAR_END, end);
+								attributes.put(IMarker.LINE_NUMBER, lineNo);
+							}
+							return false;
+						}
 					};
 				}
 				return visitor;	
@@ -787,6 +837,22 @@ public class DeltaMarkerManager {
 								String receiverName = expression.toString(); // note: メソッド呼び出しのレシーバ名まで
 								end = start + receiverName.length();
 							}
+							attributes.put(IMarker.CHAR_START, start);
+							attributes.put(IMarker.CHAR_END, end);
+							attributes.put(IMarker.LINE_NUMBER, lineNo);
+							return false;
+						}
+						@Override
+						public boolean visit(org.eclipse.jdt.core.dom.SuperMethodInvocation node) {
+							int lineNo = cUnit.getLineNumber(node.getStartPosition());
+							if (lineNo != alias.getLineNo()) return true;
+							String name1 = node.getName().toString();
+							String name2 = calledMe.getCallerSideSignature();
+							name2 = name2.substring(0, name2.indexOf("("));
+							name2 = name2.substring(name2.lastIndexOf(".") + 1);
+							if (!(name1.equals(name2))) return true;
+							int start = node.getStartPosition();
+							int end = start + "super".length();
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
 							attributes.put(IMarker.LINE_NUMBER, lineNo);
