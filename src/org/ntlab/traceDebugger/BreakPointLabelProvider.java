@@ -18,7 +18,7 @@ public class BreakPointLabelProvider  extends LabelProvider implements ITableLab
 			case 1:
 				return String.valueOf(tbp.getLineNo());
 			case 2:
-				return tbp.getMethodSignature();
+				return tbp.getReadableSignature();
 			}
 		}
 		return "テスト用テキスト" + columnIndex;

@@ -62,7 +62,7 @@ public class BreakPointView extends ViewPart {
 
 		// テーブルのカラムを作成
 		String[] tableColumnTexts = {"Available", "Line No", "Signature"};
-		int[] tableColumnWidth = {80, 80, 200};
+		int[] tableColumnWidth = {80, 80, 500};
 		TableColumn[] tableColumns = new TableColumn[tableColumnTexts.length];
 		for (int i = 0; i < tableColumns.length; i++) {
 			tableColumns[i] = new TableColumn(table, SWT.NULL);

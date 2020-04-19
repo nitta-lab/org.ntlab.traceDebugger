@@ -60,6 +60,32 @@ public class TraceBreakPoint {
 		return methodSignature;
 	}
 	
+	public String getReadableSignature() {
+		MethodExecution methodExecution = methodExecutions.iterator().next();
+		String signature = methodExecution.getSignature();
+		String objectType = methodExecution.getThisClassName();
+		objectType = objectType.substring(objectType.lastIndexOf(".") + 1);
+		boolean isConstructor = methodExecution.isConstructor();
+		String declaringType = Trace.getDeclaringType(signature, isConstructor);
+		declaringType = declaringType.substring(declaringType.lastIndexOf(".") + 1);
+		String methodName = Trace.getMethodName(signature);
+		String args = "(";
+		String delimiter = "";
+		String[] argArray = signature.split("\\(")[1].split(",");
+		for (String arg : argArray) {
+			args += (delimiter + arg.substring(arg.lastIndexOf(".") + 1));
+			delimiter = ", ";
+		}
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append(objectType);
+		if (!declaringType.equals(objectType)) {
+			sb.append("(" + declaringType + ")");
+		}
+		sb.append("." + methodName + args);
+		return sb.toString();
+	}
+	
 	public int getLineNo() {
 		return lineNo;
 	}
