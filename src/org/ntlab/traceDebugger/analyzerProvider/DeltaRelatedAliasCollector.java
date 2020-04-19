@@ -62,12 +62,17 @@ public class DeltaRelatedAliasCollector implements IAliasCollector {
 	}
 
 	@Override
-	public void changeTrackingObject(String from, String to) {
-		if (srcSideIdList.contains(from)) {
+	public void changeTrackingObject(String from, String to, boolean isSrcSide) {
+		if (isSrcSide) {
 			srcSideIdList.add(to);
-		} else if (dstSideIdList.contains(from)) {
+		} else {
 			dstSideIdList.add(to);
 		}
+//		if (srcSideIdList.contains(from)) {
+//			srcSideIdList.add(to);
+//		} else if (dstSideIdList.contains(from)) {
+//			dstSideIdList.add(to);
+//		}
 	}
 	
 	public List<Alias> getRelatedAliases() {

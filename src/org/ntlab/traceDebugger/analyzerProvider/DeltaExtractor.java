@@ -38,7 +38,7 @@ public class DeltaExtractor {
 	protected static final boolean DEBUG2 = true;
 	protected final IAliasCollector defaultAliasCollector = new IAliasCollector() {
 		@Override
-		public void changeTrackingObject(String from, String to) {
+		public void changeTrackingObject(String from, String to, boolean isSrcSide) {
 		}
 		@Override
 		public void addAlias(Alias alias) {

@@ -52,14 +52,13 @@ public class CallTreeView extends ViewPart {
 				if (!(value instanceof CallTreeModel)) return;
 
 				CallTreeModel callTreeModel = (CallTreeModel)value;
-				MethodExecution methodExecution = callTreeModel.getMethodExecution();
+				MethodExecution methodExecution = callTreeModel.getMethodExecution();				
 				highlight(methodExecution);
 				TracePoint tp = methodExecution.getEntryPoint();
-				JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, -1);				
+				DebuggingController controller = DebuggingController.getInstance();
+				controller.jumpToTheTracePoint(tp, false);
 				CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
-				callStackView.updateByTracePoint(tp);
 				VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
-				variableView.updateVariablesByTracePoint(tp, false);
 				AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 				if (analyzer instanceof DeltaExtractionAnalyzer) {
 					DeltaMarkerView deltaMarkerView = ((DeltaExtractionAnalyzer)analyzer).getActiveDeltaMarkerView();

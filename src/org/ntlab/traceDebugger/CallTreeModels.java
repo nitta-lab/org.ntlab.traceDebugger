@@ -31,19 +31,21 @@ public class CallTreeModels {
 	public void update(DeltaMarkerManager deltaMarkerManager) {
 		reset();
 		IMarker coordinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
-		MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coordinatorMarker);
-		List<IMarker> markersOrderByAdding = deltaMarkerManager.getMarkersByOrder();
-		for (IMarker marker : markersOrderByAdding) {
-			MethodExecution me = DeltaMarkerManager.getMethodExecution(marker);
-			CallTreeModel callTreeModel = new CallTreeModel(me);
-			if (!(callTreeModelsMemo.containsKey(me))) {
-				callTreeModelsMemo.put(me, callTreeModel);
-				if (!(me.equals(coordinatorME))) {
-					linkTreeToCoordinator(callTreeModel, coordinatorME);	
-				}
-			}			
+		if (coordinatorMarker != null) {
+			MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coordinatorMarker);
+			List<IMarker> markersOrderByAdding = deltaMarkerManager.getMarkersByOrder();
+			for (IMarker marker : markersOrderByAdding) {
+				MethodExecution me = DeltaMarkerManager.getMethodExecution(marker);
+				CallTreeModel callTreeModel = new CallTreeModel(me);
+				if (!(callTreeModelsMemo.containsKey(me))) {
+					callTreeModelsMemo.put(me, callTreeModel);
+					if (!(me.equals(coordinatorME))) {
+						linkTreeToCoordinator(callTreeModel, coordinatorME);	
+					}
+				}			
+			}
+			createCallTreeModels(callTreeModelsMemo.get(coordinatorME));			
 		}
-		createCallTreeModels(callTreeModelsMemo.get(coordinatorME));
 	}
 	
 	private void linkTreeToCoordinator(CallTreeModel currentModel, final MethodExecution coordinatorME) {
