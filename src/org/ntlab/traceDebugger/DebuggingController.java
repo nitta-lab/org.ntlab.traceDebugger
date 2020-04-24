@@ -60,13 +60,14 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
 			return false;
 		}
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void E.setC(C)", null);
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void _arraySample.D.setC(_arraySample.C)", null);		
 //		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void Company.pay(Money,Person)", null);
 //		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void worstCase.P.setM(worstCase.M)", null);
 //		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public void org.jhotdraw.draw.DefaultDrawingView.addToSelection(org.jhotdraw.draw.Figure)", null);
 //		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "protected void org.tigris.gef.base.SelectionManager.addFig(org.tigris.gef.presentation.Fig)", null);
-		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public static org.tigris.gef.base.Selection org.tigris.gef.base.SelectionManager.makeSelectionFor(org.tigris.gef.presentation.Fig)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void E.setC(C)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void _arraySample.D.setC(_arraySample.C)", null);		
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public static org.tigris.gef.base.Selection org.tigris.gef.base.SelectionManager.makeSelectionFor(org.tigris.gef.presentation.Fig)", null);
+		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public void org.argouml.uml.diagram.ui.ActionRemoveFromDiagram.actionPerformed(java.awt.event.ActionEvent)", null);
 		if (inputDialog.open() != InputDialog.OK) return false;
 		String methodSignature = inputDialog.getValue();
 		inputDialog = new InputDialog(null, "line No dialog", "Input line no", "", null);
@@ -168,6 +169,24 @@ public class DebuggingController {
 		}
 		refresh(previousTp, debuggingTp, true);
 		return true;
+	}
+	
+	public boolean stepNextAction() {
+		if (debuggingTp == null) return false;
+		TracePoint previousTp = debuggingTp;
+		debuggingTp = debuggingTp.duplicate();
+		boolean isReturned = false; 
+		debuggingTp.stepNext();
+		if (debuggingTp.getStatement() instanceof BlockEnter) {
+			debuggingTp.stepFull();
+		}
+		if (!debuggingTp.isValid()) {
+			terminateAction();
+			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
+			return false;
+		}
+		refresh(previousTp, debuggingTp, isReturned);
+		return true;		
 	}
 	
 	public boolean resumeAction() {

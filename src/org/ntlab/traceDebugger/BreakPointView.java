@@ -36,6 +36,7 @@ public class BreakPointView extends ViewPart {
 	private IAction stepIntoAction;
 	private IAction stepOverAction;
 	private IAction stepReturnAction;
+	private IAction stepNextAction;
 	private IAction resumeAction;
 	private IAction stepBackIntoAction;
 	private IAction stepBackOverAction;
@@ -181,6 +182,15 @@ public class BreakPointView extends ViewPart {
 		};
 		stepReturnAction.setText("Step Return");
 		stepReturnAction.setToolTipText("Step Return");
+
+		stepNextAction = new Action() {
+			@Override
+			public void run() {
+				debuggingController.stepNextAction();
+			}
+		};
+		stepNextAction.setText("Step Next");
+		stepNextAction.setToolTipText("Step Next");		
 		
 		resumeAction = new Action() {
 			@Override
@@ -237,6 +247,7 @@ public class BreakPointView extends ViewPart {
 		mgr.add(stepIntoAction);
 		mgr.add(stepOverAction);
 		mgr.add(stepReturnAction);
+		mgr.add(stepNextAction);
 		mgr.add(stepBackIntoAction);
 		mgr.add(stepBackOverAction);
 		mgr.add(stepBackReturnAction);
@@ -252,6 +263,7 @@ public class BreakPointView extends ViewPart {
 		mgr.add(stepIntoAction);
 		mgr.add(stepOverAction);
 		mgr.add(stepReturnAction);
+		mgr.add(stepNextAction);
 		mgr.add(stepBackIntoAction);
 		mgr.add(stepBackOverAction);
 		mgr.add(stepBackReturnAction);

@@ -149,7 +149,15 @@ public class VariableView extends ViewPart {
 		deltaAction = new Action() {
 			@Override
 			public void run() {
-				delta(selectedVariable, !false);
+				if (selectedVariable.getVariableName().equals(Variables.RETURN_VARIABLE_NAME)) {
+					String[] texts = {"Caller to Callee", "This to Another"};
+					RadioButtonDialog dialog = new RadioButtonDialog(null, "Which patterns?", texts);
+					if (dialog.open() != InputDialog.OK) return;
+					String selectionType = dialog.getValue();
+					delta(selectedVariable, true, selectionType.startsWith("This"));
+				} else {
+					delta(selectedVariable, true, false);
+				}
 			}
 		};
 		deltaAction.setText("Extract Delta");
@@ -169,8 +177,8 @@ public class VariableView extends ViewPart {
 				String valueId = selectedVariable.getId();
 				String valueType = selectedVariable.getClassName();
 				TracePoint tp = DebuggingController.getInstance().getCurrentTp();
-				Variable variable = new Variable("tmp", containerType, containerId, valueType, valueId, tp, false);
-				delta(variable, true);
+				Variable variable = new Variable("tmp", containerType, containerId, valueType, valueId, tp, false);				
+				delta(variable, true, false);
 			}
 		};
 		deltaActionForCollection.setText("Extract Delta for Collection");
@@ -208,7 +216,7 @@ public class VariableView extends ViewPart {
 		viewer.refresh();
 	}
 	
-	private void delta(Variable variable, boolean isCollection) {
+	private void delta(Variable variable, boolean isCollection, boolean isForThisToAnother) {
 		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 		if (analyzer instanceof DeltaExtractionAnalyzer) {
 			DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;					
@@ -218,7 +226,11 @@ public class VariableView extends ViewPart {
 				// note: 同一ビューを複数開くテスト
 				String subIdWithNewView = deltaAnalyzer.getNextDeltaMarkerSubId();
 				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)workbenchPage.showView(DeltaMarkerView.ID, subIdWithNewView, IWorkbenchPage.VIEW_ACTIVATE);
-				deltaAnalyzer.extractDelta(variable, isCollection, newDeltaMarkerView, subIdWithNewView);
+				if (isForThisToAnother) {
+					deltaAnalyzer.extractDeltaForThisToAnother(variable, isCollection, newDeltaMarkerView, subIdWithNewView);	
+				} else {
+					deltaAnalyzer.extractDelta(variable, isCollection, newDeltaMarkerView, subIdWithNewView);					
+				}
 				TracePoint coordinatorPoint = newDeltaMarkerView.getCoordinatorPoint();
 				TracePoint creationPoint = newDeltaMarkerView.getCreationPoint();
 				DebuggingController controller = DebuggingController.getInstance();
@@ -250,11 +262,6 @@ public class VariableView extends ViewPart {
 		viewer.setInput(variables.getVariablesTreeNodes());
 	}
 
-//	public void updateVariablesByTracePoint(TracePoint tp, boolean isReturned) {
-//		variables.updateAllObjectDataByTracePoint(tp, isReturned);
-//		viewer.setInput(variables.getVariablesTreeNodes());
-//	}
-	
 	public void markAndExpandVariablesByDeltaMarkers(Map<String, List<IMarker>> markers) {
 		List<IMarker> srcSideDeltaMarkers = markers.get(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
 		List<IMarker> dstSideDeltaMarkers = markers.get(DeltaMarkerManager.DST_SIDE_DELTA_MARKER);

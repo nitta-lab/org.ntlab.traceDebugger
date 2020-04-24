@@ -785,7 +785,7 @@ public class DeltaExtractor {
 	}
 	
 	/**
-	 * 設計変更後のアルゴリズムの起動メソッド(高速化)
+	 * 参照元オブジェクトと参照先オブジェクトを関連付けたデルタを、参照を指定して抽出する
 	 * @param targetRef 対象となる参照
 	 * @param before 探索開始トレースポイント(これより以前を探索)
 	 * @return 抽出結果
@@ -795,7 +795,7 @@ public class DeltaExtractor {
 	}
 	
 	/**
-	 * 設計変更後のアルゴリズムの起動メソッド(高速化)
+	 * 参照元オブジェクトと参照先オブジェクトを関連付けたデルタを、参照を指定して抽出する
 	 * @param targetRef 対象となる参照
 	 * @param before 探索開始トレースポイント(これより以前を探索)
 	 * @param aliasCollector デルタ抽出時に追跡したオブジェクトの全エイリアスを収集するリスナ
@@ -824,7 +824,7 @@ public class DeltaExtractor {
 	}
 	
 	/**
-	 * 設計変更後のアルゴリズムの起動メソッド(高速化)
+	 * 参照元オブジェクトと参照先オブジェクトを関連付けたデルタを、オブジェクト間参照が生成されたトレースポイントを指定して抽出する
 	 * @param creationTracePoint オブジェクト間参照生成トレースポイント(フィールドへの代入)
 	 * @return 抽出結果
 	 */
@@ -840,7 +840,7 @@ public class DeltaExtractor {
 	}
 	
 	/**
-	 * 設計変更後のアルゴリズムの起動メソッド(高速化)
+	 * 参照元オブジェクトと参照先オブジェクトを関連付けたデルタを、オブジェクト間参照が生成されたトレースポイントを指定して抽出する
 	 * @param creationTracePoint オブジェクト間参照生成トレースポイント(フィールドへの代入)
 	 * @param aliasCollector デルタ抽出時に追跡したオブジェクトの全エイリアスを収集するリスナ
 	 * @return 抽出結果
@@ -877,29 +877,65 @@ if (DEBUG1) {
 		return extractSub2(creationTracePoint, objList, aliasCollector);
 	}
 	
-	public ExtractedStructure extract(TracePoint tracePoint, ObjectReference argObj) {
-		return extract(tracePoint, argObj, defaultAliasCollector);
+	/**
+	 * 呼び出し元オブジェクトと呼び出し先オブジェクトを関連付けたデルタを、呼び出し先メソッド実行を指定して抽出する
+	 * @param calledMethodExecution 呼び出し先メソッド実行
+	 * @return　抽出結果
+	 */
+	public ExtractedStructure extract(MethodExecution calledMethodExecution) {
+		return extract(calledMethodExecution, defaultAliasCollector);
+	}	
+	
+	/**
+	 * 呼び出し元オブジェクトと呼び出し先オブジェクトを関連付けたデルタを、呼び出し先メソッド実行を指定して抽出する
+	 * @param calledMethodExecution 呼び出し先メソッド実行
+	 * @param aliasCollector デルタ抽出時に追跡したオブジェクトの全エイリアスを収集するリスナ
+	 * @return　抽出結果
+	 */
+	public ExtractedStructure extract(MethodExecution calledMethodExecution, IAliasCollector aliasCollector) {
+		ObjectReference callee = new ObjectReference(calledMethodExecution.getThisObjId(), calledMethodExecution.getThisClassName());
+		return extract(calledMethodExecution.getCallerTracePoint(), callee, aliasCollector);
 	}
  
-	public ExtractedStructure extract(TracePoint tracePoint, ObjectReference argObj, IAliasCollector aliasCollector) {
-		MethodExecution methodExecution = tracePoint.getMethodExecution();
+	/**
+	 * 自分（thisオブジェクト）と自分がメソッド内で参照したオブジェクトを関連付けたデルタを抽出する
+	 * @param thisTracePoint 参照が発生した時点
+	 * @param anotherObj 参照したオブジェクト
+	 * @return 抽出結果
+	 */
+	public ExtractedStructure extract(TracePoint thisTracePoint, ObjectReference anotherObj) {
+		return extract(thisTracePoint, anotherObj, defaultAliasCollector);
+	}
+ 
+	/**
+	 * 自分（thisオブジェクト）とメソッド内で参照されたオブジェクトを関連付けたデルタを抽出する
+	 * @param thisTracePoint 参照が発生した時点
+	 * @param anotherObj 参照したオブジェクト
+	 * @param aliasCollector デルタ抽出時に追跡したオブジェクトの全エイリアスを収集するリスナ
+	 * @return 抽出結果
+	 */
+	public ExtractedStructure extract(TracePoint thisTracePoint, ObjectReference anotherObj, IAliasCollector aliasCollector) {
+		MethodExecution methodExecution = thisTracePoint.getMethodExecution();
+		if (!thisTracePoint.isMethodEntry()) {
+			thisTracePoint.stepNext();
+		}
 		eStructure = new ExtractedStructure();
 		ArrayList<String> objList = new ArrayList<String>();
 		String thisObjectId = methodExecution.getThisObjId();
 		objList.add(thisObjectId);
-		objList.add(argObj.getId());
+		objList.add(anotherObj.getId());
 		srcObject = new ObjectReference(thisObjectId, methodExecution.getThisClassName(), 
 				Trace.getDeclaringType(methodExecution.getSignature(), methodExecution.isConstructor()), Trace.getDeclaringType(methodExecution.getCallerSideSignature(), methodExecution.isConstructor()));
-		dstObject = argObj;
+		dstObject = anotherObj;
 if (DEBUG1) {
-		System.out.println("extract delta of:" + methodExecution.getSignature() + " -> " + argObj.getActualType()  + "(" + argObj.getId() + ")");
+		System.out.println("extract delta of:" + methodExecution.getSignature() + " -> " + anotherObj.getActualType()  + "(" + anotherObj.getId() + ")");
 }
-		return extractSub2(tracePoint, objList, aliasCollector);
+		return extractSub2(thisTracePoint, objList, aliasCollector);
 	}
 	
-	private ExtractedStructure extractSub2(TracePoint creationTracePoint, ArrayList<String> objList, IAliasCollector aliasCollector) {
-		eStructure.setCreationMethodExecution(creationTracePoint.getMethodExecution());
-		MethodExecution coordinator = callerSearch(trace, creationTracePoint, objList, null, aliasCollector);
+	private ExtractedStructure extractSub2(TracePoint tracePoint, ArrayList<String> objList, IAliasCollector aliasCollector) {
+		eStructure.setCreationMethodExecution(tracePoint.getMethodExecution());
+		MethodExecution coordinator = callerSearch(trace, tracePoint, objList, null, aliasCollector);
 		eStructure.setCoordinator(coordinator);
 if (DEBUG2) {
 		if (((DeltaAugmentationInfo)coordinator.getAugmentation()).isCoodinator()) {

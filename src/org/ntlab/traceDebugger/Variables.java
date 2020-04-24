@@ -18,6 +18,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 public class Variables {
 	private static final Variables theInstance = new Variables();
 	private List<Variable> roots = new ArrayList<>();
+	public static final String RETURN_VARIABLE_NAME = "return";
 
 	public static Variables getInstance() {
 		return theInstance;
@@ -85,7 +86,7 @@ public class Variables {
 			String returnValueId = ref.getId();
 			String thisObjId = me.getThisObjId();
 			String thisClassName = me.getThisClassName();
-			Variable variable = new Variable("Return", thisClassName, thisObjId, returnValueClassName, returnValueId, from, isReturned);
+			Variable variable = new Variable(RETURN_VARIABLE_NAME, thisClassName, thisObjId, returnValueClassName, returnValueId, from, isReturned);
 			roots.add(variable);
 			variable.createNextHierarchyState();			
 		}

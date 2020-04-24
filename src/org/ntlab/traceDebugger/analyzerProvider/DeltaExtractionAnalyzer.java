@@ -47,15 +47,15 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		return extractedStructure;
 	}
 
-	public void extractDelta(Variable variable, boolean isColection, DeltaMarkerView deltaMarkerView, String deltaMarkerViewSubId) {
+	public void extractDelta(Variable variable, boolean isCollection, DeltaMarkerView deltaMarkerView, String deltaMarkerViewSubId) {
 		addDeltaMarkerView(deltaMarkerViewSubId, deltaMarkerView);
 		String srcId = variable.getContainerId();
 		String srcClassName = variable.getContainerClassName();
 		String dstId = variable.getId();
 		String dstClassName = variable.getClassName();
-		TracePoint before = variable.getBeforeTracePoint();
+		TracePoint before = variable.getBeforeTracePoint();				
 		Reference reference = new Reference(srcId, dstId, srcClassName, dstClassName);
-		reference.setCollection(isColection);
+		reference.setCollection(isCollection); // trueにするとコレクション以外抽出できなくなる
 		
 		// デルタ抽出
 		DeltaRelatedAliasCollector aliasCollector = new DeltaRelatedAliasCollector(srcId, dstId);
@@ -68,6 +68,39 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		DeltaMarkerManager mgr = deltaMarkerView.getDeltaMarkerManager();
 		mark(mgr, coordinator, aliasCollector, bottomPoint, reference);
 		deltaMarkerView.update();
+	}
+	
+	public void extractDeltaForThisToAnother(Variable variable, boolean isCollection, DeltaMarkerView deltaMarkerView, String deltaMarkerViewSubId) {
+		addDeltaMarkerView(deltaMarkerViewSubId, deltaMarkerView);
+		TracePoint before = variable.getBeforeTracePoint();
+		String srcId = before.getMethodExecution().getThisObjId();
+		String srcClassName = before.getMethodExecution().getThisClassName();
+		String dstId = variable.getId();
+		String dstClassName = variable.getClassName();
+		MethodExecution me = before.getMethodExecution();
+		Map<ObjectReference, TracePoint> references = me.getObjectReferences(dstClassName);
+		ObjectReference objectReference = null;
+		TracePoint tp = null;
+		for (Map.Entry<ObjectReference, TracePoint> entry : references.entrySet()) {
+			ObjectReference key = entry.getKey();
+			if (key.getId().equals(dstId)) {
+				objectReference = key;
+				tp = entry.getValue();
+				break;
+			}
+		}
+		
+		// デルタ抽出
+		DeltaRelatedAliasCollector aliasCollector = new DeltaRelatedAliasCollector(srcId, dstId);
+		extractedStructure = deltaExtractor.extract(tp, objectReference, aliasCollector);
+		MethodExecution coordinator = extractedStructure.getCoordinator();
+		TracePoint bottomPoint = before.duplicate();
+
+		// デルタ抽出の結果を元にソースコードを反転表示する
+		DeltaMarkerManager mgr = deltaMarkerView.getDeltaMarkerManager();
+		Reference reference = new Reference(srcId, dstId, srcClassName, dstClassName);
+		mark(mgr, coordinator, aliasCollector, bottomPoint, reference);
+		deltaMarkerView.update();		
 	}
 
 	private TracePoint findTracePoint(Reference reference, MethodExecution methodExecution, long beforeTime) {
