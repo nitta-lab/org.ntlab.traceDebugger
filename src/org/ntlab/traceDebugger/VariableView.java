@@ -150,7 +150,7 @@ public class VariableView extends ViewPart {
 			@Override
 			public void run() {
 				if (selectedVariable.getVariableName().equals(Variables.RETURN_VARIABLE_NAME)) {
-					String[] texts = {"Caller to Callee", "This to Another"};
+					String[] texts = {"Container to Component", "This to Another"};
 					RadioButtonDialog dialog = new RadioButtonDialog(null, "Which patterns?", texts);
 					if (dialog.open() != InputDialog.OK) return;
 					String selectionType = dialog.getValue();
