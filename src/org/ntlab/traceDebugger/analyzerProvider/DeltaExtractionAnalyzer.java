@@ -91,10 +91,10 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		}
 		
 		// デルタ抽出
+		TracePoint bottomPoint = tp.duplicate();
 		DeltaRelatedAliasCollector aliasCollector = new DeltaRelatedAliasCollector(srcId, dstId);
 		extractedStructure = deltaExtractor.extract(tp, objectReference, aliasCollector);
 		MethodExecution coordinator = extractedStructure.getCoordinator();
-		TracePoint bottomPoint = before.duplicate();
 
 		// デルタ抽出の結果を元にソースコードを反転表示する
 		DeltaMarkerManager mgr = deltaMarkerView.getDeltaMarkerManager();
