@@ -168,16 +168,30 @@ public class Variable {
 		}
 		alreadyCreatedChildHierarchy = true;
 	}
-	
+
 	private void getFieldsState() {
 		// フィールドのIDとTypeを取得して表示
-		TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
-		String declaringClassName = className;
-		IType type = JavaEditorOperator.findIType(null, declaringClassName);
-		if (type == null) {
-			System.out.println("IType == null: " + declaringClassName);
-			return;
-		}
+		IType type = JavaEditorOperator.findIType(null, className);
+		if (type == null) return;
+		getFieldsState(type);
+		
+		// 親クラスを遡っていき、それらのクラスで定義されたフィールドの情報も取得していく (ただし処理が増加して非常に重くなる)
+//		try {
+//			while (true) {
+//				String superClassName = type.getSuperclassName();
+//				if (superClassName == null) break;
+//				String fullyQualifiedSuperClassName = JavaEditorOperator.resolveType(type, superClassName);
+//				if (fullyQualifiedSuperClassName == null) break;
+//				type = JavaEditorOperator.findIType(null, fullyQualifiedSuperClassName);
+//				if (type == null) break;
+//				getFieldsState(type);
+//			}				
+//		} catch (JavaModelException e) {
+//			e.printStackTrace();
+//		}
+	}
+
+	private void getFieldsState(IType type) {
 		try {
 			for (IField field : type.getFields()) {
 				if (Flags.isStatic(field.getFlags())) continue;
@@ -185,6 +199,7 @@ public class Variable {
 				String fullyQualifiedFieldName = field.getDeclaringType().getFullyQualifiedName() + "." + field.getElementName(); // 完全限定クラス名
 
 				// そのフィールドについての最新の更新情報を取得(FieldUpdate)
+				TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
 //				FieldUpdate fieldUpdate = trace.getRecentlyFieldUpdate(thisObjData.getId(), fieldName, tp);
 //				FieldUpdate fieldUpdate = trace.getFieldUpdate(id, fullyQualifiedFieldName, before, isReturned);
 				TracePoint updateTracePoint = trace.getFieldUpdateTracePoint(id, fullyQualifiedFieldName, before, isReturned);
@@ -203,8 +218,45 @@ public class Variable {
 			}
 		} catch (JavaModelException e) {
 			e.printStackTrace();
-		}
+		}		
 	}
+
+//	private void getFieldsState() {
+//		// フィールドのIDとTypeを取得して表示
+//		TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
+//		String declaringClassName = className;
+//		IType type = JavaEditorOperator.findIType(null, declaringClassName);
+//		if (type == null) {
+//			System.out.println("IType == null: " + declaringClassName);
+//			return;
+//		}
+//		try {
+//			for (IField field : type.getFields()) {
+//				if (Flags.isStatic(field.getFlags())) continue;
+//				String fieldName = field.getDeclaringType().getElementName() + "." + field.getElementName(); // 完全限定クラス名
+//				String fullyQualifiedFieldName = field.getDeclaringType().getFullyQualifiedName() + "." + field.getElementName(); // 完全限定クラス名
+//
+//				// そのフィールドについての最新の更新情報を取得(FieldUpdate)
+////				FieldUpdate fieldUpdate = trace.getRecentlyFieldUpdate(thisObjData.getId(), fieldName, tp);
+////				FieldUpdate fieldUpdate = trace.getFieldUpdate(id, fullyQualifiedFieldName, before, isReturned);
+//				TracePoint updateTracePoint = trace.getFieldUpdateTracePoint(id, fullyQualifiedFieldName, before, isReturned);
+////				if (updateTracePoint == null) continue;
+//				if (updateTracePoint != null) {
+//					FieldUpdate fieldUpdate = (FieldUpdate)updateTracePoint.getStatement();
+//					// フィールドのIDとTypeを取得(String)
+//					String fieldObjId = (fieldUpdate != null) ? fieldUpdate.getValueObjId()     : "0";
+//					String fieldType  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : "---";
+//					Variable fieldData = new Variable(fieldName, className, id, fieldType, fieldObjId, updateTracePoint, before, isReturned);
+//					this.addChild(fieldData);
+//				} else {
+//					Variable fieldData = new Variable(fieldName, className, id, "?", "???", updateTracePoint, before, isReturned);
+//					this.addChild(fieldData);					
+//				}
+//			}
+//		} catch (JavaModelException e) {
+//			e.printStackTrace();
+//		}
+//	}
 
 	private void getArrayState() {
 		TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();

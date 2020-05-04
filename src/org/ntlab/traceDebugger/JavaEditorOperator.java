@@ -246,6 +246,22 @@ public class JavaEditorOperator {
 		return false;
 	}
 
+	public static String resolveType(IType type, String typeName) {
+		try {
+			String[][] resolveTypes = type.resolveType(typeName);
+			if (resolveTypes != null) {
+				if (resolveTypes[0][0].isEmpty()) {
+					return (resolveTypes[0][1]); // デフォルトパッケージの場合はパッケージ名と.は入れない
+				} else {
+					return (resolveTypes[0][0] + "." + resolveTypes[0][1]); // 完全限定クラス名
+				}
+			}
+		} catch (JavaModelException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
 	/**
 	 * IMethodから取得できる全引数のシグネチャを完全限定クラス名に置き換えて格納したリストを返す
 	 * 
@@ -266,16 +282,45 @@ public class JavaEditorOperator {
 				readableTypeSplit[0] = readableType.substring(0, firstBracketIndex); // 型名
 				readableTypeSplit[1] = readableType.substring(firstBracketIndex); // 型名の後ろの[]全て
 			}
-			String[][] resolveType = type.resolveType(readableTypeSplit[0]); // パッケージ名とクラス名の組み合わせを取得
-			if (resolveType != null) {
-				if (resolveType[0][0].isEmpty()) {
-					readableTypeSplit[0] = (resolveType[0][1]); // デフォルトパッケージの場合はパッケージ名と.は入れない
-				} else {
-					readableTypeSplit[0] = (resolveType[0][0] + "." + resolveType[0][1]); // 完全限定クラス名
-				}
-			}
+			String tmp = resolveType(type, readableTypeSplit[0]);
+			if (tmp != null) {
+				readableTypeSplit[0] = tmp;
+			}		
 			parameters.add(readableTypeSplit[0] + readableTypeSplit[1]);
 		}
 		return parameters;
 	}
+	
+//	/**
+//	 * IMethodから取得できる全引数のシグネチャを完全限定クラス名に置き換えて格納したリストを返す
+//	 * 
+//	 * @param type
+//	 * @param method
+//	 * @return
+//	 */
+//	private static List<String> parseFQCNParameters(IType type, IMethod method) throws JavaModelException {
+//		List<String> parameters = new ArrayList<>();
+//		for (String parameterType : method.getParameterTypes()) {
+//			String readableType = Signature.toString(parameterType); // シグネチャの文字列を型名の文字列に変換 (配列は後ろに[]がつく)
+//			String[] readableTypeSplit = { "", "" }; // 型名と[]の分割用
+//			int firstBracketIndex = readableType.indexOf("[]");
+//			final int NO_BRACKET_INDEX = -1;
+//			if (firstBracketIndex == NO_BRACKET_INDEX) {
+//				readableTypeSplit[0] = readableType; // 型名
+//			} else {
+//				readableTypeSplit[0] = readableType.substring(0, firstBracketIndex); // 型名
+//				readableTypeSplit[1] = readableType.substring(firstBracketIndex); // 型名の後ろの[]全て
+//			}
+//			String[][] resolveType = type.resolveType(readableTypeSplit[0]); // パッケージ名とクラス名の組み合わせを取得
+//			if (resolveType != null) {
+//				if (resolveType[0][0].isEmpty()) {
+//					readableTypeSplit[0] = (resolveType[0][1]); // デフォルトパッケージの場合はパッケージ名と.は入れない
+//				} else {
+//					readableTypeSplit[0] = (resolveType[0][0] + "." + resolveType[0][1]); // 完全限定クラス名
+//				}
+//			}
+//			parameters.add(readableTypeSplit[0] + readableTypeSplit[1]);
+//		}
+//		return parameters;
+//	}
 }

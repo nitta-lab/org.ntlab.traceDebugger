@@ -144,6 +144,7 @@ public class DebuggingController {
 		boolean isReturned;
 		while (!(isReturned = !(debuggingTp.stepOver()))) {
 			if (currentLineNo != debuggingTp.getStatement().getLineNo()) break;
+			previousTp = debuggingTp.duplicate();
 		}
 		if (debuggingTp.getStatement() instanceof BlockEnter) {
 			debuggingTp.stepFull();
