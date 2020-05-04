@@ -124,13 +124,8 @@ public class CallStackView extends ViewPart {
 				String calleeClassName = callee.getThisClassName();
 				String calleeId = callee.getThisObjId();
 				TracePoint before = callee.getCallerTracePoint();
-				Variable variable = new Variable("tmp", callerClassName, callerId, calleeClassName, calleeId, before, false);
-				
-				String[] texts = {"Container to Component", "This to Another"};
-				RadioButtonDialog dialog = new RadioButtonDialog(null, "Which patterns?", texts);
-				if (dialog.open() != InputDialog.OK) return;
-				String selectionType = dialog.getValue();
-				delta(variable, false, selectionType.startsWith("This"));				
+				Variable variable = new Variable("tmp", callerClassName, callerId, calleeClassName, calleeId, before, false);				
+				delta(variable, false);
 			}
 		};
 		deltaAction.setText("Extract Delta");
@@ -192,7 +187,7 @@ public class CallStackView extends ViewPart {
 		viewer.refresh();
 	}
 	
-	private void delta(Variable variable, boolean isCollection, boolean isForThisToAnother) {
+	private void delta(Variable variable, boolean isCollection) {
 		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 		if (analyzer instanceof DeltaExtractionAnalyzer) {
 			DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;					
@@ -202,11 +197,7 @@ public class CallStackView extends ViewPart {
 				// note: 同一ビューを複数開くテスト
 				String subIdWithNewView = deltaAnalyzer.getNextDeltaMarkerSubId();
 				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)workbenchPage.showView(DeltaMarkerView.ID, subIdWithNewView, IWorkbenchPage.VIEW_ACTIVATE);
-				if (isForThisToAnother) {
-					deltaAnalyzer.extractDeltaForThisToAnother(variable, isCollection, newDeltaMarkerView, subIdWithNewView);	
-				} else {
-					deltaAnalyzer.extractDelta(variable, isCollection, newDeltaMarkerView, subIdWithNewView);					
-				}
+				deltaAnalyzer.extractDeltaForThisToAnother(variable, isCollection, newDeltaMarkerView, subIdWithNewView);
 				TracePoint coordinatorPoint = newDeltaMarkerView.getCoordinatorPoint();
 				TracePoint creationPoint = newDeltaMarkerView.getCreationPoint();
 				DebuggingController controller = DebuggingController.getInstance();
