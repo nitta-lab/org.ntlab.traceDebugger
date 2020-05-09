@@ -174,8 +174,8 @@ public class VariableView extends ViewPart {
 				InputDialog inputContainerTypeDialog = new InputDialog(null, "Extract Delta for Collection", "Input cotainer type", "java.util.ArrayList", null);
 				if (inputContainerTypeDialog.open() != InputDialog.OK) return;
 				String containerType = inputContainerTypeDialog.getValue();
-				String valueId = selectedVariable.getId();
-				String valueType = selectedVariable.getClassName();
+				String valueId = selectedVariable.getValueId();
+				String valueType = selectedVariable.getValueClassName();
 				TracePoint tp = DebuggingController.getInstance().getCurrentTp();
 				Variable variable = new Variable("tmp", containerType, containerId, valueType, valueId, tp, false);				
 				delta(variable, true, false);
@@ -260,6 +260,11 @@ public class VariableView extends ViewPart {
 	public void updateVariablesByTracePoint(TracePoint from, TracePoint to, boolean isReturned) {
 		variables.updateAllObjectDataByTracePoint(from, to, isReturned);
 		viewer.setInput(variables.getVariablesTreeNodes());
+	}
+	
+	public void updateVariablesForDifferential() {
+		variables.updateForDifferential();
+		viewer.refresh();
 	}
 
 	public void markAndExpandVariablesByDeltaMarkers(Map<String, List<IMarker>> markers) {

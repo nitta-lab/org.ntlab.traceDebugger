@@ -1,6 +1,7 @@
 package org.ntlab.traceDebugger;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -9,6 +10,8 @@ import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jface.viewers.TreeNode;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ObjectReference;
@@ -18,6 +21,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 public class Variables {
 	private static final Variables theInstance = new Variables();
 	private List<Variable> roots = new ArrayList<>();
+	private Map<String, List<TracePoint>> containerIdToDifferentialUpdateTracePoints = new HashMap<>();
 	public static final String RETURN_VARIABLE_NAME = "return";
 
 	public static Variables getInstance() {
@@ -140,7 +144,7 @@ public class Variables {
 	
 	private void addAdditionalAttributes(Variable variable, final Set<String> idSet, final Map<String, Object> additionalAttributes) {
 		if (variable == null) return;
-		if (idSet.contains(variable.getId())) {
+		if (idSet.contains(variable.getValueId())) {
 			for (Map.Entry<String, Object> entry : additionalAttributes.entrySet()) {
 				variable.addAdditionalAttribute(entry.getKey(), entry.getValue());	
 			}			
@@ -150,7 +154,67 @@ public class Variables {
 		}
 	}
 	
+	public boolean canDifferentalUpdatePoint() {
+		return !(containerIdToDifferentialUpdateTracePoints.isEmpty());
+	}
+
+	public void addDifferentialUpdatePoint(TracePoint tp) {
+		Statement statement = tp.getStatement();
+		String containerId = null;
+		if (statement instanceof FieldUpdate) {
+			FieldUpdate fu = (FieldUpdate)statement;
+			containerId = fu.getContainerObjId();
+		} else if (statement instanceof ArrayUpdate) {
+			ArrayUpdate au = (ArrayUpdate)statement;
+			containerId = au.getArrayObjectId();
+		}
+		if (containerId == null) return;
+		List<TracePoint> tracePoints = containerIdToDifferentialUpdateTracePoints.get(containerId);
+		if (tracePoints == null) {
+			tracePoints = new ArrayList<TracePoint>();
+			containerIdToDifferentialUpdateTracePoints.put(containerId, tracePoints);
+		}
+		tracePoints.add(tp.duplicate());
+	}
+	
+	public void updateForDifferential() {
+		for (Variable variable : roots) {
+			updateForDifferential(variable);
+		}
+		containerIdToDifferentialUpdateTracePoints.clear();
+	}
+	
+	private void updateForDifferential(Variable variable) {
+		Set<String> containerIdList = containerIdToDifferentialUpdateTracePoints.keySet();
+		String containerId = variable.getContainerId();
+		if (containerIdList.contains(containerId)) {
+			for (TracePoint tp : containerIdToDifferentialUpdateTracePoints.get(containerId)) {
+				Statement statement = tp.getStatement();
+				if (statement instanceof FieldUpdate) {
+					FieldUpdate fu = (FieldUpdate)statement;
+					if (variable.getFullyQualifiedVariableName().equals(fu.getFieldName())) {
+						String valueClassName = fu.getValueClassName();
+						String valueId = fu.getValueObjId();
+						variable.update(valueClassName, valueId, tp, false);
+					}
+				} else if (statement instanceof ArrayUpdate) {
+					ArrayUpdate au = (ArrayUpdate)statement;
+					String fullyQualifiedVariableName = variable.getFullyQualifiedVariableName();
+					if (fullyQualifiedVariableName.contains("[" + au.getIndex() + "]")) {
+						String valueClassName = au.getValueClassName();
+						String valueId = au.getValueObjectId();
+						variable.update(valueClassName, valueId, tp, false);
+					}
+				}
+			}
+		}
+		for (Variable child : variable.getChildren()) {
+			updateForDifferential(child);
+		}
+	}
+	
 	public void resetData() {
 		roots.clear();
+		containerIdToDifferentialUpdateTracePoints.clear();
 	}
 }

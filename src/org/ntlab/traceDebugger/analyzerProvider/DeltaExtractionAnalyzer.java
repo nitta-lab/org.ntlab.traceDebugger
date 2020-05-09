@@ -51,8 +51,8 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		addDeltaMarkerView(deltaMarkerViewSubId, deltaMarkerView);
 		String srcId = variable.getContainerId();
 		String srcClassName = variable.getContainerClassName();
-		String dstId = variable.getId();
-		String dstClassName = variable.getClassName();
+		String dstId = variable.getValueId();
+		String dstClassName = variable.getValueClassName();
 		TracePoint before = variable.getBeforeTracePoint();				
 		Reference reference = new Reference(srcId, dstId, srcClassName, dstClassName);
 		reference.setCollection(isCollection); // trueにするとコレクション以外抽出できなくなる
@@ -75,8 +75,8 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		TracePoint before = variable.getBeforeTracePoint();
 		String srcId = before.getMethodExecution().getThisObjId();
 		String srcClassName = before.getMethodExecution().getThisClassName();
-		String dstId = variable.getId();
-		String dstClassName = variable.getClassName();
+		String dstId = variable.getValueId();
+		String dstClassName = variable.getValueClassName();
 		MethodExecution me = before.getMethodExecution();
 		Map<ObjectReference, TracePoint> references = me.getObjectReferences(dstClassName);
 		ObjectReference objectReference = null;
