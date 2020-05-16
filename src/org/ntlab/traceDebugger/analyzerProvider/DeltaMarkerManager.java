@@ -61,7 +61,7 @@ public class DeltaMarkerManager {
 		TreeNode[] roots = new TreeNode[] {
 				new TreeNode("Coordinator"),
 				new TreeNode("Related Aliases"),
-				new TreeNode("Creation Point")
+				new TreeNode("Related Point")
 		};
 		List<TreeNode> treeNodeList = new ArrayList<>();
 		for (IMarker marker : markersByOrder) {

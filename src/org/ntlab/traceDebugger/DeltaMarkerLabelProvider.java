@@ -95,7 +95,7 @@ public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLab
 			Object value = ((TreeNode)element).getValue();
 			if (value instanceof String) {
 				String str = (String)value;
-				if (str.contains("Bottom")) {
+				if (str.contains("RelatedPoint")) {
 					return new Color(Display.getDefault(), 255, 128, 128);
 				} else if (str.contains("Coordinator")) {
 					return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
