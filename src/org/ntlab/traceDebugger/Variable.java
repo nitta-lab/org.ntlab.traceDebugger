@@ -61,6 +61,10 @@ public class Variable {
 		this.before = before;
 		this.isReturned = isReturned;
 		this.deepHierarchy = checkDeepHierarchy();
+		this.alreadyCreatedChildHierarchy = false;
+		this.alreadyCreatedGrandChildHierarchy = false;
+		this.children.clear();
+		this.additionalAttributes.clear();
 	}
 	
 	public void update(String valueClassName, String valueId, TracePoint lastUpdatePoint, boolean isReturned) {
@@ -193,22 +197,28 @@ public class Variable {
 		// フィールドのIDとTypeを取得して表示
 		IType type = JavaEditorOperator.findIType(null, valueClassName);
 		if (type == null) return;
-		getFieldsState(type);
-		
-		// 親クラスを遡っていき、それらのクラスで定義されたフィールドの情報も取得していく (ただし処理が増加して非常に重くなる)
-//		try {
-//			while (true) {
-//				String superClassName = type.getSuperclassName();
-//				if (superClassName == null) break;
-//				String fullyQualifiedSuperClassName = JavaEditorOperator.resolveType(type, superClassName);
-//				if (fullyQualifiedSuperClassName == null) break;
-//				type = JavaEditorOperator.findIType(null, fullyQualifiedSuperClassName);
-//				if (type == null) break;
-//				getFieldsState(type);
-//			}				
-//		} catch (JavaModelException e) {
-//			e.printStackTrace();
-//		}
+		getFieldsState(type);		
+//		getFieldStateForSuperClass(type); // 親クラスを遡っていき、それらのクラスで定義されたフィールドの情報も取得していく (ただし処理が増加して非常に重くなる)
+	}
+	
+	/**
+	 * // 親クラスを遡っていき、それらのクラスで定義されたフィールドの情報も取得していく (ただし処理が増加して非常に重くなる)
+	 * @param type 起点となるクラス
+	 */
+	private void getFieldStateForSuperClass(IType type) {
+		try {
+			while (true) {
+				String superClassName = type.getSuperclassName();
+				if (superClassName == null) break;
+				String fullyQualifiedSuperClassName = JavaEditorOperator.resolveType(type, superClassName);
+				if (fullyQualifiedSuperClassName == null) break;
+				type = JavaEditorOperator.findIType(null, fullyQualifiedSuperClassName);
+				if (type == null) break;
+				getFieldsState(type);
+			}				
+		} catch (JavaModelException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void getFieldsState(IType type) {

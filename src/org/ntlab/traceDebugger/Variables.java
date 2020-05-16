@@ -9,7 +9,6 @@ import java.util.Set;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jface.viewers.TreeNode;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
@@ -18,40 +17,43 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.ObjectReference;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 
+import com.sun.org.apache.regexp.internal.RE;
+
 public class Variables {
 	private static final Variables theInstance = new Variables();
 	private List<Variable> roots = new ArrayList<>();
-	private Map<String, List<TracePoint>> containerIdToDifferentialUpdateTracePoints = new HashMap<>();
+	private List<MyTreeNode> rootTreeNodes = new ArrayList<>();
+	private Map<String, List<TracePoint>> containerIdToDifferentialUpdateTracePoints = new HashMap<>(); // ïœêîç∑ï™çXêVâ”èäÇãLâØ
 	public static final String RETURN_VARIABLE_NAME = "return";
 
 	public static Variables getInstance() {
 		return theInstance;
 	}
 
-	public TreeNode[] getVariablesTreeNodes() {
-		TreeNode[] rootNodes = new TreeNode[roots.size()];
+	public List<MyTreeNode> getVariablesTreeNodesList() {
+		rootTreeNodes.clear();
 		if (roots.isEmpty()) {
-			return rootNodes;
+			return rootTreeNodes;
 		}
 		for (int i = 0; i < roots.size(); i++) {
 			Variable rootVariableData = roots.get(i);
-			createVariablesTreeNode(null, rootNodes, i, rootVariableData);
+			createVariablesTreeNodeList(null, rootTreeNodes, i, rootVariableData);
 		}
-		return rootNodes;
+		return rootTreeNodes;
 	}
 
-	private void createVariablesTreeNode(TreeNode parentNode, TreeNode[] addingNodes, int index, Variable addingVariableData) {
-		TreeNode newNode = new TreeNode(addingVariableData);
+	private void createVariablesTreeNodeList(MyTreeNode parentNode, List<MyTreeNode> addingNodes, int index, Variable addingVariableData) {
+		MyTreeNode newNode = new MyTreeNode(addingVariableData);
 		newNode.setParent(parentNode);
-		addingNodes[index] = newNode;
-		TreeNode[] childNodes = new TreeNode[addingVariableData.getChildren().size()];
-		addingNodes[index].setChildren(childNodes);
+		addingNodes.add(index, newNode);
+		List<MyTreeNode> childNodes = new ArrayList<>();
+		addingNodes.get(index).setChildList(childNodes);
 		for (int i = 0; i < addingVariableData.getChildren().size(); i++) {
 			Variable child = addingVariableData.getChildren().get(i);
-			createVariablesTreeNode(newNode, childNodes, i, child);
+			createVariablesTreeNodeList(newNode, childNodes, i, child);
 		}
 	}
-
+	
 	public void updateAllObjectDataByMethodExecution(MethodExecution methodExecution) {
 		if (methodExecution == null) return;			
 		List<Statement> statements = methodExecution.getStatements();
@@ -91,8 +93,13 @@ public class Variables {
 			String thisObjId = me.getThisObjId();
 			String thisClassName = me.getThisClassName();
 			Variable variable = new Variable(RETURN_VARIABLE_NAME, thisClassName, thisObjId, returnValueClassName, returnValueId, from, isReturned);
-			roots.add(variable);
-			variable.createNextHierarchyState();			
+			variable.createNextHierarchyState();
+			Variable old = roots.get(0);
+			if (old.getVariableName().equals(RETURN_VARIABLE_NAME)) {
+				roots.set(0, variable);
+			} else {
+				roots.add(0, variable);	
+			}
 		}
 	}
 	
@@ -153,10 +160,6 @@ public class Variables {
 			addAdditionalAttributes(child, idSet, additionalAttributes);
 		}
 	}
-	
-	public boolean canDifferentalUpdatePoint() {
-		return !(containerIdToDifferentialUpdateTracePoints.isEmpty());
-	}
 
 	public void addDifferentialUpdatePoint(TracePoint tp) {
 		Statement statement = tp.getStatement();
@@ -184,6 +187,27 @@ public class Variables {
 		containerIdToDifferentialUpdateTracePoints.clear();
 	}
 	
+	public void updateForDifferentialAndReturnValue(TracePoint from, TracePoint to, boolean isReturned) {
+		updateForDifferential();
+		updateReturnValue(from, to, isReturned);
+		Variable variable = roots.get(0);
+		if (variable.getVariableName().equals(RETURN_VARIABLE_NAME)) {
+			MyTreeNode node = new MyTreeNode(variable);
+			Object top = rootTreeNodes.get(0).getValue();
+			if (top instanceof Variable && ((Variable)top).getVariableName().equals(RETURN_VARIABLE_NAME)) {
+				rootTreeNodes.set(0, node);
+			} else {
+				rootTreeNodes.add(0, node);
+			}
+			List<MyTreeNode> childList = new ArrayList<>();
+			node.setChildList(childList);
+			for (int i = 0; i < variable.getChildren().size(); i++) {
+				Variable childVariable = variable.getChildren().get(i);
+				createVariablesTreeNodeList(node, childList, i, childVariable);	
+			}
+		}
+	}
+	
 	private void updateForDifferential(Variable variable) {
 		Set<String> containerIdList = containerIdToDifferentialUpdateTracePoints.keySet();
 		String containerId = variable.getContainerId();
@@ -193,17 +217,13 @@ public class Variables {
 				if (statement instanceof FieldUpdate) {
 					FieldUpdate fu = (FieldUpdate)statement;
 					if (variable.getFullyQualifiedVariableName().equals(fu.getFieldName())) {
-						String valueClassName = fu.getValueClassName();
-						String valueId = fu.getValueObjId();
-						variable.update(valueClassName, valueId, tp, false);
+						updateForDifferentialField(variable, fu.getValueClassName(), fu.getValueObjId(), tp);						
 					}
 				} else if (statement instanceof ArrayUpdate) {
 					ArrayUpdate au = (ArrayUpdate)statement;
 					String fullyQualifiedVariableName = variable.getFullyQualifiedVariableName();
 					if (fullyQualifiedVariableName.contains("[" + au.getIndex() + "]")) {
-						String valueClassName = au.getValueClassName();
-						String valueId = au.getValueObjectId();
-						variable.update(valueClassName, valueId, tp, false);
+						updateForDifferentialField(variable, au.getValueClassName(), au.getValueObjectId(), tp);
 					}
 				}
 			}
@@ -213,8 +233,30 @@ public class Variables {
 		}
 	}
 	
+	private void updateForDifferentialField(Variable variable, String valueClassName, String valueId, TracePoint lastUpdatePoint) {		
+		variable.update(valueClassName, valueId, lastUpdatePoint, false);
+		variable.createNextHierarchyState();
+		MyTreeNode node = getTreeNodeFor(variable, rootTreeNodes);
+		List<MyTreeNode> childList = node.getChildList();
+		childList.clear();
+		for (int i = 0; i < variable.getChildren().size(); i++) {
+			Variable childVariable = variable.getChildren().get(i);
+			createVariablesTreeNodeList(node, childList, i, childVariable);	
+		}
+	}
+	
 	public void resetData() {
 		roots.clear();
+		rootTreeNodes.clear();
 		containerIdToDifferentialUpdateTracePoints.clear();
+	}
+	
+	private MyTreeNode getTreeNodeFor(Variable variable, List<MyTreeNode> nodes) {
+		for (MyTreeNode node : nodes) {
+			if (node.getValue().equals(variable)) return node;
+			MyTreeNode deep = getTreeNodeFor(variable, node.getChildList());
+			if (deep != null) return deep;
+		}
+		return null;
 	}
 }

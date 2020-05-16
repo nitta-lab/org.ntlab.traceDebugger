@@ -1,5 +1,6 @@
 package org.ntlab.traceDebugger;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -22,7 +23,6 @@ import org.eclipse.jface.viewers.ITreeViewerListener;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TreeExpansionEvent;
 import org.eclipse.jface.viewers.TreeNode;
-import org.eclipse.jface.viewers.TreeNodeContentProvider;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
@@ -74,9 +74,9 @@ public class VariableView extends ViewPart {
 			treeColumns[i] = new TreeColumn(tree, SWT.NULL);
 			treeColumns[i].setText(treeColumnTexts[i]);
 			treeColumns[i].setWidth(treeColumnWidth[i]);
-		}
-		viewer.setContentProvider(new TreeNodeContentProvider());
-		viewer.setLabelProvider(new VariableLabelProvider());		
+		}		
+		viewer.setContentProvider(new MyTreeNodeContentProvider());
+		viewer.setLabelProvider(new VariableLabelProvider());
 		viewer.addSelectionChangedListener(new ISelectionChangedListener() {
 			@Override
 			public void selectionChanged(SelectionChangedEvent event) {				
@@ -86,7 +86,7 @@ public class VariableView extends ViewPart {
 					Object value = ((TreeNode)element).getValue();
 					if (value instanceof Variable) {
 						selectedVariable = (Variable)value;
-					}					
+					}				
 				}
 			}
 		});
@@ -95,29 +95,28 @@ public class VariableView extends ViewPart {
 			public void treeExpanded(TreeExpansionEvent event) {
 				// ツリーを開いた後に実行される。 ここでは開いたノードから3つ先のノードを生成して追加する。
 				Object element = event.getElement();
-				if (!(element instanceof TreeNode)) return;
-				TreeNode expandedNode = (TreeNode)element;
+				if (!(element instanceof MyTreeNode)) return;
+				MyTreeNode expandedNode = (MyTreeNode)element;
 				Object value = expandedNode.getValue();
 				if (!(value instanceof Variable)) return;
-				TreeNode[] childNodes = expandedNode.getChildren();
+				List<MyTreeNode> childNodes = expandedNode.getChildList();
 				if (childNodes == null) return;
-				for (TreeNode childNode : childNodes) {
-					TreeNode[] grandChildNodes = childNode.getChildren();
+				for (MyTreeNode childNode : childNodes) {
+					List<MyTreeNode> grandChildNodes = childNode.getChildList();
 					if (grandChildNodes == null) continue;
-					for (TreeNode grandChildNode : grandChildNodes) {
+					for (MyTreeNode grandChildNode : grandChildNodes) {
 						Variable grandChildVariable = (Variable)grandChildNode.getValue();
 						grandChildVariable.createNextHierarchyState();
 						List<Variable> list = grandChildVariable.getChildren();
-						TreeNode[] nodes = new TreeNode[list.size()];
+						List<MyTreeNode> nodes = new ArrayList<>();
 						for (int i = 0; i < list.size(); i++) {
-							nodes[i] = new TreeNode(list.get(i));
+							nodes.add(i, new MyTreeNode(list.get(i)));
 						}
-						grandChildNode.setChildren(nodes);
+						grandChildNode.setChildList(nodes);
 					}
 				}
 				viewer.refresh();
 			}
-			
 			@Override
 			public void treeCollapsed(TreeExpansionEvent event) {}
 		});
@@ -212,7 +211,7 @@ public class VariableView extends ViewPart {
 	
 	public void reset() {
 		variables.resetData();
-		viewer.setInput(variables.getVariablesTreeNodes());
+		viewer.setInput(variables.getVariablesTreeNodesList());
 		viewer.refresh();
 	}
 	
@@ -259,11 +258,12 @@ public class VariableView extends ViewPart {
 	
 	public void updateVariablesByTracePoint(TracePoint from, TracePoint to, boolean isReturned) {
 		variables.updateAllObjectDataByTracePoint(from, to, isReturned);
-		viewer.setInput(variables.getVariablesTreeNodes());
+		viewer.setInput(variables.getVariablesTreeNodesList());
 	}
 	
-	public void updateVariablesForDifferential() {
-		variables.updateForDifferential();
+	public void updateVariablesForDifferential(TracePoint from, TracePoint to, boolean isReturned) {
+		variables.updateForDifferentialAndReturnValue(from, to, isReturned);
+//		viewer.setInput(variables.getVariablesTreeNodes());
 		viewer.refresh();
 	}
 
@@ -320,7 +320,7 @@ public class VariableView extends ViewPart {
 		if (variable.getAdditionalAttribute("markerId") != null) {
 			TreeNode parent = node.getParent();
 			if (parent != null) {
-				expandedNodes.add(parent);				
+				expandedNodes.add(parent);
 			}
 		}
 		TreeNode[] children = node.getChildren();

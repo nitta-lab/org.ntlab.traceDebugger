@@ -1,10 +1,5 @@
 package org.ntlab.traceDebugger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
@@ -18,7 +13,6 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.BlockEnter;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
-import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
@@ -144,48 +138,31 @@ public class DebuggingController {
 		refresh(null, debuggingTp, false);
 		return true;
 	}
-	
-//	public boolean stepOverAction() {
-//		if (debuggingTp == null) return false;
-//		TracePoint previousTp = debuggingTp;
-//		debuggingTp = debuggingTp.duplicate();
-//		int currentLineNo = debuggingTp.getStatement().getLineNo();
-//		boolean isReturned;
-//		while (!(isReturned = !(debuggingTp.stepOver()))) {
-//			if (currentLineNo != debuggingTp.getStatement().getLineNo()) break;
-//			previousTp = debuggingTp.duplicate();
-//		}
-//		if (debuggingTp.getStatement() instanceof BlockEnter) {
-//			debuggingTp.stepFull();
-//		}
-//		if (!debuggingTp.isValid()) {
-//			terminateAction();
-//			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
-//			return false;
-//		}
-//		refresh(previousTp, debuggingTp, isReturned);
-//		return true;
-//	}
 
 	public boolean stepOverAction() {
 		if (debuggingTp == null) return false;
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		int currentLineNo = debuggingTp.getStatement().getLineNo();
-		boolean isThroughOnMethodInvocation = false;
 		boolean isReturned = false;
+
+		// ステップオーバーを用いて到達点を見つけておく
+		TracePoint startTp = debuggingTp.duplicate();
+		while (!(isReturned = !(debuggingTp.stepOver()))) {
+			if (currentLineNo != debuggingTp.getStatement().getLineNo()) break;
+			previousTp = debuggingTp.duplicate();
+		}
+		TracePoint goalTp = debuggingTp.duplicate();
+		
+		// ステップフルを用いて今度は呼び出し先にも潜りながら予め見つけておいた到達点まで進ませる (変数差分更新のため途中のアップデートを全て拾う)
+		debuggingTp = startTp;
 		do {
 			Statement statement = debuggingTp.getStatement();
-			if (currentLineNo != statement.getLineNo()) break;
-			if (!isThroughOnMethodInvocation) {
-				if (statement instanceof MethodInvocation) {
-					isThroughOnMethodInvocation = true;
-				} else if (statement instanceof FieldUpdate || statement instanceof ArrayUpdate) {
-					Variables.getInstance().addDifferentialUpdatePoint(debuggingTp);
-				}
+			if (statement.equals(goalTp.getStatement())) break;
+			if (statement instanceof FieldUpdate || statement instanceof ArrayUpdate) {
+				Variables.getInstance().addDifferentialUpdatePoint(debuggingTp);
 			}
-			previousTp = debuggingTp.duplicate();
-		} while (!(isReturned = !(debuggingTp.stepOver())));
+		} while (debuggingTp.stepFull());
 
 		if (debuggingTp.getStatement() instanceof BlockEnter) {
 			debuggingTp.stepFull();
@@ -195,7 +172,7 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}
-		refresh(previousTp, debuggingTp, isReturned, !isThroughOnMethodInvocation);
+		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;
 	}
 	
@@ -217,14 +194,20 @@ public class DebuggingController {
 		if (debuggingTp == null) return false;
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
-		boolean isThroughOnMethodInvocation = false;
-		Statement statement = debuggingTp.getStatement();
-		if (statement instanceof MethodInvocation) {
-			isThroughOnMethodInvocation = true;
-		} else if (statement instanceof FieldUpdate || statement instanceof ArrayUpdate) {
-			Variables.getInstance().addDifferentialUpdatePoint(debuggingTp);		
-		}
+		TracePoint startTp = debuggingTp.duplicate();
 		debuggingTp.stepNext();
+		TracePoint goalTp = debuggingTp.duplicate();
+		
+		// ステップフルを用いて今度は呼び出し先にも潜りながら予め見つけておいた到達点まで進ませる (変数差分更新のため途中のアップデートを全て拾う)
+		debuggingTp = startTp;
+		do {
+			Statement statement = debuggingTp.getStatement();
+			if (statement.equals(goalTp.getStatement())) break;
+			if (statement instanceof FieldUpdate || statement instanceof ArrayUpdate) {
+				Variables.getInstance().addDifferentialUpdatePoint(debuggingTp);
+			}
+		} while (debuggingTp.stepFull());
+		
 		if (debuggingTp.getStatement() instanceof BlockEnter) {
 			debuggingTp.stepFull();
 		}
@@ -234,7 +217,7 @@ public class DebuggingController {
 			return false;
 		}
 		boolean isReturned = false;
-		refresh(previousTp, debuggingTp, isReturned, !isThroughOnMethodInvocation);
+		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;	
 	}
 	
@@ -336,11 +319,10 @@ public class DebuggingController {
 		callStackView.updateByTracePoint(to);
 		VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
 		if (!isReturned && canDifferentialUpdateVariables) {
-			variableView.updateVariablesForDifferential();
+			variableView.updateVariablesForDifferential(from, to, isReturned);
 		} else {
 			variableView.updateVariablesByTracePoint(from, to, isReturned);
 		}
-//		((VariableView)getOtherView(VariableView.ID)).updateVariablesByTracePoint(from, to, isReturned);
 	}
 
 	private IViewPart getOtherView(String viewId) {
