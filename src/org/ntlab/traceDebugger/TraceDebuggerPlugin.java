@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ui.IViewPart;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
 import org.osgi.framework.BundleContext;
@@ -70,11 +73,17 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 		TraceDebuggerPlugin.analyzer = analyzer;
 	}
 	
-	public static void addActiveView(String viewId, IViewPart activeView) {
+	public static void setActiveView(String viewId, IViewPart activeView) {
 		viewIdToActiveView.put(viewId, activeView);
 	}
-		
-	public static String assignUniqueIdForNewView() {
-		return "View" + (uniqueIdForViews++);
-	}
+
+	public static IViewPart createNewView(String viewId, int mode) {
+		String secondaryId = "View" + (uniqueIdForViews++);
+		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+		try {
+			return workbenchPage.showView(viewId, secondaryId, mode);
+		} catch (PartInitException e) {
+			throw new RuntimeException(e);
+		}
+	}	
 }

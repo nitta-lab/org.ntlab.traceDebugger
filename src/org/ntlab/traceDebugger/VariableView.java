@@ -30,11 +30,8 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.swt.widgets.TreeItem;
-import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
@@ -123,11 +120,13 @@ public class VariableView extends ViewPart {
 		createToolBar();
 		createMenuBar();
 		createPopupMenu();
+		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
+		TraceDebuggerPlugin.setActiveView(ID, this);
 		viewer.getControl().setFocus();
 	}
 	
@@ -147,8 +146,7 @@ public class VariableView extends ViewPart {
 		deltaAction = new Action() {
 			@Override
 			public void run() {
-				String secandaryId = TraceDebuggerPlugin.assignUniqueIdForNewView();
-				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)(getNewView(DeltaMarkerView.ID, secandaryId, IWorkbenchPage.VIEW_ACTIVATE));
+				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.createNewView(DeltaMarkerView.ID, IWorkbenchPage.VIEW_ACTIVATE);
 				newDeltaMarkerView.extractDelta(selectedVariable, true);
 			}
 		};
@@ -158,8 +156,7 @@ public class VariableView extends ViewPart {
 		deltaActionForContainerToComponent = new Action() {
 			@Override
 			public void run() {				
-				String secandaryId = TraceDebuggerPlugin.assignUniqueIdForNewView();
-				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)(getNewView(DeltaMarkerView.ID, secandaryId, IWorkbenchPage.VIEW_ACTIVATE));
+				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.createNewView(DeltaMarkerView.ID, IWorkbenchPage.VIEW_ACTIVATE);
 				newDeltaMarkerView.extractDelta(selectedVariable, true);				
 			}
 		};
@@ -169,8 +166,7 @@ public class VariableView extends ViewPart {
 		deltaActionForThisToAnother = new Action() {
 			@Override
 			public void run() {
-				String secandaryId = TraceDebuggerPlugin.assignUniqueIdForNewView();
-				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)(getNewView(DeltaMarkerView.ID, secandaryId, IWorkbenchPage.VIEW_ACTIVATE));
+				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.createNewView(DeltaMarkerView.ID, IWorkbenchPage.VIEW_ACTIVATE);				
 				newDeltaMarkerView.extractDelta(selectedVariable, false);
 			}
 		};
@@ -192,8 +188,7 @@ public class VariableView extends ViewPart {
 				String valueType = selectedVariable.getValueClassName();
 				TracePoint tp = DebuggingController.getInstance().getCurrentTp();
 				Variable variable = new Variable("tmp", containerType, containerId, valueType, valueId, tp, false);
-				String secandaryId = TraceDebuggerPlugin.assignUniqueIdForNewView();
-				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)(getNewView(DeltaMarkerView.ID, secandaryId, IWorkbenchPage.VIEW_ACTIVATE));
+				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.createNewView(DeltaMarkerView.ID, IWorkbenchPage.VIEW_ACTIVATE);
 				newDeltaMarkerView.extractDelta(variable, true);
 			}
 		};
@@ -337,24 +332,6 @@ public class VariableView extends ViewPart {
 		if (children == null) return;
 		for (TreeNode child : children) {
 			collectNodes(child, expandedNodes);
-		}
-	}
-	
-	private IViewPart getOtherView(String viewId) {
-		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		try {
-			return workbenchPage.showView(viewId);
-		} catch (PartInitException e) {
-			throw new RuntimeException(e);
-		}
-	}
-	
-	private IViewPart getNewView(String viewId, String secondaryId, int mode) {
-		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		try {
-			return workbenchPage.showView(viewId, secondaryId, mode);
-		} catch (PartInitException e) {
-			throw new RuntimeException(e);
 		}
 	}	
 }

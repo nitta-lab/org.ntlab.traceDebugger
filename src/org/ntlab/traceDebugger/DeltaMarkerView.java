@@ -15,9 +15,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
-import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 import org.eclipse.ui.part.ViewPart;
@@ -76,6 +74,7 @@ public class DeltaMarkerView extends ViewPart {
 		createToolBar();
 		createMenuBar();
 		createPopupMenu();
+		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 	
 	private void createActions() {
@@ -97,8 +96,8 @@ public class DeltaMarkerView extends ViewPart {
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
-		TraceDebuggerPlugin.addActiveView(ID, this);
-		CallTreeView callTreeView = (CallTreeView)getOtherView(CallTreeView.ID);
+		TraceDebuggerPlugin.setActiveView(ID, this);
+		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 		callTreeView.update(deltaMarkerManager);
 		updateOtherViewsByMarker(selectionMarker);
 		viewer.getControl().setFocus();
@@ -127,7 +126,7 @@ public class DeltaMarkerView extends ViewPart {
 	@Override
 	public void dispose() {
 		deltaMarkerManager.clearAllMarkers();
-		CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID));
+		CallTreeView callTreeView = ((CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID));
 		callTreeView.reset();
 		super.dispose();
 	}
@@ -158,11 +157,11 @@ public class DeltaMarkerView extends ViewPart {
 				controller.jumpToTheTracePoint(jumpPoint, isReturned);
 				IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 				IDE.openEditor(page, marker);
-				CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID));
+				CallTreeView callTreeView = ((CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID));
 				callTreeView.highlight(selectionME);
-				CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
+				CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
 				callStackView.highlight(coordinatorPoint.getMethodExecution());
-				VariableView variableView = (VariableView)getOtherView(VariableView.ID);
+				VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);
 				variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
 			} catch (CoreException e) {
 				e.printStackTrace();
@@ -188,24 +187,15 @@ public class DeltaMarkerView extends ViewPart {
 			MethodExecution bottomME = creationPoint.getMethodExecution();			
 			DebuggingController controller = DebuggingController.getInstance();
 			controller.jumpToTheTracePoint(creationPoint, false);
-			VariableView variableView = (VariableView)(getOtherView(VariableView.ID));
+			VariableView variableView = (VariableView)(TraceDebuggerPlugin.getActiveView(VariableView.ID));
 			variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
-			CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
+			CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
 			callStackView.highlight(coordinatorME);
-			CallTreeView callTreeView = (CallTreeView)getOtherView(CallTreeView.ID);
+			CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 			callTreeView.update(deltaMarkerManager);
 			callTreeView.highlight(bottomME);
-			TracePointsView tracePointsView = (TracePointsView)getOtherView(TracePointsView.ID);
+			TracePointsView tracePointsView = (TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID);
 			tracePointsView.addTracePoint(creationPoint);
 		}
-	}
-
-	private IViewPart getOtherView(String viewId) {
-		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		try {
-			return workbenchPage.showView(viewId);
-		} catch (PartInitException e) {
-			throw new RuntimeException(e);
-		}	
 	}
 }

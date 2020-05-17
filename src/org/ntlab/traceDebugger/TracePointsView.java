@@ -23,10 +23,6 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
-import org.eclipse.ui.IViewPart;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
@@ -99,11 +95,13 @@ public class TracePointsView extends ViewPart {
 		createToolBar();
 		createMenuBar();
 		createPopupMenu();
+		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
+		TraceDebuggerPlugin.setActiveView(ID, this);
 		viewer.getControl().setFocus();
 	}
 	
@@ -189,8 +187,8 @@ public class TracePointsView extends ViewPart {
 		MethodExecution currentME = tp.getMethodExecution();
 		int lineNo = tp.getStatement().getLineNo();
 		JavaEditorOperator.openSrcFileOfMethodExecution(currentME, lineNo);
-		CallStackView callStackView = ((CallStackView)getOtherView(CallStackView.ID));
-		VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
+		CallStackView callStackView = ((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID));
+		VariableView variableView = ((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID));
 
 		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 		if (analyzer instanceof DeltaExtractionAnalyzer) {
@@ -206,18 +204,9 @@ public class TracePointsView extends ViewPart {
 					MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coordinatorMarker);
 					callStackView.highlight(coordinatorME);					
 				}
-				CallTreeView callTreeView = ((CallTreeView)getOtherView(CallTreeView.ID));
+				CallTreeView callTreeView = ((CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID));
 				callTreeView.highlight(currentME);
 			}
 		}
-	}
-	
-	private IViewPart getOtherView(String viewId) {
-		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		try {
-			return workbenchPage.showView(viewId);
-		} catch (PartInitException e) {
-			throw new RuntimeException(e);
-		}	
-	}
+	}	
 }

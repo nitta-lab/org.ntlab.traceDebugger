@@ -20,10 +20,8 @@ import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
@@ -68,10 +66,10 @@ public class CallStackView extends ViewPart {
 						MethodExecution methodExecution = callStackModel.getMethodExecution();
 						TracePoint tp = callStackModel.getTracePoint();
 						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, callStackModel.getCallLineNo());
-						CallTreeView callTreeView = (CallTreeView)(getOtherView(CallTreeView.ID));
+						CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 						callTreeView.highlight(methodExecution);
 
-						VariableView variableView = (VariableView)(getOtherView(VariableView.ID));
+						VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);
 						variableView.updateVariablesByTracePoint(tp, false);						
 						AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 						if (analyzer instanceof DeltaExtractionAnalyzer) {
@@ -92,11 +90,13 @@ public class CallStackView extends ViewPart {
 		createToolBar();
 		createMenuBar();
 		createPopupMenu();
+		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
+		TraceDebuggerPlugin.setActiveView(ID, this);
 		viewer.getControl().setFocus();
 	}
 	
@@ -123,8 +123,7 @@ public class CallStackView extends ViewPart {
 					String calleeId = callee.getThisObjId();
 					TracePoint before = callee.getCallerTracePoint();
 					Variable variable = new Variable("tmp", callerClassName, callerId, calleeClassName, calleeId, before, false);
-					String secandaryId = TraceDebuggerPlugin.assignUniqueIdForNewView();
-					DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)(getNewView(DeltaMarkerView.ID, secandaryId, IWorkbenchPage.VIEW_ACTIVATE));
+					DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.createNewView(DeltaMarkerView.ID, IWorkbenchPage.VIEW_ACTIVATE);
 					newDeltaMarkerView.extractDelta(variable, false);
 				}
 			}
@@ -199,23 +198,5 @@ public class CallStackView extends ViewPart {
 	public void highlight(MethodExecution methodExecution) {
 		callStackModels.highlight(methodExecution);
 		viewer.refresh();
-	}
-
-	private IViewPart getOtherView(String viewId) {
-		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		try {
-			return workbenchPage.showView(viewId);
-		} catch (PartInitException e) {
-			throw new RuntimeException(e);
-		}	
-	}
-	
-	private IViewPart getNewView(String viewId, String secondaryId, int mode) {
-		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		try {
-			return workbenchPage.showView(viewId, secondaryId, mode);
-		} catch (PartInitException e) {
-			throw new RuntimeException(e);
-		}
 	}
 }

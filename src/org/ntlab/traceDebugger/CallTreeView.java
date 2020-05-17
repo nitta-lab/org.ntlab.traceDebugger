@@ -12,10 +12,6 @@ import org.eclipse.jface.viewers.TreeNode;
 import org.eclipse.jface.viewers.TreeNodeContentProvider;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.ui.IViewPart;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
@@ -57,8 +53,8 @@ public class CallTreeView extends ViewPart {
 				TracePoint tp = methodExecution.getEntryPoint();
 				DebuggingController controller = DebuggingController.getInstance();
 				controller.jumpToTheTracePoint(tp, false);
-				CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
-				VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
+				CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
+				VariableView variableView = ((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID));
 				AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 				if (analyzer instanceof DeltaExtractionAnalyzer) {
 					DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
@@ -73,11 +69,13 @@ public class CallTreeView extends ViewPart {
 		createActions();
 		createToolBar();
 		createMenuBar();
+		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
+		TraceDebuggerPlugin.setActiveView(ID, this);
 		viewer.getControl().setFocus();
 	}
 	
@@ -117,13 +115,4 @@ public class CallTreeView extends ViewPart {
 		viewer.setInput(callTreeModels.getCallTreeModelList());
 		viewer.refresh();
 	}
-
-	private IViewPart getOtherView(String viewId) {
-		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		try {
-			return workbenchPage.showView(viewId);
-		} catch (PartInitException e) {
-			throw new RuntimeException(e);
-		}	
-	}	
 }
