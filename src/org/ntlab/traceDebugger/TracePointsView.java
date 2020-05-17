@@ -194,7 +194,7 @@ public class TracePointsView extends ViewPart {
 
 		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 		if (analyzer instanceof DeltaExtractionAnalyzer) {
-			DeltaMarkerView deltaMarkerView = ((DeltaExtractionAnalyzer)analyzer).getActiveDeltaMarkerView();
+			DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
 			if (deltaMarkerView != null) {
 				DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
 				Map<String, List<IMarker>> deltaMarkers = deltaMarkerManager.getMarkers();

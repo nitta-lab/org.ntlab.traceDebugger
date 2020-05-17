@@ -1,6 +1,7 @@
 package org.ntlab.traceDebugger.analyzerProvider;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,10 @@ import org.ntlab.traceDebugger.JavaEditorOperator;
 public class DeltaMarkerManager {
 	private Map<String, List<IMarker>> markerIdToMarkers = new HashMap<>();
 	private List<IMarker> markersByOrder = new ArrayList<>();
+	private MethodExecution coordinator;
+	private TracePoint relatedPoint;
+	private Reference relatedPointReference;
+	private DeltaRelatedAliasCollector aliasCollector;
 	public static final String BOTTOM_DELTA_MARKER = "org.ntlab.traceDebugger.bottomDeltaMarker";
 	public static final String COORDINATOR_DELTA_MARKER = "org.ntlab.traceDebugger.coordinatorDeltaMarker";
 	public static final String SRC_SIDE_DELTA_MARKER = "org.ntlab.traceDebugger.srcSideDeltaMarker";
@@ -48,6 +53,13 @@ public class DeltaMarkerManager {
 	public static final String DELTA_MARKER_ATR_OBJECT_ID = "objectId";
 	public static final String DELTA_MARKER_ATR_OBJECT_TYPE = "objectType";
 	public static final String DELTA_MARKER_ATR_ALIAS_TYPE = "aliasType";
+	
+	public DeltaMarkerManager(MethodExecution coordinator, TracePoint relatedPoint, Reference relatedPointReference, DeltaRelatedAliasCollector aliasCollector) {
+		this.coordinator = coordinator;
+		this.relatedPoint = relatedPoint;
+		this.relatedPointReference = relatedPointReference;
+		this.aliasCollector = aliasCollector;
+	}
 	
 	public Map<String, List<IMarker>> getMarkers() {
 		return markerIdToMarkers;
@@ -135,7 +147,28 @@ public class DeltaMarkerManager {
 		return null;
 	}
 
-	public void markAndOpenJavaFileForAlias(Alias alias, String message, String markerId) {
+	public void createMarkerAndOpenJavaFileForAll() {
+		int srcSideCnt = 1;
+		int dstSideCnt = 1;
+		markAndOpenJavaFileForCoordinator(coordinator, "Coordinator", DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
+		List<Alias> relatedAliases = aliasCollector.getRelatedAliases();
+		Collections.reverse(relatedAliases);
+		for (Alias alias : relatedAliases) {
+			String side = aliasCollector.resolveSideInTheDelta(alias);
+			if (side.contains(DeltaRelatedAliasCollector.SRC_SIDE)) {
+				String message = String.format("SrcSide%03d", srcSideCnt);
+				markAndOpenJavaFileForAlias(alias, message, DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
+				srcSideCnt++;
+			} else if (side.contains(DeltaRelatedAliasCollector.DST_SIDE)) {
+				String message = String.format("DstSide%03d", dstSideCnt);
+				markAndOpenJavaFileForAlias(alias, message, DeltaMarkerManager.DST_SIDE_DELTA_MARKER);
+				dstSideCnt++;		
+			}
+		}
+		markAndOpenJavaFileForCreationPoint(relatedPoint, relatedPointReference, "RelatedPoint", DeltaMarkerManager.BOTTOM_DELTA_MARKER);
+	}
+	
+	private void markAndOpenJavaFileForAlias(Alias alias, String message, String markerId) {
 		IFile file = JavaEditorOperator.findIFile(alias.getMethodExecution());
 		if (file != null) {
 			IMarker marker = addMarkerForAlias(alias, file, message, markerId);
@@ -143,7 +176,7 @@ public class DeltaMarkerManager {
 		}
 	}
 
-	public void markAndOpenJavaFileForCreationPoint(TracePoint creationPoint, Reference reference, String message, String markerId) {
+	private void markAndOpenJavaFileForCreationPoint(TracePoint creationPoint, Reference reference, String message, String markerId) {
 		MethodExecution me = creationPoint.getMethodExecution();
 		String objectId = reference.getSrcObjectId() + " -> " + reference.getDstObjectId();
 		String objectType = reference.getSrcClassName() + " -> " + reference.getDstClassName();
@@ -154,7 +187,7 @@ public class DeltaMarkerManager {
 		}
 	}
 	
-	public void markAndOpenJavaFileForCoordinator(MethodExecution methodExecution, String message, String markerId) {
+	private void markAndOpenJavaFileForCoordinator(MethodExecution methodExecution, String message, String markerId) {
 		IFile file = JavaEditorOperator.findIFile(methodExecution);
 		if (file != null) {
 			String objectId = methodExecution.getThisObjId();

@@ -61,7 +61,7 @@ public class CallTreeView extends ViewPart {
 				VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
 				AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 				if (analyzer instanceof DeltaExtractionAnalyzer) {
-					DeltaMarkerView deltaMarkerView = ((DeltaExtractionAnalyzer)analyzer).getActiveDeltaMarkerView();
+					DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
 					DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
 					IMarker coodinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
 					MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coodinatorMarker);

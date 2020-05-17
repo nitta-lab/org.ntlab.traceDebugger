@@ -31,7 +31,6 @@ import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IViewPart;
-import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
@@ -39,9 +38,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
-import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.Alias;
-import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class VariableView extends ViewPart {	
@@ -150,8 +147,9 @@ public class VariableView extends ViewPart {
 		deltaAction = new Action() {
 			@Override
 			public void run() {
-				String containerClassName = selectedVariable.getContainerClassName();
-				delta(selectedVariable, containerClassName.startsWith("java.util."), false);
+				String secandaryId = TraceDebuggerPlugin.assignUniqueIdForNewView();
+				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)(getNewView(DeltaMarkerView.ID, secandaryId, IWorkbenchPage.VIEW_ACTIVATE));
+				newDeltaMarkerView.extractDelta(selectedVariable, true);
 			}
 		};
 		deltaAction.setText("Extract Delta");
@@ -159,9 +157,10 @@ public class VariableView extends ViewPart {
 		
 		deltaActionForContainerToComponent = new Action() {
 			@Override
-			public void run() {
-				String containerClassName = selectedVariable.getContainerClassName();
-				delta(selectedVariable, containerClassName.startsWith("java.util."), false);
+			public void run() {				
+				String secandaryId = TraceDebuggerPlugin.assignUniqueIdForNewView();
+				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)(getNewView(DeltaMarkerView.ID, secandaryId, IWorkbenchPage.VIEW_ACTIVATE));
+				newDeltaMarkerView.extractDelta(selectedVariable, true);				
 			}
 		};
 		deltaActionForContainerToComponent.setText("Extract Delta");
@@ -170,7 +169,9 @@ public class VariableView extends ViewPart {
 		deltaActionForThisToAnother = new Action() {
 			@Override
 			public void run() {
-				delta(selectedVariable, false, true);
+				String secandaryId = TraceDebuggerPlugin.assignUniqueIdForNewView();
+				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)(getNewView(DeltaMarkerView.ID, secandaryId, IWorkbenchPage.VIEW_ACTIVATE));
+				newDeltaMarkerView.extractDelta(selectedVariable, false);
 			}
 		};
 		deltaActionForThisToAnother.setText("Extract Delta");
@@ -190,8 +191,10 @@ public class VariableView extends ViewPart {
 				String valueId = selectedVariable.getValueId();
 				String valueType = selectedVariable.getValueClassName();
 				TracePoint tp = DebuggingController.getInstance().getCurrentTp();
-				Variable variable = new Variable("tmp", containerType, containerId, valueType, valueId, tp, false);				
-				delta(variable, true, false);
+				Variable variable = new Variable("tmp", containerType, containerId, valueType, valueId, tp, false);
+				String secandaryId = TraceDebuggerPlugin.assignUniqueIdForNewView();
+				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)(getNewView(DeltaMarkerView.ID, secandaryId, IWorkbenchPage.VIEW_ACTIVATE));
+				newDeltaMarkerView.extractDelta(variable, true);
 			}
 		};
 		deltaActionForCollection.setText("Extract Delta for Collection");
@@ -257,44 +260,7 @@ public class VariableView extends ViewPart {
 		String textForThisToAnother = String.format("Extract Delta (%s: %s → %s: %s)", thisId, thisClassName, valueId, valueClassName);
 		deltaActionForThisToAnother.setText(textForThisToAnother);
 		deltaActionForThisToAnother.setToolTipText(textForThisToAnother);
-	}
-
-	private void delta(Variable variable, boolean isCollection, boolean isForThisToAnother) {
-		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
-		if (analyzer instanceof DeltaExtractionAnalyzer) {
-			DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;					
-			IWorkbench workbench = PlatformUI.getWorkbench();
-			IWorkbenchPage workbenchPage = workbench.getActiveWorkbenchWindow().getActivePage();
-			try {
-				// note: 同一ビューを複数開くテスト
-				String subIdWithNewView = deltaAnalyzer.getNextDeltaMarkerSubId();
-				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)workbenchPage.showView(DeltaMarkerView.ID, subIdWithNewView, IWorkbenchPage.VIEW_ACTIVATE);
-				if (isForThisToAnother) {
-					deltaAnalyzer.extractDeltaForThisToAnother(variable, newDeltaMarkerView, subIdWithNewView);	
-				} else {
-					deltaAnalyzer.extractDelta(variable, isCollection, newDeltaMarkerView, subIdWithNewView);					
-				}
-				TracePoint coordinatorPoint = newDeltaMarkerView.getCoordinatorPoint();
-				TracePoint creationPoint = newDeltaMarkerView.getCreationPoint();
-				DebuggingController controller = DebuggingController.getInstance();
-				controller.jumpToTheTracePoint(creationPoint, false);
-
-				DeltaMarkerManager deltaMarkerManager = newDeltaMarkerView.getDeltaMarkerManager();
-				markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
-				MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();
-				MethodExecution bottomME = newDeltaMarkerView.getCreationPoint().getMethodExecution();
-				CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
-				callStackView.highlight(coordinatorME);
-				CallTreeView callTreeView = (CallTreeView)getOtherView(CallTreeView.ID);
-				callTreeView.update(deltaMarkerManager);
-				callTreeView.highlight(bottomME);
-				TracePointsView tracePointsView = (TracePointsView)getOtherView(TracePointsView.ID);
-				tracePointsView.addTracePoint(creationPoint);
-			} catch (PartInitException e) {
-				e.printStackTrace();
-			}
-		}		
-	}
+	}	
 	
 	public void updateVariablesByTracePoint(TracePoint tp, boolean isReturned) {
 		updateVariablesByTracePoint(null, tp, isReturned);
@@ -378,6 +344,15 @@ public class VariableView extends ViewPart {
 		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		try {
 			return workbenchPage.showView(viewId);
+		} catch (PartInitException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	private IViewPart getNewView(String viewId, String secondaryId, int mode) {
+		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+		try {
+			return workbenchPage.showView(viewId, secondaryId, mode);
 		} catch (PartInitException e) {
 			throw new RuntimeException(e);
 		}

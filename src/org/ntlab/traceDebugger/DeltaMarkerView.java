@@ -33,8 +33,7 @@ public class DeltaMarkerView extends ViewPart {
 	private TreeViewer viewer;
 	private Shell shell;
 	private IMarker selectionMarker;
-	private DeltaMarkerManager deltaMarkerManager = new DeltaMarkerManager();
-	private String subId;
+	private DeltaMarkerManager deltaMarkerManager;
 	public static String ID = "org.ntlab.traceDebugger.deltaMarkerView";
 
 	@Override
@@ -98,10 +97,7 @@ public class DeltaMarkerView extends ViewPart {
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
-		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
-		if (analyzer instanceof DeltaExtractionAnalyzer) {
-			((DeltaExtractionAnalyzer)analyzer).setActiveDeltaMarkerView(this);
-		}
+		TraceDebuggerPlugin.addActiveView(ID, this);
 		CallTreeView callTreeView = (CallTreeView)getOtherView(CallTreeView.ID);
 		callTreeView.update(deltaMarkerManager);
 		updateOtherViewsByMarker(selectionMarker);
@@ -111,15 +107,11 @@ public class DeltaMarkerView extends ViewPart {
 	public void update() {
 		viewer.setInput(deltaMarkerManager.getMarkerTreeNodes());
 		viewer.expandAll();
-		viewer.refresh();
+		viewer.refresh();		
 	}
 	
 	public DeltaMarkerManager getDeltaMarkerManager() {
 		return deltaMarkerManager;
-	}
-
-	public String getSubId() {
-		return subId;
 	}
 	
 	public TracePoint getCreationPoint() {
@@ -130,10 +122,6 @@ public class DeltaMarkerView extends ViewPart {
 	public TracePoint getCoordinatorPoint() {
 		IMarker coordinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
 		return DeltaMarkerManager.getTracePoint(coordinatorMarker);
-	}
-
-	public void setSubId(String subId) {
-		this.subId = subId;
 	}
 	
 	@Override
@@ -159,8 +147,7 @@ public class DeltaMarkerView extends ViewPart {
 					jumpPoint = alias.getOccurrencePoint();
 					selectionME = jumpPoint.getMethodExecution();
 					Alias.AliasType type = alias.getAliasType();
-					isReturned = type.equals(AliasType.METHOD_INVOCATION)
-									|| type.equals(AliasType.CONSTRACTOR_INVOCATION); 
+					isReturned = type.equals(AliasType.METHOD_INVOCATION) || type.equals(AliasType.CONSTRACTOR_INVOCATION);
 				} else if (obj instanceof TracePoint) {
 					jumpPoint = (TracePoint)obj;
 					selectionME = jumpPoint.getMethodExecution();
@@ -182,6 +169,36 @@ public class DeltaMarkerView extends ViewPart {
 			}
 		}
 	}
+	
+	public void extractDelta(Variable variable, boolean isContainerToComponent) {
+		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
+		if (analyzer instanceof DeltaExtractionAnalyzer) {
+			DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;
+			if (isContainerToComponent) {
+				deltaMarkerManager = deltaAnalyzer.extractDeltaForContainerToComponent(variable);	
+			} else {
+				deltaMarkerManager = deltaAnalyzer.extractDeltaForThisToAnother(variable);
+			}
+			deltaMarkerManager.createMarkerAndOpenJavaFileForAll(); // デルタ抽出の結果を元にソースコードを反転表示する
+			update();
+			
+			TracePoint coordinatorPoint = getCoordinatorPoint();
+			TracePoint creationPoint = getCreationPoint();
+			MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();
+			MethodExecution bottomME = creationPoint.getMethodExecution();			
+			DebuggingController controller = DebuggingController.getInstance();
+			controller.jumpToTheTracePoint(creationPoint, false);
+			VariableView variableView = (VariableView)(getOtherView(VariableView.ID));
+			variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
+			CallStackView callStackView = (CallStackView)getOtherView(CallStackView.ID);
+			callStackView.highlight(coordinatorME);
+			CallTreeView callTreeView = (CallTreeView)getOtherView(CallTreeView.ID);
+			callTreeView.update(deltaMarkerManager);
+			callTreeView.highlight(bottomME);
+			TracePointsView tracePointsView = (TracePointsView)getOtherView(TracePointsView.ID);
+			tracePointsView.addTracePoint(creationPoint);
+		}
+	}
 
 	private IViewPart getOtherView(String viewId) {
 		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
@@ -190,5 +207,5 @@ public class DeltaMarkerView extends ViewPart {
 		} catch (PartInitException e) {
 			throw new RuntimeException(e);
 		}	
-	}	
+	}
 }
