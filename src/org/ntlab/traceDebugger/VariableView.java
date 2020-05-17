@@ -49,6 +49,8 @@ public class VariableView extends ViewPart {
 	private IAction jumpAction;
 	private IAction deltaAction;
 	private IAction deltaActionForCollection;
+	private IAction deltaActionForContainerToComponent;
+	private IAction deltaActionForThisToAnother;
 	private Variable selectedVariable;
 	private Variables variables = Variables.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.variableView";
@@ -86,7 +88,7 @@ public class VariableView extends ViewPart {
 					Object value = ((TreeNode)element).getValue();
 					if (value instanceof Variable) {
 						selectedVariable = (Variable)value;
-					}				
+					}	
 				}
 			}
 		});
@@ -142,26 +144,38 @@ public class VariableView extends ViewPart {
 				controller.stepOverAction();
 			}
 		};
-		jumpAction.setText("Jump to Creation Point");
-		jumpAction.setToolTipText("Jump to Creation Point");
-		
+		jumpAction.setText("Jump to Related Point");
+		jumpAction.setToolTipText("Jump to Related Point");
+
 		deltaAction = new Action() {
 			@Override
 			public void run() {
-				if (selectedVariable.getVariableName().equals(Variables.RETURN_VARIABLE_NAME)) {
-					String[] texts = {"Container to Component", "This to Another"};
-					RadioButtonDialog dialog = new RadioButtonDialog(null, "Which patterns?", texts);
-					if (dialog.open() != InputDialog.OK) return;
-					String selectionType = dialog.getValue();
-					delta(selectedVariable, true, selectionType.startsWith("This"));
-				} else {
-					delta(selectedVariable, true, false);
-				}
+				String containerClassName = selectedVariable.getContainerClassName();
+				delta(selectedVariable, containerClassName.startsWith("java.util."), false);
 			}
 		};
 		deltaAction.setText("Extract Delta");
 		deltaAction.setToolTipText("Extract Delta");
 		
+		deltaActionForContainerToComponent = new Action() {
+			@Override
+			public void run() {
+				String containerClassName = selectedVariable.getContainerClassName();
+				delta(selectedVariable, containerClassName.startsWith("java.util."), false);
+			}
+		};
+		deltaActionForContainerToComponent.setText("Extract Delta");
+		deltaActionForContainerToComponent.setToolTipText("Extract Delta");
+
+		deltaActionForThisToAnother = new Action() {
+			@Override
+			public void run() {
+				delta(selectedVariable, false, true);
+			}
+		};
+		deltaActionForThisToAnother.setText("Extract Delta");
+		deltaActionForThisToAnother.setToolTipText("Extract Delta");
+
 		deltaActionForCollection = new Action() {
 			@Override
 			public void run() {
@@ -198,9 +212,16 @@ public class VariableView extends ViewPart {
 		menuMgr.addMenuListener(new IMenuListener() {
 			@Override
 			public void menuAboutToShow(IMenuManager manager) {
+				// 右クリックする度に呼び出される
 				manager.add(jumpAction);
-				manager.add(deltaAction);
-				manager.add(deltaActionForCollection);
+				updateDeltaActionsTexts(selectedVariable);
+				if (selectedVariable.getVariableName().equals(Variables.RETURN_VARIABLE_NAME)) {
+					manager.add(deltaActionForContainerToComponent);
+					manager.add(deltaActionForThisToAnother);					
+				} else {
+					manager.add(deltaAction);
+				}
+//				manager.add(deltaActionForCollection);
 				manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 			}
 		});
@@ -215,6 +236,29 @@ public class VariableView extends ViewPart {
 		viewer.refresh();
 	}
 	
+	private void updateDeltaActionsTexts(Variable variable) {
+		String valueId = selectedVariable.getValueId();
+		String valueClassName = selectedVariable.getValueClassName();
+		valueClassName = valueClassName.substring(valueClassName.lastIndexOf(".") + 1);
+		
+		String containerId = selectedVariable.getContainerId();
+		String containerClassName = selectedVariable.getContainerClassName();
+		containerClassName = containerClassName.substring(containerClassName.lastIndexOf(".") + 1);
+		String textForContainerToComponent = String.format("Extract Delta (%s: %s → %s: %s)", containerId, containerClassName, valueId, valueClassName);
+		deltaActionForContainerToComponent.setText(textForContainerToComponent);
+		deltaActionForContainerToComponent.setToolTipText(textForContainerToComponent);
+		deltaAction.setText(textForContainerToComponent);
+		deltaAction.setToolTipText(textForContainerToComponent);
+		
+		TracePoint before = selectedVariable.getBeforeTracePoint();
+		String thisId = before.getMethodExecution().getThisObjId();
+		String thisClassName = before.getMethodExecution().getThisClassName();
+		thisClassName = thisClassName.substring(thisClassName.lastIndexOf(".") + 1);
+		String textForThisToAnother = String.format("Extract Delta (%s: %s → %s: %s)", thisId, thisClassName, valueId, valueClassName);
+		deltaActionForThisToAnother.setText(textForThisToAnother);
+		deltaActionForThisToAnother.setToolTipText(textForThisToAnother);
+	}
+
 	private void delta(Variable variable, boolean isCollection, boolean isForThisToAnother) {
 		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 		if (analyzer instanceof DeltaExtractionAnalyzer) {
@@ -226,7 +270,7 @@ public class VariableView extends ViewPart {
 				String subIdWithNewView = deltaAnalyzer.getNextDeltaMarkerSubId();
 				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)workbenchPage.showView(DeltaMarkerView.ID, subIdWithNewView, IWorkbenchPage.VIEW_ACTIVATE);
 				if (isForThisToAnother) {
-					deltaAnalyzer.extractDeltaForThisToAnother(variable, isCollection, newDeltaMarkerView, subIdWithNewView);	
+					deltaAnalyzer.extractDeltaForThisToAnother(variable, newDeltaMarkerView, subIdWithNewView);	
 				} else {
 					deltaAnalyzer.extractDelta(variable, isCollection, newDeltaMarkerView, subIdWithNewView);					
 				}
@@ -336,6 +380,6 @@ public class VariableView extends ViewPart {
 			return workbenchPage.showView(viewId);
 		} catch (PartInitException e) {
 			throw new RuntimeException(e);
-		}	
-	}
+		}
+	}	
 }

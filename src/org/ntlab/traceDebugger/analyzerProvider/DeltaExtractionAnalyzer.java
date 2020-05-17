@@ -70,7 +70,7 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		deltaMarkerView.update();
 	}
 	
-	public void extractDeltaForThisToAnother(Variable variable, boolean isCollection, DeltaMarkerView deltaMarkerView, String deltaMarkerViewSubId) {
+	public void extractDeltaForThisToAnother(Variable variable, DeltaMarkerView deltaMarkerView, String deltaMarkerViewSubId) {
 		addDeltaMarkerView(deltaMarkerViewSubId, deltaMarkerView);
 		TracePoint before = variable.getBeforeTracePoint();
 		String srcId = before.getMethodExecution().getThisObjId();

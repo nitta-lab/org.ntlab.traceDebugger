@@ -116,16 +116,17 @@ public class CallStackView extends ViewPart {
 		deltaAction = new Action() {
 			@Override
 			public void run() {
-				if (selectionCallStackModel == null) return;
-				MethodExecution callee = selectionCallStackModel.getMethodExecution();
-				MethodExecution caller = callee.getParent();
-				String callerClassName = caller.getThisClassName();
-				String callerId = caller.getThisObjId();
-				String calleeClassName = callee.getThisClassName();
-				String calleeId = callee.getThisObjId();
-				TracePoint before = callee.getCallerTracePoint();
-				Variable variable = new Variable("tmp", callerClassName, callerId, calleeClassName, calleeId, before, false);				
-				delta(variable, false);
+				if (selectionCallStackModel != null) {
+					MethodExecution callee = selectionCallStackModel.getMethodExecution();
+					MethodExecution caller = callee.getParent();
+					String callerClassName = caller.getThisClassName();
+					String callerId = caller.getThisObjId();
+					String calleeClassName = callee.getThisClassName();
+					String calleeId = callee.getThisObjId();
+					TracePoint before = callee.getCallerTracePoint();
+					Variable variable = new Variable("tmp", callerClassName, callerId, calleeClassName, calleeId, before, false);				
+					delta(variable);
+				}
 			}
 		};
 		deltaAction.setText("Extract Delta");
@@ -148,8 +149,21 @@ public class CallStackView extends ViewPart {
 		menuMgr.addMenuListener(new IMenuListener() {
 			@Override
 			public void menuAboutToShow(IMenuManager manager) {
-				manager.add(deltaAction);
-				manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
+				if (selectionCallStackModel != null) {
+					MethodExecution callee = selectionCallStackModel.getMethodExecution();
+					MethodExecution caller = callee.getParent();
+					String callerId = caller.getThisObjId();
+					String callerClassName = caller.getThisClassName();
+					callerClassName = callerClassName.substring(callerClassName.lastIndexOf(".") + 1);
+					String calleeId = callee.getThisObjId();
+					String calleeClassName = callee.getThisClassName();
+					calleeClassName = calleeClassName.substring(calleeClassName.lastIndexOf(".") + 1);
+					String text = String.format("Extract Delta (%s: %s → %s: %s)", callerId, callerClassName, calleeId, calleeClassName);
+					deltaAction.setText(text);
+					deltaAction.setToolTipText(text);
+					manager.add(deltaAction);
+					manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
+				}
 			}
 		});
 		Menu menu = menuMgr.createContextMenu(viewer.getControl());
@@ -187,7 +201,7 @@ public class CallStackView extends ViewPart {
 		viewer.refresh();
 	}
 	
-	private void delta(Variable variable, boolean isCollection) {
+	private void delta(Variable variable) {
 		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 		if (analyzer instanceof DeltaExtractionAnalyzer) {
 			DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;					
@@ -197,7 +211,7 @@ public class CallStackView extends ViewPart {
 				// note: 同一ビューを複数開くテスト
 				String subIdWithNewView = deltaAnalyzer.getNextDeltaMarkerSubId();
 				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)workbenchPage.showView(DeltaMarkerView.ID, subIdWithNewView, IWorkbenchPage.VIEW_ACTIVATE);
-				deltaAnalyzer.extractDeltaForThisToAnother(variable, isCollection, newDeltaMarkerView, subIdWithNewView);
+				deltaAnalyzer.extractDeltaForThisToAnother(variable, newDeltaMarkerView, subIdWithNewView);
 				TracePoint coordinatorPoint = newDeltaMarkerView.getCoordinatorPoint();
 				TracePoint creationPoint = newDeltaMarkerView.getCreationPoint();
 				DebuggingController controller = DebuggingController.getInstance();
