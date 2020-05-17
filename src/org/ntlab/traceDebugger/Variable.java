@@ -195,7 +195,7 @@ public class Variable {
 
 	private void getFieldsState() {
 		// フィールドのIDとTypeを取得して表示
-		IType type = JavaEditorOperator.findIType(null, valueClassName);
+		IType type = JavaElementFinder.findIType(null, valueClassName);
 		if (type == null) return;
 		getFieldsState(type);		
 //		getFieldStateForSuperClass(type); // 親クラスを遡っていき、それらのクラスで定義されたフィールドの情報も取得していく (ただし処理が増加して非常に重くなる)
@@ -210,9 +210,9 @@ public class Variable {
 			while (true) {
 				String superClassName = type.getSuperclassName();
 				if (superClassName == null) break;
-				String fullyQualifiedSuperClassName = JavaEditorOperator.resolveType(type, superClassName);
+				String fullyQualifiedSuperClassName = JavaElementFinder.resolveType(type, superClassName);
 				if (fullyQualifiedSuperClassName == null) break;
-				type = JavaEditorOperator.findIType(null, fullyQualifiedSuperClassName);
+				type = JavaElementFinder.findIType(null, fullyQualifiedSuperClassName);
 				if (type == null) break;
 				getFieldsState(type);
 			}				

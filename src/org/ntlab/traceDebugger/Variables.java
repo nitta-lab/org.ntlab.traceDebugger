@@ -115,9 +115,9 @@ public class Variables {
 		// methodExecutionが持つargumentsを取得(ArrayList)し、そのargumentsのサイズも取得(int)
 		List<ObjectReference> args = methodExecution.getArguments();
 		if (args.size() > 0) {
-			IType type = JavaEditorOperator.findIType(methodExecution);
+			IType type = JavaElementFinder.findIType(methodExecution);
 			String methodSignature = methodExecution.getSignature();
-			IMethod method = JavaEditorOperator.findIMethod(type, methodSignature);			
+			IMethod method = JavaElementFinder.findIMethod(type, methodSignature);			
 			String[] argNames = getParameterNames(method); // 引数のIMethodから仮引数名を取得する
 			for (int i = 0; i < args.size(); i++) {
 				String argName = (argNames.length == args.size()) ? argNames[i] : "arg" + i; // 少なくとも引数の個数が不一致のときは正しい引数名が取れていない

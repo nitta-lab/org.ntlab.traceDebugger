@@ -37,6 +37,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.Reference;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.JavaEditorOperator;
+import org.ntlab.traceDebugger.JavaElementFinder;
 
 public class DeltaMarkerManager {
 	private Map<String, List<IMarker>> markerIdToMarkers = new HashMap<>();
@@ -169,7 +170,7 @@ public class DeltaMarkerManager {
 	}
 	
 	private void markAndOpenJavaFileForAlias(Alias alias, String message, String markerId) {
-		IFile file = JavaEditorOperator.findIFile(alias.getMethodExecution());
+		IFile file = JavaElementFinder.findIFile(alias.getMethodExecution());
 		if (file != null) {
 			IMarker marker = addMarkerForAlias(alias, file, message, markerId);
 			JavaEditorOperator.markAndOpenJavaFile(marker);			
@@ -180,7 +181,7 @@ public class DeltaMarkerManager {
 		MethodExecution me = creationPoint.getMethodExecution();
 		String objectId = reference.getSrcObjectId() + " -> " + reference.getDstObjectId();
 		String objectType = reference.getSrcClassName() + " -> " + reference.getDstClassName();
-		IFile file = JavaEditorOperator.findIFile(me);
+		IFile file = JavaElementFinder.findIFile(me);
 		if (file != null) {
 			IMarker marker = addMarkerForCreationPoint(creationPoint, file, message, objectId, objectType, markerId);
 			JavaEditorOperator.markAndOpenJavaFile(marker);			
@@ -188,7 +189,7 @@ public class DeltaMarkerManager {
 	}
 	
 	private void markAndOpenJavaFileForCoordinator(MethodExecution methodExecution, String message, String markerId) {
-		IFile file = JavaEditorOperator.findIFile(methodExecution);
+		IFile file = JavaElementFinder.findIFile(methodExecution);
 		if (file != null) {
 			String objectId = methodExecution.getThisObjId();
 			String objectType = methodExecution.getThisClassName();
@@ -278,8 +279,8 @@ public class DeltaMarkerManager {
 			provider.connect(input);			
 			ASTParser parser = ASTParser.newParser(AST.JLS10);
 			MethodExecution methodExecution = alias.getMethodExecution();
-			IType type = JavaEditorOperator.findIType(methodExecution);					
-			IMethod method = JavaEditorOperator.findIMethod(methodExecution, type);
+			IType type = JavaElementFinder.findIType(methodExecution);					
+			IMethod method = JavaElementFinder.findIMethod(methodExecution, type);
 			if (method != null) {
 				ICompilationUnit unit = method.getCompilationUnit();
 				parser.setSource(unit);
@@ -918,8 +919,8 @@ public class DeltaMarkerManager {
 	
 	private void setAttributesForCoordinator(final Map<String, Object> attributes, MethodExecution methodExecution, IFile file) {
 		// note: メソッドシグネチャをハイライト
-		IType type = JavaEditorOperator.findIType(methodExecution);				
-		final IMethod method = JavaEditorOperator.findIMethod(methodExecution, type);
+		IType type = JavaElementFinder.findIType(methodExecution);				
+		final IMethod method = JavaElementFinder.findIMethod(methodExecution, type);
 		if (method == null) return;
 		ASTParser parser = ASTParser.newParser(AST.JLS10);
 		ICompilationUnit unit = method.getCompilationUnit();
