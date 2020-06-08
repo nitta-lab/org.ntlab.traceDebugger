@@ -16,6 +16,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
+import org.ntlab.traceDebugger.analyzerProvider.VariableUpdatePointFinder;
 
 public class Variable {
 	private String variableName;
@@ -198,7 +199,7 @@ public class Variable {
 		IType type = JavaElementFinder.findIType(null, valueClassName);
 		if (type == null) return;
 		getFieldsState(type);		
-//		getFieldStateForSuperClass(type); // 親クラスを遡っていき、それらのクラスで定義されたフィールドの情報も取得していく (ただし処理が増加して非常に重くなる)
+		getFieldStateForSuperClass(type); // 親クラスを遡っていき、それらのクラスで定義されたフィールドの情報も取得していく (ただし処理が増加して非常に重くなる)
 	}
 	
 	/**
@@ -232,7 +233,10 @@ public class Variable {
 				TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
 //				FieldUpdate fieldUpdate = trace.getRecentlyFieldUpdate(thisObjData.getId(), fieldName, tp);
 //				FieldUpdate fieldUpdate = trace.getFieldUpdate(id, fullyQualifiedFieldName, before, isReturned);
-				TracePoint updateTracePoint = trace.getFieldUpdateTracePoint(valueId, fullyQualifiedFieldName, before, isReturned);
+				
+//				TracePoint updateTracePoint = trace.getFieldUpdateTracePoint(valueId, fullyQualifiedFieldName, before, isReturned);
+				TracePoint updateTracePoint = VariableUpdatePointFinder.getInstance().getPoint(valueId, fullyQualifiedFieldName, before);
+				
 //				if (updateTracePoint == null) continue;
 				if (updateTracePoint != null) {
 					FieldUpdate fieldUpdate = (FieldUpdate)updateTracePoint.getStatement();

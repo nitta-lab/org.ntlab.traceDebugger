@@ -94,12 +94,22 @@ public class Variables {
 			String thisClassName = me.getThisClassName();
 			Variable variable = new Variable(RETURN_VARIABLE_NAME, thisClassName, thisObjId, returnValueClassName, returnValueId, from, isReturned);
 			variable.createNextHierarchyState();
-			Variable old = roots.get(0);
-			if (old.getVariableName().equals(RETURN_VARIABLE_NAME)) {
-				roots.set(0, variable);
+			if (roots.size() > 0) {
+				Variable old = roots.get(0);
+				if (old.getVariableName().equals(RETURN_VARIABLE_NAME)) {
+					roots.set(0, variable);
+				} else {
+					roots.add(0, variable);
+				}
 			} else {
-				roots.add(0, variable);	
+				roots.add(0, variable);
 			}
+//			Variable old = roots.get(0);
+//			if (old.getVariableName().equals(RETURN_VARIABLE_NAME)) {
+//				roots.set(0, variable);
+//			} else {
+//				roots.add(0, variable);	
+//			}
 		}
 	}
 	

@@ -17,6 +17,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
+import org.ntlab.traceDebugger.analyzerProvider.VariableUpdatePointFinder;
 
 public class DebuggingController {
 	private static final DebuggingController theInstance = new DebuggingController();
@@ -50,7 +51,10 @@ public class DebuggingController {
 		fileDialog.setFilterExtensions(new String[]{"*.*"});
 		String path = fileDialog.open();
 		if (path == null) return false;
-		TraceDebuggerPlugin.setAnalyzer(new DeltaExtractionAnalyzer(new TraceJSON(path)));
+		TraceJSON trace = new TraceJSON(path);
+		TraceDebuggerPlugin.setAnalyzer(new DeltaExtractionAnalyzer(trace));
+//		new VariableUpdatePointFinder(trace);
+		VariableUpdatePointFinder.getInstance().setTrace(trace);
 		traceBreakPoints.clear();
 		((CallStackView)getOtherView(CallStackView.ID)).reset();
 		((VariableView)getOtherView(VariableView.ID)).reset();
@@ -138,7 +142,7 @@ public class DebuggingController {
 		refresh(null, debuggingTp, false);
 		return true;
 	}
-
+	
 	public boolean stepOverAction() {
 		if (debuggingTp == null) return false;
 		TracePoint previousTp = debuggingTp;
@@ -319,6 +323,7 @@ public class DebuggingController {
 		callStackView.updateByTracePoint(to);
 		VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
 		if (!isReturned && canDifferentialUpdateVariables) {
+//			variableView.updateVariablesByTracePoint(from, to, isReturned);
 			variableView.updateVariablesForDifferential(from, to, isReturned);
 		} else {
 			variableView.updateVariablesByTracePoint(from, to, isReturned);
