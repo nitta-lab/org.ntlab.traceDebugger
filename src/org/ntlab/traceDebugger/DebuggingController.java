@@ -1,7 +1,6 @@
 package org.ntlab.traceDebugger;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.filebuffers.FileBuffers;
@@ -20,10 +19,6 @@ import org.eclipse.jface.text.IRegion;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.ui.IViewPart;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.BlockEnter;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
@@ -71,12 +66,8 @@ public class DebuggingController {
 		if (path == null) return false;
 		TraceJSON trace = new TraceJSON(path);
 		TraceDebuggerPlugin.setAnalyzer(new DeltaExtractionAnalyzer(trace));
-//		new VariableUpdatePointFinder(trace);
 		VariableUpdatePointFinder.getInstance().setTrace(trace);
 		traceBreakPoints.clear();
-//		((CallStackView)getOtherView(CallStackView.ID)).reset();
-//		((VariableView)getOtherView(VariableView.ID)).reset();
-//		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);		
 		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
 		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
@@ -110,7 +101,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Error", "This trace point does not exist in the trace.");
 			return false;
 		}
-//		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
 		return true;
 	}
@@ -118,7 +108,6 @@ public class DebuggingController {
 	public boolean removeTraceBreakPointAction() {
 		if (selectedTraceBreakPoint == null) return false;
 		traceBreakPoints.removeTraceBreakPoint(selectedTraceBreakPoint);
-//		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
 		return true;
 	}
@@ -126,7 +115,6 @@ public class DebuggingController {
 	public boolean changeAvailableAction() {
 		if (selectedTraceBreakPoint == null) return false;
 		selectedTraceBreakPoint.changeAvailable();
-//		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
 		return true;
 	}
@@ -153,8 +141,6 @@ public class DebuggingController {
 				e.printStackTrace();
 			}			
 		}
-//		((CallStackView)getOtherView(CallStackView.ID)).reset();
-//		((VariableView)getOtherView(VariableView.ID)).reset();
 		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
 		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
 	}
@@ -190,16 +176,19 @@ public class DebuggingController {
 			previousTp = debuggingTp.duplicate();
 		}
 		TracePoint goalTp = debuggingTp.duplicate();
-		
-		// ステップフルを用いて今度は呼び出し先にも潜りながら予め見つけておいた到達点まで進ませる (変数差分更新のため途中のアップデートを全て拾う)
-		debuggingTp = startTp;
-		do {
-			Statement statement = debuggingTp.getStatement();
-			if (statement.equals(goalTp.getStatement())) break;
-			if (statement instanceof FieldUpdate || statement instanceof ArrayUpdate) {
-				Variables.getInstance().addDifferentialUpdatePoint(debuggingTp);
-			}
-		} while (debuggingTp.stepFull());
+		if (!isReturned) {
+			// ステップフルを用いて今度は呼び出し先にも潜りながら予め見つけておいた到達点まで進ませる (変数差分更新のため途中のアップデートを全て拾う)
+			debuggingTp = startTp;
+			do {
+				Statement statement = debuggingTp.getStatement();
+				if (statement.equals(goalTp.getStatement())) break;
+				if (statement instanceof FieldUpdate || statement instanceof ArrayUpdate) {
+					Variables.getInstance().addDifferentialUpdatePoint(debuggingTp);
+				}
+			} while (debuggingTp.stepFull());			
+		} else {
+			debuggingTp = goalTp;
+		}
 
 		if (!debuggingTp.isValid()) {
 			terminateAction();
@@ -232,18 +221,22 @@ public class DebuggingController {
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		TracePoint startTp = debuggingTp.duplicate();
-		debuggingTp.stepNext();
+		boolean isReturned = !(debuggingTp.stepNext());
 		TracePoint goalTp = debuggingTp.duplicate();
-		
-		// ステップフルを用いて今度は呼び出し先にも潜りながら予め見つけておいた到達点まで進ませる (変数差分更新のため途中のアップデートを全て拾う)
-		debuggingTp = startTp;
-		do {
-			Statement statement = debuggingTp.getStatement();
-			if (statement.equals(goalTp.getStatement())) break;
-			if (statement instanceof FieldUpdate || statement instanceof ArrayUpdate) {
-				Variables.getInstance().addDifferentialUpdatePoint(debuggingTp);
-			}
-		} while (debuggingTp.stepFull());
+		if (!isReturned) {
+			// ステップフルを用いて今度は呼び出し先にも潜りながら予め見つけておいた到達点まで進ませる (変数差分更新のため途中のアップデートを全て拾う)
+			debuggingTp = startTp;
+			do {
+				Statement statement = debuggingTp.getStatement();
+				if (statement.equals(goalTp.getStatement())) break;
+				if (statement instanceof FieldUpdate || statement instanceof ArrayUpdate) {
+					Variables.getInstance().addDifferentialUpdatePoint(debuggingTp);
+				}
+			} while (debuggingTp.stepFull());			
+		} else {
+			debuggingTp = startTp;
+			startTp.stepOver();
+		}
 
 		if (!debuggingTp.isValid()) {
 			terminateAction();
@@ -253,7 +246,6 @@ public class DebuggingController {
 		if (debuggingTp.getStatement() instanceof BlockEnter) {
 			debuggingTp.stepFull();
 		}
-		boolean isReturned = false;
 		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;	
 	}
@@ -351,13 +343,10 @@ public class DebuggingController {
 	private void refresh(TracePoint from, TracePoint to, boolean isReturned, boolean canDifferentialUpdateVariables) {
 		MethodExecution me = to.getMethodExecution();
 		int lineNo = to.getStatement().getLineNo();
-//		JavaEditorOperator.openSrcFileOfMethodExecution(me, lineNo);
 		IMarker marker = createCurrentLineMarker(me, lineNo);
 		JavaEditorOperator.markAndOpenJavaFile(marker);
-//		CallStackView callStackView = ((CallStackView)getOtherView(CallStackView.ID));
 		CallStackView callStackView = ((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID));
 		callStackView.updateByTracePoint(to);
-//		VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
 		VariableView variableView = ((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID));
 		if (!isReturned && canDifferentialUpdateVariables) {
 //			variableView.updateVariablesByTracePoint(from, to, isReturned);
@@ -387,7 +376,6 @@ public class DebuggingController {
 	public IMarker createCurrentLineMarker(MethodExecution methodExecution, int highlightLineNo) {
 		IFile file = JavaElementFinder.findIFile(methodExecution);
 		try {
-//			file.deleteMarkers(CURRENT_MARKER_ID, false, IResource.DEPTH_ZERO);
 			if (currentLineMarker != null) currentLineMarker.delete();
 			currentLineMarker = file.createMarker(CURRENT_MARKER_ID);
 			Map<String, Object> attributes = new HashMap<>();
@@ -411,14 +399,5 @@ public class DebuggingController {
 			e.printStackTrace();
 		}
 		return currentLineMarker;
-	}
-	
-//	private IViewPart getOtherView(String viewId) {
-//		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-//		try {
-//			return workbenchPage.showView(viewId);
-//		} catch (PartInitException e) {
-//			throw new RuntimeException(e);
-//		}
-//	}
+	}	
 }
