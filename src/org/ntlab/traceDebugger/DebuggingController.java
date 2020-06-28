@@ -1,6 +1,7 @@
 package org.ntlab.traceDebugger;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.filebuffers.FileBuffers;
@@ -31,6 +32,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
+import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 import org.ntlab.traceDebugger.analyzerProvider.VariableUpdatePointFinder;
 
 public class DebuggingController {
@@ -72,9 +74,12 @@ public class DebuggingController {
 //		new VariableUpdatePointFinder(trace);
 		VariableUpdatePointFinder.getInstance().setTrace(trace);
 		traceBreakPoints.clear();
-		((CallStackView)getOtherView(CallStackView.ID)).reset();
-		((VariableView)getOtherView(VariableView.ID)).reset();
-		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
+//		((CallStackView)getOtherView(CallStackView.ID)).reset();
+//		((VariableView)getOtherView(VariableView.ID)).reset();
+//		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);		
+		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
+		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
 		return true;
 	}
 	
@@ -105,21 +110,24 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Error", "This trace point does not exist in the trace.");
 			return false;
 		}
-		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
+//		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
 		return true;
 	}
 	
 	public boolean removeTraceBreakPointAction() {
 		if (selectedTraceBreakPoint == null) return false;
 		traceBreakPoints.removeTraceBreakPoint(selectedTraceBreakPoint);
-		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
+//		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
 		return true;
 	}
 	
 	public boolean changeAvailableAction() {
 		if (selectedTraceBreakPoint == null) return false;
 		selectedTraceBreakPoint.changeAvailable();
-		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
+//		((BreakPointView)getOtherView(BreakPointView.ID)).update(traceBreakPoints);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
 		return true;
 	}
 	
@@ -145,8 +153,10 @@ public class DebuggingController {
 				e.printStackTrace();
 			}			
 		}
-		((CallStackView)getOtherView(CallStackView.ID)).reset();
-		((VariableView)getOtherView(VariableView.ID)).reset();
+//		((CallStackView)getOtherView(CallStackView.ID)).reset();
+//		((VariableView)getOtherView(VariableView.ID)).reset();
+		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
+		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
 	}
 
 	public boolean stepIntoAction() {
@@ -344,15 +354,34 @@ public class DebuggingController {
 //		JavaEditorOperator.openSrcFileOfMethodExecution(me, lineNo);
 		IMarker marker = createCurrentLineMarker(me, lineNo);
 		JavaEditorOperator.markAndOpenJavaFile(marker);
-		CallStackView callStackView = ((CallStackView)getOtherView(CallStackView.ID));
+//		CallStackView callStackView = ((CallStackView)getOtherView(CallStackView.ID));
+		CallStackView callStackView = ((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID));
 		callStackView.updateByTracePoint(to);
-		VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
+//		VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
+		VariableView variableView = ((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID));
 		if (!isReturned && canDifferentialUpdateVariables) {
 //			variableView.updateVariablesByTracePoint(from, to, isReturned);
 			variableView.updateVariablesForDifferential(from, to, isReturned);
 		} else {
 			variableView.updateVariablesByTracePoint(from, to, isReturned);
 		}
+		if ((TraceDebuggerPlugin.getAnalyzer() instanceof DeltaExtractionAnalyzer)) {
+			refreshRelatedDelta(to);	
+		}
+	}
+	
+	private void refreshRelatedDelta(TracePoint tp) {
+		DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
+		if (deltaMarkerView == null) return;
+		DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
+		if (deltaMarkerManager == null) return;
+		IMarker coordinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
+		if (coordinatorMarker == null) return;
+		MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coordinatorMarker);
+		CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
+		callStackView.highlight(coordinatorME);
+		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
+		callTreeView.highlight(tp.getMethodExecution());
 	}
 
 	public IMarker createCurrentLineMarker(MethodExecution methodExecution, int highlightLineNo) {
@@ -384,12 +413,12 @@ public class DebuggingController {
 		return currentLineMarker;
 	}
 	
-	private IViewPart getOtherView(String viewId) {
-		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		try {
-			return workbenchPage.showView(viewId);
-		} catch (PartInitException e) {
-			throw new RuntimeException(e);
-		}
-	}
+//	private IViewPart getOtherView(String viewId) {
+//		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+//		try {
+//			return workbenchPage.showView(viewId);
+//		} catch (PartInitException e) {
+//			throw new RuntimeException(e);
+//		}
+//	}
 }
