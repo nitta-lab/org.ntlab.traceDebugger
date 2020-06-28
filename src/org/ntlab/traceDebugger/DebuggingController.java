@@ -1,7 +1,21 @@
 package org.ntlab.traceDebugger;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.eclipse.core.filebuffers.FileBuffers;
+import org.eclipse.core.filebuffers.ITextFileBuffer;
+import org.eclipse.core.filebuffers.ITextFileBufferManager;
+import org.eclipse.core.filebuffers.LocationKind;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.text.IRegion;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
@@ -24,6 +38,8 @@ public class DebuggingController {
 	private TracePoint debuggingTp;
 	private TraceBreakPoint selectedTraceBreakPoint;
 	private TraceBreakPoints traceBreakPoints = new TraceBreakPoints();
+	private IMarker currentLineMarker;
+	public static final String CURRENT_MARKER_ID = "org.ntlab.traceDebugger.currentMarker";
 	
 	private DebuggingController() {
 		
@@ -122,6 +138,13 @@ public class DebuggingController {
 
 	public void terminateAction() {
 		debuggingTp = null;
+		if (currentLineMarker != null) {
+			try {
+				currentLineMarker.delete();
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}			
+		}
 		((CallStackView)getOtherView(CallStackView.ID)).reset();
 		((VariableView)getOtherView(VariableView.ID)).reset();
 	}
@@ -168,13 +191,13 @@ public class DebuggingController {
 			}
 		} while (debuggingTp.stepFull());
 
-		if (debuggingTp.getStatement() instanceof BlockEnter) {
-			debuggingTp.stepFull();
-		}
 		if (!debuggingTp.isValid()) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
+		}		
+		if (debuggingTp.getStatement() instanceof BlockEnter) {
+			debuggingTp.stepFull();
 		}
 		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;
@@ -211,14 +234,14 @@ public class DebuggingController {
 				Variables.getInstance().addDifferentialUpdatePoint(debuggingTp);
 			}
 		} while (debuggingTp.stepFull());
-		
-		if (debuggingTp.getStatement() instanceof BlockEnter) {
-			debuggingTp.stepFull();
-		}
+
 		if (!debuggingTp.isValid()) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
+		}		
+		if (debuggingTp.getStatement() instanceof BlockEnter) {
+			debuggingTp.stepFull();
 		}
 		boolean isReturned = false;
 		refresh(previousTp, debuggingTp, isReturned, true);
@@ -318,7 +341,9 @@ public class DebuggingController {
 	private void refresh(TracePoint from, TracePoint to, boolean isReturned, boolean canDifferentialUpdateVariables) {
 		MethodExecution me = to.getMethodExecution();
 		int lineNo = to.getStatement().getLineNo();
-		JavaEditorOperator.openSrcFileOfMethodExecution(me, lineNo);		
+//		JavaEditorOperator.openSrcFileOfMethodExecution(me, lineNo);
+		IMarker marker = createCurrentLineMarker(me, lineNo);
+		JavaEditorOperator.markAndOpenJavaFile(marker);
 		CallStackView callStackView = ((CallStackView)getOtherView(CallStackView.ID));
 		callStackView.updateByTracePoint(to);
 		VariableView variableView = ((VariableView)getOtherView(VariableView.ID));
@@ -330,6 +355,35 @@ public class DebuggingController {
 		}
 	}
 
+	public IMarker createCurrentLineMarker(MethodExecution methodExecution, int highlightLineNo) {
+		IFile file = JavaElementFinder.findIFile(methodExecution);
+		try {
+//			file.deleteMarkers(CURRENT_MARKER_ID, false, IResource.DEPTH_ZERO);
+			if (currentLineMarker != null) currentLineMarker.delete();
+			currentLineMarker = file.createMarker(CURRENT_MARKER_ID);
+			Map<String, Object> attributes = new HashMap<>();
+			attributes.put(IMarker.TRANSIENT, true);
+			attributes.put(IMarker.LINE_NUMBER, highlightLineNo);			
+			
+			IPath path = file.getFullPath();
+			ITextFileBufferManager manager = FileBuffers.getTextFileBufferManager();			
+			manager.connect(path, LocationKind.IFILE, null);
+			ITextFileBuffer buffer = manager.getTextFileBuffer(path, LocationKind.IFILE);
+			IDocument document = buffer.getDocument();
+			try {
+				IRegion region = document.getLineInformation(highlightLineNo - 1);
+				attributes.put(IMarker.CHAR_START, region.getOffset());
+				attributes.put(IMarker.CHAR_END, region.getOffset() + region.getLength());
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
+			currentLineMarker.setAttributes(attributes);
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		return currentLineMarker;
+	}
+	
 	private IViewPart getOtherView(String viewId) {
 		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		try {

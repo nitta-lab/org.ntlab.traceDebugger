@@ -1,5 +1,6 @@
 package org.ntlab.traceDebugger;
 
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuListener;
@@ -84,7 +85,9 @@ public class BreakPointView extends ViewPart {
 					// ‘I‘ğ‚µ‚½TraceBreakPoint‚ÌêŠ‚ğŠJ‚¢‚Ä”½“]•\¦‚·‚é (‚µ‚½•û‚ª‚¢‚¢?)
 					MethodExecution methodExecution = tbp.getMethodExecutions().iterator().next();
 					int highlightLineNo = tbp.getLineNo();
-					JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, highlightLineNo);
+//					JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, highlightLineNo);
+					IMarker marker = DebuggingController.getInstance().createCurrentLineMarker(methodExecution, highlightLineNo);
+					JavaEditorOperator.markAndOpenJavaFile(marker);
 				}
 			}
 		});

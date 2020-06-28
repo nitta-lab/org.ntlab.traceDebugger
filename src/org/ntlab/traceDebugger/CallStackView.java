@@ -65,7 +65,10 @@ public class CallStackView extends ViewPart {
 						selectionCallStackModel = callStackModel;
 						MethodExecution methodExecution = callStackModel.getMethodExecution();
 						TracePoint tp = callStackModel.getTracePoint();
-						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, callStackModel.getCallLineNo());
+//						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, callStackModel.getCallLineNo());
+						IMarker marker = DebuggingController.getInstance().createCurrentLineMarker(methodExecution, callStackModel.getCallLineNo());
+						JavaEditorOperator.markAndOpenJavaFile(marker);
+
 						CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 						callTreeView.highlight(methodExecution);
 
@@ -76,9 +79,11 @@ public class CallStackView extends ViewPart {
 							DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
 							if (deltaMarkerView != null) {
 								DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
-								Map<String, List<IMarker>> deltaMarkers = deltaMarkerManager.getMarkers();
-								if (deltaMarkers != null) {
-									variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkers);	
+								if (deltaMarkerManager != null) {
+									Map<String, List<IMarker>> deltaMarkers = deltaMarkerManager.getMarkers();
+									if (deltaMarkers != null) {
+										variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkers);	
+									}
 								}
 							}
 						}

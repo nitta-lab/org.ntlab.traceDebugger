@@ -215,9 +215,10 @@ public class VariableView extends ViewPart {
 				updateDeltaActionsTexts(selectedVariable);
 				if (selectedVariable.getVariableName().equals(Variables.RETURN_VARIABLE_NAME)) {
 					manager.add(deltaActionForContainerToComponent);
-					manager.add(deltaActionForThisToAnother);					
+					manager.add(deltaActionForThisToAnother);
 				} else {
 					manager.add(deltaAction);
+//					manager.add(deltaActionForCollection);
 				}
 //				manager.add(deltaActionForCollection);
 				manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
@@ -241,20 +242,27 @@ public class VariableView extends ViewPart {
 		
 		String containerId = selectedVariable.getContainerId();
 		String containerClassName = selectedVariable.getContainerClassName();
-		containerClassName = containerClassName.substring(containerClassName.lastIndexOf(".") + 1);
-		String textForContainerToComponent = String.format("Extract Delta (%s: %s Å® %s: %s)", containerId, containerClassName, valueId, valueClassName);
-		deltaActionForContainerToComponent.setText(textForContainerToComponent);
-		deltaActionForContainerToComponent.setToolTipText(textForContainerToComponent);
-		deltaAction.setText(textForContainerToComponent);
-		deltaAction.setToolTipText(textForContainerToComponent);
-		
+		if (containerId != null  && containerClassName != null) {
+			containerClassName = containerClassName.substring(containerClassName.lastIndexOf(".") + 1);
+			String textForContainerToComponent = String.format("Extract Delta (%s: %s Å® %s: %s)", containerId, containerClassName, valueId, valueClassName);
+			deltaActionForContainerToComponent.setText(textForContainerToComponent);
+			deltaActionForContainerToComponent.setToolTipText(textForContainerToComponent);
+			deltaAction.setText(textForContainerToComponent);
+			deltaAction.setToolTipText(textForContainerToComponent);
+		} else {
+			deltaAction.setText("Extract Delta");
+			deltaAction.setToolTipText("Extract Delta");
+		}
+			
 		TracePoint before = selectedVariable.getBeforeTracePoint();
 		String thisId = before.getMethodExecution().getThisObjId();
 		String thisClassName = before.getMethodExecution().getThisClassName();
-		thisClassName = thisClassName.substring(thisClassName.lastIndexOf(".") + 1);
-		String textForThisToAnother = String.format("Extract Delta (%s: %s Å® %s: %s)", thisId, thisClassName, valueId, valueClassName);
-		deltaActionForThisToAnother.setText(textForThisToAnother);
-		deltaActionForThisToAnother.setToolTipText(textForThisToAnother);
+		if (thisId != null && thisClassName != null) {			
+			thisClassName = thisClassName.substring(thisClassName.lastIndexOf(".") + 1);
+			String textForThisToAnother = String.format("Extract Delta (%s: %s Å® %s: %s)", thisId, thisClassName, valueId, valueClassName);
+			deltaActionForThisToAnother.setText(textForThisToAnother);
+			deltaActionForThisToAnother.setToolTipText(textForThisToAnother);			
+		}
 	}	
 	
 	public void updateVariablesByTracePoint(TracePoint tp, boolean isReturned) {

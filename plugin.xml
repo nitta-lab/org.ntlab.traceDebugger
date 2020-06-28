@@ -111,6 +111,17 @@
       </super>
    </extension>
    <extension
+         id="org.ntlab.traceDebugger.currentMarker"
+         name="CurrentMarker"
+         point="org.eclipse.core.resources.markers">
+      <persistent
+            value="false">
+      </persistent>
+      <super
+            type="org.eclipse.core.resources.textmarker">
+      </super>
+   </extension>
+   <extension
          point="org.eclipse.ui.ide.markerImageProviders">
       <imageprovider
             icon="icons/deltaMarker.png"
@@ -131,6 +142,10 @@
             icon="icons/deltaMarker.png"
             id="DstSideDeltaMarker"
             markertype="org.ntlab.traceDebugger.dstSideDeltaMarker">
+      </imageprovider>
+      <imageprovider
+            id="CurrentMarker"
+            markertype="org.ntlab.traceDebugger.currentMarker">
       </imageprovider>
    </extension>
    <extension
@@ -157,6 +172,12 @@
             markerSeverity="0"
             markerType="org.ntlab.traceDebugger.dstSideDeltaMarker"
             name="org.ntlab.traceDebugger.dstSideDeltaAnnotation"
+            super="org.eclipse.ui.workbench.texteditor.info">
+      </type>
+      <type
+            markerSeverity="0"
+            markerType="org.ntlab.traceDebugger.currentMarker"
+            name="org.ntlab.traceDebugger.currentAnnotation"
             super="org.eclipse.ui.workbench.texteditor.info">
       </type>
    </extension>
@@ -232,6 +253,23 @@
             textStylePreferenceKey="clstyle4"
             textStylePreferenceValue="BOX"
             verticalRulerPreferenceKey="clvertical4"
+            verticalRulerPreferenceValue="true">
+      </specification>
+      <specification
+            annotationType="org.ntlab.traceDebugger.currentAnnotation"
+            colorPreferenceKey="clcolor5"
+            colorPreferenceValue="0,255,0"
+            highlightPreferenceKey="clhighlight5"
+            highlightPreferenceValue="true"
+            includeOnPreferencePage="true"
+            label="CurrentAnnotation"
+            overviewRulerPreferenceKey="clruler5"
+            overviewRulerPreferenceValue="true"
+            textPreferenceKey="cltext5"
+            textPreferenceValue="true"
+            textStylePreferenceKey="clstyle5"
+            textStylePreferenceValue="BOX"
+            verticalRulerPreferenceKey="clvertical5"
             verticalRulerPreferenceValue="true">
       </specification>
    </extension>

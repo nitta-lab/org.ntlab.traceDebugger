@@ -75,7 +75,9 @@ public class TracePointsView extends ViewPart {
 					selectedTp = (TracePoint)element;
 					MethodExecution me = selectedTp.getMethodExecution();
 					int lineNo = selectedTp.getStatement().getLineNo();
-					JavaEditorOperator.openSrcFileOfMethodExecution(me, lineNo);
+//					JavaEditorOperator.openSrcFileOfMethodExecution(me, lineNo);
+					IMarker marker = DebuggingController.getInstance().createCurrentLineMarker(me, lineNo);
+					JavaEditorOperator.markAndOpenJavaFile(marker);
 				}
 			}
 		});
@@ -186,7 +188,10 @@ public class TracePointsView extends ViewPart {
 		debuggingController.jumpToTheTracePoint(tp, false);
 		MethodExecution currentME = tp.getMethodExecution();
 		int lineNo = tp.getStatement().getLineNo();
-		JavaEditorOperator.openSrcFileOfMethodExecution(currentME, lineNo);
+//		JavaEditorOperator.openSrcFileOfMethodExecution(currentME, lineNo);
+		IMarker marker = DebuggingController.getInstance().createCurrentLineMarker(currentME, lineNo);
+		JavaEditorOperator.markAndOpenJavaFile(marker);
+
 		CallStackView callStackView = ((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID));
 		VariableView variableView = ((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID));
 
