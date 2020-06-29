@@ -34,7 +34,7 @@ public class DebuggingController {
 	private static final DebuggingController theInstance = new DebuggingController();
 	private TracePoint debuggingTp;
 	private TraceBreakPoint selectedTraceBreakPoint;
-	private TraceBreakPoints traceBreakPoints = new TraceBreakPoints();
+	private TraceBreakPoints traceBreakPoints;
 	private IMarker currentLineMarker;
 	public static final String CURRENT_MARKER_ID = "org.ntlab.traceDebugger.currentMarker";
 	
@@ -67,7 +67,8 @@ public class DebuggingController {
 		TraceJSON trace = new TraceJSON(path);
 		TraceDebuggerPlugin.setAnalyzer(new DeltaExtractionAnalyzer(trace));
 		VariableUpdatePointFinder.getInstance().setTrace(trace);
-		traceBreakPoints.clear();
+//		traceBreakPoints.clear();
+		traceBreakPoints = new TraceBreakPoints(trace);
 		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
 		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
@@ -79,14 +80,14 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
 			return false;
 		}
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void E.setC(C)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void _arraySample.D.setC(_arraySample.C)", null);		
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void Company.pay(Money,Person)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "void worstCase.P.setM(worstCase.M)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public void org.jhotdraw.draw.DefaultDrawingView.addToSelection(org.jhotdraw.draw.Figure)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "protected void org.tigris.gef.base.SelectionManager.addFig(org.tigris.gef.presentation.Fig)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public static org.tigris.gef.base.Selection org.tigris.gef.base.SelectionManager.makeSelectionFor(org.tigris.gef.presentation.Fig)", null);
-		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "public void org.argouml.uml.diagram.ui.ActionRemoveFromDiagram.actionPerformed(java.awt.event.ActionEvent)", null);
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "E.setC(C)", null);
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "D.setC(_arraySample.C)", null);		
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "Company.pay(Money,Person)", null);
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "P.setM(worstCase.M)", null);
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "DefaultDrawingView.addToSelection(Figure)", null);
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "SelectionManager.addFig(Fig)", null);
+//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "SelectionManager.makeSelectionFor(Fig)", null);
+		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "ActionRemoveFromDiagram.actionPerformed(ActionEvent)", null);
 		if (inputDialog.open() != InputDialog.OK) return false;
 		String methodSignature = inputDialog.getValue();
 		inputDialog = new InputDialog(null, "line No dialog", "Input line no", "", null);

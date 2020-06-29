@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,14 +13,20 @@ import java.util.Map;
 
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 
 public class TraceBreakPoints {
+	private Trace trace;
 	private Map<String, Map<Integer, TraceBreakPoint>> traceBreakPoints = new HashMap<>();
 	private List<TracePoint> histories = new LinkedList<>();
 	private ListIterator<TracePoint> historyIt = histories.listIterator();
 	private TracePoint curHistPoint;
 	private int curIdx = -1;
+	
+	public TraceBreakPoints(Trace trace) {
+		this.trace = trace;
+	}
 
 	public List<TraceBreakPoint> getAllTraceBreakPoints() {
 		List<TraceBreakPoint> list = new ArrayList<>();
@@ -38,7 +45,9 @@ public class TraceBreakPoints {
 		return list;
 	}
 
-	public boolean addTraceBreakPoint(String methodSignature, int lineNo, long currentTime) {
+	public boolean addTraceBreakPoint(String inputSignature, int lineNo, long currentTime) {
+		String methodSignature = findMethodSignaureOnTrace(inputSignature);
+		if (methodSignature == null) return false;
 		Map<Integer, TraceBreakPoint> innerMap = traceBreakPoints.get(methodSignature);
 		if (innerMap == null) {
 			innerMap = new HashMap<>();
@@ -55,7 +64,7 @@ public class TraceBreakPoints {
 		return addTraceBreakPoint(methodSignature, lineNo, 0L);
 	}
 	
-	public void removeTraceBreakPoint(String methodSignature, int lineNo) {
+	private void removeTraceBreakPoint(String methodSignature, int lineNo) {
 		Map<Integer, TraceBreakPoint> innerMap = traceBreakPoints.get(methodSignature);
 		if (innerMap == null) return;
 		TraceBreakPoint tbp = innerMap.remove(lineNo);
@@ -67,6 +76,29 @@ public class TraceBreakPoints {
 		String methodSignature = traceBreakPoint.getMethodSignature();
 		int lineNo = traceBreakPoint.getLineNo();
 		removeTraceBreakPoint(methodSignature, lineNo);
+	}
+	
+	private String findMethodSignaureOnTrace(String inputSignature) {
+		HashSet<String> methodSignatures = trace.getAllMethodSignatures();
+		for (String signature : methodSignatures) {
+			String signatureFront = signature.substring(0, signature.indexOf("(") + 1);
+			String inputSignatureFront = inputSignature.substring(0, inputSignature.indexOf("(") + 1);
+			if (!(signatureFront.endsWith(inputSignatureFront))) continue;
+			String signatureBack = signature.substring(signature.indexOf("(") + 1);
+			String[] signatureArgs = signatureBack.split(",");
+			String inputSignatureBack = inputSignature.substring(inputSignature.indexOf("(") + 1);
+			String[] inputSignatureArgs = inputSignatureBack.split(",");
+			if (signatureArgs.length != inputSignatureArgs.length) continue;
+			boolean isMatch = true;
+			for (int i = 0; i < signatureArgs.length; i++) {
+				if (!(signatureArgs[i].endsWith(inputSignatureArgs[i]))) {
+					isMatch = false;
+					break;
+				}
+			}
+			if (isMatch) return signature;
+		}
+		return null;
 	}
 
 	private void addHistories(TraceBreakPoint tbp) {		
