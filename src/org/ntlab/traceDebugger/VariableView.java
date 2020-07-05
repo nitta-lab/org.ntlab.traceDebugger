@@ -216,9 +216,10 @@ public class VariableView extends ViewPart {
 				if (selectedVariable.getVariableName().equals(Variables.RETURN_VARIABLE_NAME)) {
 					manager.add(deltaActionForContainerToComponent);
 					manager.add(deltaActionForThisToAnother);
+					manager.add(deltaActionForCollection);
 				} else {
 					manager.add(deltaAction);
-//					manager.add(deltaActionForCollection);
+					manager.add(deltaActionForCollection);
 				}
 //				manager.add(deltaActionForCollection);
 				manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
