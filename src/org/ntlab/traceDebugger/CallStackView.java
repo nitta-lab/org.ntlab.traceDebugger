@@ -65,10 +65,7 @@ public class CallStackView extends ViewPart {
 						selectionCallStackModel = callStackModel;
 						MethodExecution methodExecution = callStackModel.getMethodExecution();
 						TracePoint tp = callStackModel.getTracePoint();
-//						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, callStackModel.getCallLineNo());
-						IMarker marker = DebuggingController.getInstance().createCurrentLineMarker(methodExecution, callStackModel.getCallLineNo());
-						JavaEditorOperator.markAndOpenJavaFile(marker);
-
+						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, callStackModel.getCallLineNo());
 						CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 						callTreeView.highlight(methodExecution);
 
