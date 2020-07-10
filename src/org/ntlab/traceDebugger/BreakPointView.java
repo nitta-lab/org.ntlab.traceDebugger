@@ -1,6 +1,11 @@
 package org.ntlab.traceDebugger;
 
 import org.eclipse.core.resources.IMarker;
+import org.eclipse.debug.core.DebugPlugin;
+import org.eclipse.debug.core.model.IDebugElement;
+import org.eclipse.debug.internal.ui.IInternalDebugUIConstants;
+import org.eclipse.debug.ui.DebugUITools;
+import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuListener;
@@ -151,6 +156,8 @@ public class BreakPointView extends ViewPart {
 		};
 		debugAction.setText("Debug");
 		debugAction.setToolTipText("Debug");
+		ImageDescriptor debugImage = DebugUITools.getImageDescriptor(IDebugUIConstants.IMG_ACT_DEBUG);
+		debugAction.setImageDescriptor(debugImage);
 		
 		terminateAction = new Action() {
 			@Override
@@ -160,6 +167,8 @@ public class BreakPointView extends ViewPart {
 		};
 		terminateAction.setText("Terminate");
 		terminateAction.setToolTipText("Terminate");
+		ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IDebugUIConstants.IMG_OBJS_LAUNCH_RUN_TERMINATED);
+		terminateAction.setImageDescriptor(terminateImage);
 
 		stepIntoAction = new Action() {
 			@Override
@@ -169,6 +178,8 @@ public class BreakPointView extends ViewPart {
 		};
 		stepIntoAction.setText("Step Into");
 		stepIntoAction.setToolTipText("Step Into");
+		ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_INTO);
+		stepIntoAction.setImageDescriptor(stepIntoImage);
 		
 		stepOverAction = new Action() {
 			@Override
@@ -178,7 +189,9 @@ public class BreakPointView extends ViewPart {
 		};
 		stepOverAction.setText("Step Over");
 		stepOverAction.setToolTipText("Step Over");
-		
+		ImageDescriptor stepOverImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_OVER);
+		stepOverAction.setImageDescriptor(stepOverImage);
+
 		stepReturnAction = new Action() {
 			@Override
 			public void run() {
@@ -187,6 +200,8 @@ public class BreakPointView extends ViewPart {
 		};
 		stepReturnAction.setText("Step Return");
 		stepReturnAction.setToolTipText("Step Return");
+		ImageDescriptor stepReturnImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_RETURN);
+		stepReturnAction.setImageDescriptor(stepReturnImage);
 
 		stepNextAction = new Action() {
 			@Override
@@ -205,6 +220,8 @@ public class BreakPointView extends ViewPart {
 		};
 		resumeAction.setText("Resume");
 		resumeAction.setToolTipText("Resume");
+		ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_RESUME);
+		resumeAction.setImageDescriptor(image);
 		
 		stepBackIntoAction = new Action() {
 			@Override
