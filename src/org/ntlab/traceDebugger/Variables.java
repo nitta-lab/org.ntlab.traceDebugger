@@ -10,35 +10,27 @@ import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ObjectReference;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
-
-import com.sun.org.apache.regexp.internal.RE;
+import org.ntlab.traceDebugger.Variable.VariableType;
 
 public class Variables {
 	private static final Variables theInstance = new Variables();
 	private List<Variable> roots = new ArrayList<>();
 	private List<MyTreeNode> rootTreeNodes = new ArrayList<>();
 	private Map<String, List<TracePoint>> containerIdToDifferentialUpdateTracePoints = new HashMap<>(); // 変数差分更新箇所を記憶
-	public static final String RETURN_VARIABLE_NAME = "return";
-
+	public static final String VARIABLE_TYPE_KEY = "variableType";
+	
 	public static Variables getInstance() {
 		return theInstance;
 	}
 
 	public List<MyTreeNode> getVariablesTreeNodesList() {
-		rootTreeNodes.clear();
-		if (roots.isEmpty()) {
-			return rootTreeNodes;
-		}
-		for (int i = 0; i < roots.size(); i++) {
-			Variable rootVariableData = roots.get(i);
-			createVariablesTreeNodeList(null, rootTreeNodes, i, rootVariableData);
-		}
 		return rootTreeNodes;
 	}
 
@@ -68,48 +60,14 @@ public class Variables {
 
 	private void updateAllObjectData(TracePoint from, TracePoint to, boolean isReturned) {
 		resetData();
-		if (from != null) {
-			Variable returnVariable = updateReturnValue(from, to, isReturned);
-			roots.add(0, returnVariable);
-		}
 		MethodExecution me = to.getMethodExecution();
 		updateRootThisState(me, to, isReturned);
-		updateArgsState(me, to, isReturned);
-	}
-	
-	private Variable updateReturnValue(TracePoint from, TracePoint to, boolean isReturned) {
-		Statement statement = from.getStatement();
-		ObjectReference ref = null;
-		MethodExecution me = null;
-		if (statement instanceof MethodInvocation) {
-			MethodInvocation mi = (MethodInvocation)statement;
-			me = mi.getCalledMethodExecution();
-			ref = mi.getCalledMethodExecution().getReturnValue();
-		} else if (isReturned) {
-			me = from.getMethodExecution();
-			ref = me.getReturnValue();
+		updateArgsState(me, to, isReturned);		
+		for (int i = 0; i < roots.size(); i++) {
+			Variable rootVariableData = roots.get(i);
+			createVariablesTreeNodeList(null, rootTreeNodes, i, rootVariableData);
 		}
-		if (ref != null) {
-			String returnValueClassName = ref.getActualType();
-			if (returnValueClassName.equals("void")) return null;
-			String returnValueId = ref.getId();
-			String thisObjId = me.getThisObjId();
-			String thisClassName = me.getThisClassName();
-			Variable variable = new Variable(RETURN_VARIABLE_NAME, thisClassName, thisObjId, returnValueClassName, returnValueId, from, isReturned);
-			variable.createNextHierarchyState();
-//			if (roots.size() > 0) {
-//				Variable old = roots.get(0);
-//				if (old.getVariableName().equals(RETURN_VARIABLE_NAME)) {
-//					roots.set(0, variable);
-//				} else {
-//					roots.add(0, variable);
-//				}
-//			} else {
-//				roots.add(0, variable);
-//			}
-			return variable;
-		}
-		return null;
+		createSpecialVariables(from, to, isReturned);	
 	}
 	
 	private void updateRootThisState(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
@@ -133,7 +91,7 @@ public class Variables {
 				ObjectReference arg = args.get(i);
 				String argId = arg.getId();
 				String argType = arg.getActualType();
-				Variable argData = new Variable(argName, null, null, argType, argId, tp, isReturned);
+				Variable argData = new Variable(argName, null, null, argType, argId, tp, isReturned, VariableType.PARAMETER);
 				argData.createNextHierarchyState();
 				roots.add(argData);
 			}
@@ -188,75 +146,20 @@ public class Variables {
 		}
 		tracePoints.add(tp.duplicate());
 	}
+		
+	public void updateForDifferential(TracePoint from, TracePoint to, boolean isReturned) {
+		updateForDifferential();
+		resetSpecialValues();
+		createSpecialVariables(from, to, isReturned);
+	}
 	
-	public void updateForDifferential() {
+	private void updateForDifferential() {
 		for (Variable variable : roots) {
 			updateForDifferential(variable);
 		}
 		containerIdToDifferentialUpdateTracePoints.clear();
 	}
-	
-//	public void updateForDifferentialAndReturnValue(TracePoint from, TracePoint to, boolean isReturned) {
-//		updateForDifferential();
-//		updateReturnValue(from, to, isReturned);
-//		Variable variable = roots.get(0);
-//		if (variable.getVariableName().equals(RETURN_VARIABLE_NAME)) {
-//			MyTreeNode node = new MyTreeNode(variable);
-//			Object top = rootTreeNodes.get(0).getValue();
-//			if (top instanceof Variable && ((Variable)top).getVariableName().equals(RETURN_VARIABLE_NAME)) {
-//				rootTreeNodes.set(0, node);
-//			} else {
-//				rootTreeNodes.add(0, node);
-//			}
-//			List<MyTreeNode> childList = new ArrayList<>();
-//			node.setChildList(childList);
-//			for (int i = 0; i < variable.getChildren().size(); i++) {
-//				Variable childVariable = variable.getChildren().get(i);
-//				createVariablesTreeNodeList(node, childList, i, childVariable);	
-//			}
-//		}
-//	}
-	
-	public void updateForDifferentialAndReturnValue(TracePoint from, TracePoint to, boolean isReturned) {
-		updateForDifferential();
-		Variable newReturnValue = updateReturnValue(from, to, isReturned);
-		if (newReturnValue != null) {
-			int fromLineNo = from.getStatement().getLineNo();
-			int toLineNo = to.getStatement().getLineNo();
-			MethodExecution fromME = from.getMethodExecution();
-			MethodExecution toME = to.getMethodExecution();
-//			boolean isStepToNewLine = (fromLineNo != toLineNo) || (!(fromME.equals(toME)));
-			boolean isStepToNewLine = (!(fromME.equals(toME)));
-			setNewReturnVariableOnRoots(newReturnValue, isStepToNewLine);
-		}
-	}
 
-	private void setNewReturnVariableOnRoots(Variable newVariable, boolean isStepToNewLine) {
-		MyTreeNode newVariableNode = new MyTreeNode(newVariable);		
-		if (roots.size() > 0) {
-			Variable old = roots.get(0);
-			if (old.getVariableName().equals(RETURN_VARIABLE_NAME)) {
-				if (isStepToNewLine) {
-					for (int i = roots.size() - 1; i >= 0; i--) {
-						Variable root = roots.get(i);
-						if ((root.getVariableName().equals(RETURN_VARIABLE_NAME))) {
-							roots.remove(i);
-							rootTreeNodes.remove(i);
-						}
-					}
-				}
-			}
-		}
-		roots.add(0, newVariable);
-		rootTreeNodes.add(0, newVariableNode);
-		List<MyTreeNode> childList = new ArrayList<>();
-		newVariableNode.setChildList(childList);
-		for (int i = 0; i < newVariable.getChildren().size(); i++) {
-			Variable childVariable = newVariable.getChildren().get(i);
-			createVariablesTreeNodeList(newVariableNode, childList, i, childVariable);	
-		}
-	}
-	
 	private void updateForDifferential(Variable variable) {
 		Set<String> containerIdList = containerIdToDifferentialUpdateTracePoints.keySet();
 		String containerId = variable.getContainerId();
@@ -294,10 +197,102 @@ public class Variables {
 		}
 	}
 	
+	private void createSpecialVariables(TracePoint from, TracePoint to, boolean isReturned) {
+		List<Variable> list = new ArrayList<>();
+		if (from != null) {
+			// 実行直後のuse要素
+			Statement fromStatement = from.getStatement();
+			if (fromStatement instanceof FieldAccess) {
+				FieldAccess fa = (FieldAccess)fromStatement;
+				String containerClassName = fa.getContainerClassName();
+				String containerObjId = fa.getContainerObjId();
+				String valueClassName = fa.getValueClassName();
+				String valueObjId = fa.getValueObjId();
+				Variable container = new Variable(Variable.CONTAINER_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_CONTAINER);
+				Variable value = new Variable(Variable.VALUE_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_VALUE);
+				list.add(value);
+				list.add(container);
+			} else if (fromStatement instanceof MethodInvocation) {
+				MethodInvocation mi = (MethodInvocation)fromStatement;
+				MethodExecution calledME = mi.getCalledMethodExecution();
+				ObjectReference returnValue = calledME.getReturnValue();
+				if (returnValue != null) {
+					String containerClassName = calledME.getThisClassName();
+					String containerObjId = calledME.getThisObjId();
+					String valueClassName = returnValue.getActualType();
+					String valueObjId = returnValue.getId();
+					Variable receiver = new Variable(Variable.RECEIVER_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_RECEIVER);
+					Variable returned = new Variable(Variable.RETURN_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_RETURN);
+					list.add(returned);
+					list.add(receiver);
+				}
+			}			
+		}
+
+		if (to != null) {
+			// 実行直前のdef要素
+			Statement toStatement = to.getStatement();
+			if (toStatement instanceof FieldUpdate) {
+				FieldUpdate fu = (FieldUpdate)toStatement;
+				String containerClassName = fu.getContainerClassName();
+				String containerObjId = fu.getContainerObjId();
+				String valueClassName = fu.getValueClassName();
+				String valueObjId = fu.getValueObjId();
+				Variable container = new Variable(Variable.CONTAINER_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_CONTAINER);
+				Variable value = new Variable(Variable.VALUE_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_VALUE);
+				list.add(value);
+				list.add(container);
+			} else if (toStatement instanceof MethodInvocation) {
+				MethodInvocation mi = (MethodInvocation)toStatement;
+				MethodExecution calledME = mi.getCalledMethodExecution();
+				List<ObjectReference> args = calledME.getArguments();
+				if (args.size() == 1) {
+					ObjectReference argObj = args.get(0);
+					String containerClassName = calledME.getThisClassName();
+					String containerObjId = calledME.getThisObjId();
+					String valueClassName = argObj.getActualType();
+					String valueObjId = argObj.getId();
+					Variable receiver = new Variable(Variable.RECEIVER_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_RECEIVER);
+					Variable arg = new Variable(Variable.ARG_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_ARG);
+					list.add(arg);
+					list.add(receiver);
+				}
+			} 			
+		}
+
+		for (Variable variable : list) {
+			variable.createNextHierarchyState();
+			roots.add(0, variable);
+			MyTreeNode variableNode = new MyTreeNode(variable);
+			rootTreeNodes.add(0, variableNode);
+			List<MyTreeNode> childList = new ArrayList<>();
+			variableNode.setChildList(childList);
+			for (int i = 0; i < variable.getChildren().size(); i++) {
+				Variable childVariable = variable.getChildren().get(i);
+				createVariablesTreeNodeList(variableNode, childList, i, childVariable);	
+			}
+		}
+	}
+	
 	public void resetData() {
 		roots.clear();
 		rootTreeNodes.clear();
 		containerIdToDifferentialUpdateTracePoints.clear();
+	}
+	
+	private void resetSpecialValues() {
+		for (int i = roots.size() - 1; i >=0; i--) {
+			Variable root = roots.get(i);
+			String variableName = root.getVariableName();
+			if (variableName.equals(Variable.CONTAINER_VARIABLE_NAME)
+				|| variableName.equals(Variable.VALUE_VARIABLE_NAME)
+				|| variableName.equals(Variable.RECEIVER_VARIABLE_NAME)
+				|| variableName.equals(Variable.ARG_VARIABLE_NAME)
+				|| variableName.equals(Variable.RETURN_VARIABLE_NAME)) {
+				roots.remove(i);
+				rootTreeNodes.remove(i);
+			}
+		}
 	}
 	
 	private MyTreeNode getTreeNodeFor(Variable variable, List<MyTreeNode> nodes) {

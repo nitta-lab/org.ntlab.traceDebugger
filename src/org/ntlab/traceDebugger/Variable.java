@@ -20,6 +20,7 @@ import org.ntlab.traceDebugger.analyzerProvider.VariableUpdatePointFinder;
 
 public class Variable {
 	private String variableName;
+	private VariableType variableType;
 	private String fullyQualifiedVariableName;
 	private String valueClassName;
 	private String valueId;
@@ -34,24 +35,47 @@ public class Variable {
 	private boolean alreadyCreatedChildHierarchy = false;
 	private boolean alreadyCreatedGrandChildHierarchy = false;
 	private Map<String, Object> additionalAttributes = new HashMap<>();
+	public static final String RETURN_VARIABLE_NAME = "return";
+	public static final String ARG_VARIABLE_NAME = "arg";
+	public static final String RECEIVER_VARIABLE_NAME = "receiver";
+	public static final String VALUE_VARIABLE_NAME = "value";
+	public static final String CONTAINER_VARIABLE_NAME = "container";
+
+	public enum VariableType {
+		USE_VALUE, USE_CONTAINER, USE_RECEIVER, USE_RETURN,
+		DEF_VALUE, DEF_CONTAINER, DEF_RECEIVER, DEF_ARG, 
+		PARAMETER;
+		public boolean isContainerSide() {
+			return this.equals(USE_CONTAINER) || this.equals(DEF_CONTAINER) 
+					|| this.equals(USE_RECEIVER) || this.equals(DEF_RECEIVER);
+		}
+		public boolean isDef() {
+			return this.equals(DEF_CONTAINER) || this.equals(DEF_VALUE)
+					|| this.equals(DEF_RECEIVER) || this.equals(DEF_ARG);
+		}
+		public boolean isUse() {
+			return this.equals(USE_CONTAINER) || this.equals(USE_VALUE)
+					|| this.equals(USE_RECEIVER) || this.equals(USE_RETURN);
+		}
+	}
 	
 	public Variable(String variableName, String containerClassName, String containerId,
 			String valueClassName, String valueId, TracePoint before, boolean isReturned) {
-		this(variableName, containerClassName, containerId, valueClassName, valueId, null, before, isReturned);
+		this(variableName, containerClassName, containerId, valueClassName, valueId, before, isReturned, VariableType.USE_VALUE);
 	}
 	
 	public Variable(String variableName, String containerClassName, String containerId,
-			String valueClassName, String valueId, TracePoint lastUpdatePoint, TracePoint before, boolean isReturned) {
-		init(variableName, variableName, containerClassName, containerId, valueClassName, valueId, lastUpdatePoint, before, isReturned);
+			String valueClassName, String valueId, TracePoint before, boolean isReturned, VariableType variableType) {
+		init(variableName, variableName, containerClassName, containerId, valueClassName, valueId, null, before, isReturned, variableType);
 	}
 	
 	public Variable(String variableName, String fullyQualifiedVariableName, String containerClassName, String containerId,
-			String valueClassName, String valueId, TracePoint lastUpdatePoint, TracePoint before, boolean isReturned) {
-		init(variableName, fullyQualifiedVariableName, containerClassName, containerId, valueClassName, valueId, lastUpdatePoint, before, isReturned);
+			String valueClassName, String valueId, TracePoint lastUpdatePoint, TracePoint before, boolean isReturned, VariableType variableType) {
+		init(variableName, fullyQualifiedVariableName, containerClassName, containerId, valueClassName, valueId, lastUpdatePoint, before, isReturned, variableType);
 	}	
 	
 	private void init(String variableName, String fullyQualifiedVariableName, String containerClassName, String containerId,
-			String valueClassName, String valueId, TracePoint lastUpdatePoint, TracePoint before, boolean isReturned) {
+			String valueClassName, String valueId, TracePoint lastUpdatePoint, TracePoint before, boolean isReturned, VariableType variableType) {
 		this.variableName = variableName;
 		this.fullyQualifiedVariableName = fullyQualifiedVariableName;
 		this.containerClassName = containerClassName;
@@ -66,14 +90,19 @@ public class Variable {
 		this.alreadyCreatedGrandChildHierarchy = false;
 		this.children.clear();
 		this.additionalAttributes.clear();
+		this.variableType = variableType;
 	}
 	
 	public void update(String valueClassName, String valueId, TracePoint lastUpdatePoint, boolean isReturned) {
-		init(variableName, fullyQualifiedVariableName, containerClassName, containerId, valueClassName, valueId, lastUpdatePoint, lastUpdatePoint, isReturned);
+		init(variableName, fullyQualifiedVariableName, containerClassName, containerId, valueClassName, valueId, lastUpdatePoint, lastUpdatePoint, isReturned, variableType);
 	}
 	
 	public String getVariableName() {
 		return variableName;
+	}
+	
+	public VariableType getVariableType() {
+		return variableType;
 	}
 	
 	public String getFullyQualifiedVariableName() {
@@ -196,7 +225,12 @@ public class Variable {
 
 	private void getFieldsState() {
 		// フィールドのIDとTypeを取得して表示
-		IType type = JavaElementFinder.findIType(null, valueClassName);
+		IType type = null;
+		if (variableType.isContainerSide()) {
+			type = JavaElementFinder.findIType(null, containerClassName);
+		} else {
+			type = JavaElementFinder.findIType(null, valueClassName);
+		}
 		if (type == null) return;
 		getFieldsState(type);		
 		getFieldStateForSuperClass(type); // 親クラスを遡っていき、それらのクラスで定義されたフィールドの情報も取得していく (ただし処理が増加して非常に重くなる)
@@ -243,10 +277,10 @@ public class Variable {
 					// フィールドのIDとTypeを取得(String)
 					String fieldObjId = (fieldUpdate != null) ? fieldUpdate.getValueObjId()     : "0";
 					String fieldType  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : "---";
-					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, fieldType, fieldObjId, updateTracePoint, before, isReturned);
+					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, fieldType, fieldObjId, updateTracePoint, before, isReturned, VariableType.USE_VALUE);
 					this.addChild(fieldData);
 				} else {
-					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, "?", "???", updateTracePoint, before, isReturned);
+					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, "?", "???", updateTracePoint, before, isReturned, VariableType.USE_VALUE);
 					this.addChild(fieldData);					
 				}
 			}

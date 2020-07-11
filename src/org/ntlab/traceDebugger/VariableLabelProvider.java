@@ -19,9 +19,9 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 			Object value = ((TreeNode)element).getValue();
 			if (value instanceof Variable) {
 				Variable variableData = (Variable)value;
+				String variableName = variableData.getVariableName();
 				switch (columnIndex) {
 				case 0:
-					String variableName = variableData.getVariableName();
 					if (variableName.contains("[")) {
 						return variableName.substring(variableName.lastIndexOf("["));
 					} else if (variableName.contains(".")) {
@@ -29,11 +29,18 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 					}
 					return variableName;
 				case 1:
-					String simpleName = variableData.getValueClassName();
+					String simpleName;
+					String id;
+					if (variableData.getVariableType().isContainerSide()) {
+						simpleName = variableData.getContainerClassName();
+						id = variableData.getContainerId();
+					} else {
+						simpleName = variableData.getValueClassName();
+						id = variableData.getValueId();
+					}
 					simpleName = simpleName.substring(simpleName.lastIndexOf(".") + 1);
-//					return variableData.getClassName() + " (" + "id = " + variableData.getId() + ")";
-					return simpleName + " (" + "id = " + variableData.getValueId() + ")";
-				}				
+					return simpleName + " (" + "id = " + id + ")";
+				}
 			}
 		}
 		return "テスト用テキスト" + columnIndex;

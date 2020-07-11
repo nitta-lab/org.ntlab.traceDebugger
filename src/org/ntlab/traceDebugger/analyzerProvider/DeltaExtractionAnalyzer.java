@@ -44,7 +44,9 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		String srcClassName = variable.getContainerClassName();
 		String dstId = variable.getValueId();
 		String dstClassName = variable.getValueClassName();
-		TracePoint before = variable.getBeforeTracePoint();				
+		TracePoint before = variable.getBeforeTracePoint();
+		before = before.duplicate();
+		before.stepNext();
 		Reference reference = new Reference(srcId, dstId, srcClassName, dstClassName);
 		reference.setCollection(srcClassName.startsWith("java.util.")); // trueにするとコレクション以外抽出できなくなる
 		

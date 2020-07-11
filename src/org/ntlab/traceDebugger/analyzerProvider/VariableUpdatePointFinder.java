@@ -9,6 +9,8 @@ import java.util.Map;
 
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.ObjectReference;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ThreadInstance;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
@@ -18,6 +20,7 @@ public class VariableUpdatePointFinder {
 	private static VariableUpdatePointFinder theInstance = new VariableUpdatePointFinder();
 	private Trace trace;
 	private Map<String, Map<String, List<TracePoint>>> updatePoints = new HashMap<>();
+	private Map<String, Map<String, List<TracePoint>>> definitionInvocationPoints = new HashMap<>();
 
 	public void setTrace(Trace trace) {
 		this.trace = trace;
@@ -29,13 +32,16 @@ public class VariableUpdatePointFinder {
 	}
 
 	private void init() {
-		registerVariableUpdatePoints();
+		registerUpdatePoints();
 		System.out.println(updatePoints);
-		sort();
+		System.out.println(definitionInvocationPoints);
+		sort(updatePoints);
+		sort(definitionInvocationPoints);
 		System.out.println(updatePoints);
+		System.out.println(definitionInvocationPoints);
 	}
 
-	private void registerVariableUpdatePoints() {
+	private void registerUpdatePoints() {
 		for (Map.Entry<String, ThreadInstance> entry : trace.getAllThreads().entrySet()) {
 			ThreadInstance thread = entry.getValue();
 			for (MethodExecution me : thread.getRoot()) {
@@ -43,28 +49,50 @@ public class VariableUpdatePointFinder {
 				while (start.stepFull()) {
 					Statement statement = start.getStatement();
 					if (statement instanceof FieldUpdate) {
-						FieldUpdate fu = (FieldUpdate)statement;
-						String objectId = fu.getContainerObjId();
-						String fieldName = fu.getFieldName();
-						Map<String, List<TracePoint>> innerMap = updatePoints.get(objectId);
-						if (innerMap == null) {
-							innerMap = new HashMap<>();
-							updatePoints.put(objectId, innerMap);
-						}
-						List<TracePoint> tracePoints = innerMap.get(fieldName);
-						if (tracePoints == null) {
-							tracePoints = new ArrayList<>();
-							innerMap.put(fieldName, tracePoints);
-						}
-						tracePoints.add(start.duplicate());
+						registerFieldUpdatePoints(start, (FieldUpdate)statement);
+					} else if (statement instanceof MethodInvocation) {
+						registerdefinitionInvocationPoints(start, (MethodInvocation)statement);
 					}
 				}
 			}
 		}		
 	}
 	
-	private void sort() {
-		for (Map<String, List<TracePoint>> innerMap : updatePoints.values()) {
+	private void registerFieldUpdatePoints(TracePoint tp, FieldUpdate fu) {
+		String objectId = fu.getContainerObjId();
+		String fieldName = fu.getFieldName();
+		register(updatePoints, objectId, fieldName, tp);
+	}
+
+	private void registerdefinitionInvocationPoints(TracePoint tp, MethodInvocation mi) {
+		MethodExecution calledME = mi.getCalledMethodExecution();
+		String methodName = calledME.getSignature();
+		List<ObjectReference> args = calledME.getArguments();
+		if (methodName.contains(".add(") || methodName.contains(".addElement(")) {
+			if (args.size() == 1) {
+				String receiverId = calledME.getThisObjId();
+				String argId = args.get(0).getId();
+				register(definitionInvocationPoints, receiverId, argId, tp);
+			}
+		}
+	}
+	
+	private void register(Map<String, Map<String, List<TracePoint>>> map, String key1, String key2, TracePoint tp) {
+		Map<String, List<TracePoint>> innerMap = map.get(key1);
+		if (innerMap == null) {
+			innerMap = new HashMap<>();
+			map.put(key1, innerMap);
+		}
+		List<TracePoint> tracePoints = innerMap.get(key2);
+		if (tracePoints == null) {
+			tracePoints = new ArrayList<>();
+			innerMap.put(key2, tracePoints);
+		}
+		tracePoints.add(tp.duplicate());
+	}
+
+	private void sort(Map<String, Map<String, List<TracePoint>>> map) {
+		for (Map<String, List<TracePoint>> innerMap : map.values()) {
 			for (List<TracePoint> tracePoints : innerMap.values()) {
 				Collections.sort(tracePoints, new Comparator<TracePoint>() {
 					@Override
@@ -77,11 +105,19 @@ public class VariableUpdatePointFinder {
 			}
 		}		
 	}
-	
+
 	public TracePoint getPoint(String objectId, String fieldName, TracePoint before) {
-		Map<String, List<TracePoint>> innerMap = updatePoints.get(objectId);
+		return getPoint(updatePoints, objectId, fieldName, before);
+	}
+	
+	public TracePoint getDefinitionInvocationPoint(String receiverId, String argId, TracePoint before) {
+		return getPoint(definitionInvocationPoints, receiverId, argId, before);
+	}
+	
+	private TracePoint getPoint(Map<String, Map<String, List<TracePoint>>> map, String key1, String key2, TracePoint before) {
+		Map<String, List<TracePoint>> innerMap = map.get(key1);
 		if (innerMap == null) return null;
-		List<TracePoint> tracePoints = innerMap.get(fieldName);
+		List<TracePoint> tracePoints = innerMap.get(key2);
 		if (tracePoints == null) return null;
 		long beforeTime = before.getStatement().getTimeStamp();
 		TracePoint tmp = null;
@@ -90,6 +126,6 @@ public class VariableUpdatePointFinder {
 			if (time >= beforeTime) return tmp;
 			tmp = tp;
 		}
-		return tmp;
+		return tmp;		
 	}
 }
