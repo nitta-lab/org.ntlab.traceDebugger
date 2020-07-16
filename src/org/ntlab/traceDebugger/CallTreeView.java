@@ -46,23 +46,28 @@ public class CallTreeView extends ViewPart {
 				if (!(element instanceof TreeNode)) return;
 				Object value = ((TreeNode)element).getValue();
 				if (!(value instanceof CallTreeModel)) return;
-
 				CallTreeModel callTreeModel = (CallTreeModel)value;
 				MethodExecution methodExecution = callTreeModel.getMethodExecution();				
-				highlight(methodExecution);
 				TracePoint tp = methodExecution.getEntryPoint();
-				DebuggingController controller = DebuggingController.getInstance();
-				controller.jumpToTheTracePoint(tp, false);
-				CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
-				VariableView variableView = ((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID));
-				AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
-				if (analyzer instanceof DeltaExtractionAnalyzer) {
-					DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
-					DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
-					IMarker coodinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
-					MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coodinatorMarker);
-					if (coordinatorME != null) callStackView.highlight((MethodExecution)coordinatorME);						
-					variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
+
+				if ((DebuggingController.getInstance().isRunning())) {
+					highlight(methodExecution);
+					DebuggingController controller = DebuggingController.getInstance();
+					controller.jumpToTheTracePoint(tp, false);
+					CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
+					VariableView variableView = ((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID));
+					AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
+					if (analyzer instanceof DeltaExtractionAnalyzer) {
+						DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
+						DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
+						IMarker coodinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
+						MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coodinatorMarker);
+						if (coordinatorME != null) callStackView.highlight((MethodExecution)coordinatorME);						
+						variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
+					}					
+				} else {
+					int lineNo = tp.getStatement().getLineNo();
+					JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, lineNo);
 				}
 			}
 		});

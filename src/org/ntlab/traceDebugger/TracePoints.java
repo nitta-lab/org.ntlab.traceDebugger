@@ -8,19 +8,23 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 public class TracePoints {
 	List<TracePoint> tracePoints = new ArrayList<>();
 	
-	public List<TracePoint> getTracePoints() {
+	public List<TracePoint> get() {
 		return tracePoints;
 	}
 	
-	public TracePoint[] getTracePointsArray() {
+	public TracePoint[] getToArray() {
 		return tracePoints.toArray(new TracePoint[tracePoints.size()]);
 	}
 	
-	public void addTracePoints(TracePoint tp) {
+	public void add(TracePoint tp) {
 		tracePoints.add(tp);
 	}
 	
-	public void removeTracePoints(TracePoint tp) {
+	public void remove(TracePoint tp) {
 		tracePoints.remove(tp);
+	}
+	
+	public void clear() {
+		tracePoints.clear();
 	}
 }

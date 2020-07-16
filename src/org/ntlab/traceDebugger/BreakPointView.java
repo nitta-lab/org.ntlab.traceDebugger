@@ -1,8 +1,5 @@
 package org.ntlab.traceDebugger;
 
-import org.eclipse.core.resources.IMarker;
-import org.eclipse.debug.core.DebugPlugin;
-import org.eclipse.debug.core.model.IDebugElement;
 import org.eclipse.debug.internal.ui.IInternalDebugUIConstants;
 import org.eclipse.debug.ui.DebugUITools;
 import org.eclipse.debug.ui.IDebugUIConstants;
@@ -152,6 +149,7 @@ public class BreakPointView extends ViewPart {
 			@Override
 			public void run() {
 				debuggingController.debugAction();
+				updateImages(true);
 			}
 		};
 		debugAction.setText("Debug");
@@ -163,11 +161,12 @@ public class BreakPointView extends ViewPart {
 			@Override
 			public void run() {
 				debuggingController.terminateAction();
+				updateImages(false);
 			}
 		};
 		terminateAction.setText("Terminate");
 		terminateAction.setToolTipText("Terminate");
-		ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IDebugUIConstants.IMG_OBJS_LAUNCH_RUN_TERMINATED);
+		ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_TERMINATE);
 		terminateAction.setImageDescriptor(terminateImage);
 
 		stepIntoAction = new Action() {
@@ -309,8 +308,34 @@ public class BreakPointView extends ViewPart {
 		getSite().registerContextMenu(menuMgr, viewer);
 	}
 	
-	public void update(TraceBreakPoints traceBreakPoints) {
+	public void updateTraceBreakPoints(TraceBreakPoints traceBreakPoints) {
 		viewer.setInput(traceBreakPoints.getAllTraceBreakPoints());
 		viewer.refresh();
+	}
+	
+	public void updateImages(boolean isRunning) {
+		if (isRunning) {
+			ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_TERMINATE);
+			terminateAction.setImageDescriptor(terminateImage);
+			ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_STEP_INTO);
+			stepIntoAction.setImageDescriptor(stepIntoImage);
+			ImageDescriptor stepOverImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_STEP_OVER);
+			stepOverAction.setImageDescriptor(stepOverImage);
+			ImageDescriptor stepReturnImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_STEP_RETURN);
+			stepReturnAction.setImageDescriptor(stepReturnImage);
+			ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_RESUME);
+			resumeAction.setImageDescriptor(image);
+		} else {
+			ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_TERMINATE);
+			terminateAction.setImageDescriptor(terminateImage);
+			ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_INTO);
+			stepIntoAction.setImageDescriptor(stepIntoImage);
+			ImageDescriptor stepOverImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_OVER);
+			stepOverAction.setImageDescriptor(stepOverImage);
+			ImageDescriptor stepReturnImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_RETURN);
+			stepReturnAction.setImageDescriptor(stepReturnImage);
+			ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_RESUME);
+			resumeAction.setImageDescriptor(image);
+		}
 	}
 }

@@ -2,6 +2,7 @@ package org.ntlab.traceDebugger;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.core.filebuffers.FileBuffers;
 import org.eclipse.core.filebuffers.ITextFileBuffer;
@@ -19,6 +20,7 @@ import org.eclipse.jface.text.IRegion;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.ui.IViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.BlockEnter;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
@@ -36,6 +38,7 @@ public class DebuggingController {
 	private TraceBreakPoint selectedTraceBreakPoint;
 	private TraceBreakPoints traceBreakPoints;
 	private IMarker currentLineMarker;
+	private boolean isRunning = false;
 	public static final String CURRENT_MARKER_ID = "org.ntlab.traceDebugger.currentMarker";
 	
 	private DebuggingController() {
@@ -58,7 +61,15 @@ public class DebuggingController {
 		return debuggingTp.duplicate();
 	}
 	
+	public boolean isRunning() {
+		return isRunning;
+	}
+	
 	public boolean fileOpenAction(Shell shell) {
+		if (isRunning) {
+			MessageDialog.openInformation(null, "Running", "This debugger is running on the trace.");
+			return false;
+		}
 		FileDialog fileDialog = new FileDialog(shell, SWT.OPEN);
 		fileDialog.setText("Open Trace File");
 		fileDialog.setFilterExtensions(new String[]{"*.*"});
@@ -67,11 +78,18 @@ public class DebuggingController {
 		TraceJSON trace = new TraceJSON(path);
 		TraceDebuggerPlugin.setAnalyzer(new DeltaExtractionAnalyzer(trace));
 		VariableUpdatePointFinder.getInstance().setTrace(trace);
-//		traceBreakPoints.clear();
 		traceBreakPoints = new TraceBreakPoints(trace);
 		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
 		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
+		((TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID)).reset();
+		if (TraceDebuggerPlugin.getAnalyzer() instanceof DeltaExtractionAnalyzer) {
+			((CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID)).reset();
+//			Set<IViewPart> views = TraceDebuggerPlugin.getViews(DeltaMarkerView.ID);
+//			for (IViewPart view : views) {
+//				((DeltaMarkerView)view).dispose();
+//			}
+		}
 		return true;
 	}
 	
@@ -102,21 +120,21 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Error", "This trace point does not exist in the trace.");
 			return false;
 		}
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
 		return true;
 	}
 	
 	public boolean removeTraceBreakPointAction() {
 		if (selectedTraceBreakPoint == null) return false;
 		traceBreakPoints.removeTraceBreakPoint(selectedTraceBreakPoint);
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
 		return true;
 	}
 	
 	public boolean changeAvailableAction() {
 		if (selectedTraceBreakPoint == null) return false;
 		selectedTraceBreakPoint.changeAvailable();
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).update(traceBreakPoints);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
 		return true;
 	}
 	
@@ -130,6 +148,7 @@ public class DebuggingController {
 		debuggingTp = traceBreakPoints.getFirstTracePoint();
 		if (debuggingTp == null) return false;
 		refresh(null, debuggingTp, false);
+		isRunning = true;
 		return true;
 	}
 
@@ -144,9 +163,12 @@ public class DebuggingController {
 		}
 		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
 		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImages(false);
+		isRunning = false;
 	}
 
 	public boolean stepIntoAction() {
+		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
@@ -164,6 +186,7 @@ public class DebuggingController {
 	}
 	
 	public boolean stepOverAction() {
+		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
@@ -204,6 +227,7 @@ public class DebuggingController {
 	}
 	
 	public boolean stepReturnAction() {
+		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
@@ -218,6 +242,7 @@ public class DebuggingController {
 	}
 	
 	public boolean stepNextAction() {
+		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
@@ -252,6 +277,7 @@ public class DebuggingController {
 	}
 	
 	public boolean resumeAction() {
+		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
 		long currentTime = debuggingTp.getStatement().getTimeStamp();
 		TracePoint previousTp = debuggingTp;
@@ -266,6 +292,7 @@ public class DebuggingController {
 	}
 	
 	public boolean stepBackIntoAction() {
+		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
@@ -280,6 +307,7 @@ public class DebuggingController {
 	}
 	
 	public boolean stepBackOverAction() {
+		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
@@ -298,6 +326,7 @@ public class DebuggingController {
 	}
 	
 	public boolean stepBackReturnAction() {
+		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
@@ -312,6 +341,7 @@ public class DebuggingController {
 	}
 	
 	public boolean backResumeAction() {
+		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
 		long currentTime = debuggingTp.getStatement().getTimeStamp();
 		TracePoint previousTp = debuggingTp;
@@ -330,6 +360,7 @@ public class DebuggingController {
 	 * @return
 	 */
 	public boolean jumpToTheTracePoint(TracePoint tp, boolean isReturned) {
+		if (!isRunning) return false;
 		if (tp == null) return false;
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = tp.duplicate();

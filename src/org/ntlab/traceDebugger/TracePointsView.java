@@ -86,7 +86,9 @@ public class TracePointsView extends ViewPart {
 				Object element = sel.getFirstElement();
 				if (element instanceof TracePoint) {
 					selectedTp = (TracePoint)element;
-					jumpToTheTracePoint(selectedTp);
+					if (DebuggingController.getInstance().isRunning()) {
+						jumpToTheTracePoint(selectedTp);	
+					}
 				}
 			}
 		});
@@ -121,7 +123,7 @@ public class TracePointsView extends ViewPart {
 			@Override
 			public void run() {
 				if (selectedTp != null) {
-					tracePoints.removeTracePoints(selectedTp);
+					tracePoints.remove(selectedTp);
 					update();					
 				}
 			}
@@ -132,7 +134,7 @@ public class TracePointsView extends ViewPart {
 		jumpAction = new Action() {
 			@Override
 			public void run() {
-				if (selectedTp != null) {
+				if (selectedTp != null && DebuggingController.getInstance().isRunning()) {
 					jumpToTheTracePoint(selectedTp);	
 				}
 			}
@@ -172,12 +174,17 @@ public class TracePointsView extends ViewPart {
 	}
 	
 	public void addTracePoint(TracePoint tp) {
-		tracePoints.addTracePoints(tp);
+		tracePoints.add(tp);
+		update();
+	}
+
+	public void reset() {
+		tracePoints.clear();
 		update();
 	}
 	
 	private void update() {
-		viewer.setInput(tracePoints.getTracePointsArray());
+		viewer.setInput(tracePoints.getToArray());
 		viewer.refresh();
 	}
 	

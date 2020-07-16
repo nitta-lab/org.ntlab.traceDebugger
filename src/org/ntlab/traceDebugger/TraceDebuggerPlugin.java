@@ -1,7 +1,9 @@
 package org.ntlab.traceDebugger;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchPage;
@@ -22,6 +24,8 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 	private static AbstractAnalyzer analyzer;
 	
 	private static int uniqueIdForViews = 0;
+	
+	private static Map<String, Set<IViewPart>> viewIdToAllViews = new HashMap<>();
 	
 	private static Map<String, IViewPart> viewIdToActiveView = new HashMap<>();
 	
@@ -69,12 +73,30 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 		return viewIdToActiveView.get(viewId);
 	}
 	
+	public static Map<String, Set<IViewPart>> getAllViews() {
+		return viewIdToAllViews;
+	}
+	
+	public static Set<IViewPart> getViews(String viewId) {
+		return viewIdToAllViews.get(viewId);
+	}
+	
 	public static void setAnalyzer(AbstractAnalyzer analyzer) {
 		TraceDebuggerPlugin.analyzer = analyzer;
 	}
 	
 	public static void setActiveView(String viewId, IViewPart activeView) {
 		viewIdToActiveView.put(viewId, activeView);
+		addView(viewId, activeView);
+	}
+	
+	private static void addView(String viewId, IViewPart view) {
+		Set<IViewPart> views = viewIdToAllViews.get(viewId);
+		if (views == null) {
+			views = new HashSet<IViewPart>();
+			viewIdToAllViews.put(viewId, views);
+		}
+		views.add(view);
 	}
 
 	public static IViewPart createNewView(String viewId, int mode) {
