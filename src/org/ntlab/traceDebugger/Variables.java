@@ -118,7 +118,10 @@ public class Variables {
 	
 	private void addAdditionalAttributes(Variable variable, final Set<String> idSet, final Map<String, Object> additionalAttributes) {
 		if (variable == null) return;
-		if (idSet.contains(variable.getValueId())) {
+		VariableType variableType = variable.getVariableType();
+		String id = variableType.isContainerSide() ? variable.getContainerId() : variable.getValueId();
+		if (id.equals("0")) return;
+		if (idSet.contains(id)) {
 			for (Map.Entry<String, Object> entry : additionalAttributes.entrySet()) {
 				variable.addAdditionalAttribute(entry.getKey(), entry.getValue());	
 			}			

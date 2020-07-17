@@ -99,7 +99,7 @@ public class DeltaMarkerView extends ViewPart {
 		TraceDebuggerPlugin.setActiveView(ID, this);
 		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 		callTreeView.update(deltaMarkerManager);
-		updateOtherViewsByMarker(selectionMarker);
+//		updateOtherViewsByMarker(selectionMarker);
 		viewer.getControl().setFocus();
 	}
 	

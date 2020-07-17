@@ -406,6 +406,8 @@ public class DebuggingController {
 		callStackView.highlight(coordinatorME);
 		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 		callTreeView.highlight(tp.getMethodExecution());
+		VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);
+		variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
 	}
 
 	public IMarker createCurrentLineMarker(MethodExecution methodExecution, int highlightLineNo) {
