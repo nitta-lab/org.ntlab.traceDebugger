@@ -301,11 +301,19 @@ public class VariableView extends ViewPart {
 	}
 	
 	public void updateVariablesByTracePoint(TracePoint tp, boolean isReturned) {
-		updateVariablesByTracePoint(null, tp, isReturned);
+		updateVariablesByTracePoint(tp, isReturned, null);
+	}
+		
+	public void updateVariablesByTracePoint(TracePoint tp, boolean isReturned, TracePoint before) {
+		updateVariablesByTracePoint(null, tp, isReturned, before);
+	}
+
+	public void updateVariablesByTracePoint(TracePoint from, TracePoint to, boolean isReturned) {
+		updateVariablesByTracePoint(from, to, isReturned, null);
 	}
 	
-	public void updateVariablesByTracePoint(TracePoint from, TracePoint to, boolean isReturned) {
-		variables.updateAllObjectDataByTracePoint(from, to, isReturned);
+	public void updateVariablesByTracePoint(TracePoint from, TracePoint to, boolean isReturned, TracePoint before) {
+		variables.updateAllObjectDataByTracePoint(from, to, isReturned, before);
 		viewer.setInput(variables.getVariablesTreeNodesList());
 	}
 	

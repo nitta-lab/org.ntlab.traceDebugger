@@ -32,7 +32,7 @@ import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class CallStackView extends ViewPart {
 	private TreeViewer viewer;
-	private IAction refreshAction;
+//	private IAction refreshAction;
 	private IAction deltaAction;
 	private CallStackModel selectionCallStackModel;
 	private CallStackModels callStackModels = new CallStackModels();
@@ -69,8 +69,9 @@ public class CallStackView extends ViewPart {
 						CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 						callTreeView.highlight(methodExecution);
 
+						TracePoint debuggingTp = DebuggingController.getInstance().getCurrentTp();
 						VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);
-						variableView.updateVariablesByTracePoint(tp, false);						
+						variableView.updateVariablesByTracePoint(tp, false, debuggingTp);						
 						AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 						if (analyzer instanceof DeltaExtractionAnalyzer) {
 							DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
@@ -103,15 +104,15 @@ public class CallStackView extends ViewPart {
 	}
 	
 	private void createActions() {
-		refreshAction = new Action() {
-			@Override
-			public void run() {
-				refresh();
-			}
-		};
-		refreshAction.setText("refresh");
-		refreshAction.setToolTipText("refresh");
-		refreshAction.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_ELCL_SYNCED));
+//		refreshAction = new Action() {
+//			@Override
+//			public void run() {
+//				refresh();
+//			}
+//		};
+//		refreshAction.setText("refresh");
+//		refreshAction.setToolTipText("refresh");
+//		refreshAction.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_ELCL_SYNCED));
 		
 		deltaAction = new Action() {
 			@Override
@@ -136,12 +137,12 @@ public class CallStackView extends ViewPart {
 	
 	private void createToolBar() {
 		IToolBarManager mgr = getViewSite().getActionBars().getToolBarManager();
-		mgr.add(refreshAction);
+//		mgr.add(refreshAction);
 	}
 	
 	private void createMenuBar() {
 		IMenuManager mgr = getViewSite().getActionBars().getMenuManager();
-		mgr.add(refreshAction);
+//		mgr.add(refreshAction);
 	}
 	
 	private void createPopupMenu() {
@@ -175,6 +176,7 @@ public class CallStackView extends ViewPart {
 	public void updateByTracePoint(TracePoint tp) {
 		callStackModels.updateByTracePoint(tp);
 		refresh();
+		selectionCallStackModel = null;
 	}
 
 	public void refresh() {
@@ -191,6 +193,21 @@ public class CallStackView extends ViewPart {
 	public void reset() {
 		callStackModels.reset();
 		refresh();
+	}
+	
+	public CallStackModel getSelectionCallStackModel() {
+		return selectionCallStackModel;
+	}
+	
+	public boolean isSelectionOnTop() {
+		if (selectionCallStackModel == null) return false;
+		TreeNode[] nodes = callStackModels.getAllCallStacksTree();
+		if (nodes == null || nodes[0] == null) return false;
+		TreeNode[] children = nodes[0].getChildren();
+		Object obj = children[0].getValue();
+		if (!(obj instanceof CallStackModel)) return false;
+		CallStackModel topCallStackModel = (CallStackModel)obj;
+		return topCallStackModel.equals(selectionCallStackModel);
 	}
 	
 	public Map<String, List<CallStackModel>> getCallStackModels() {

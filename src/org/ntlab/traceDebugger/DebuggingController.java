@@ -2,8 +2,6 @@ package org.ntlab.traceDebugger;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-
 import org.eclipse.core.filebuffers.FileBuffers;
 import org.eclipse.core.filebuffers.ITextFileBuffer;
 import org.eclipse.core.filebuffers.ITextFileBufferManager;
@@ -20,7 +18,6 @@ import org.eclipse.jface.text.IRegion;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.ui.IViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.BlockEnter;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
@@ -173,6 +170,10 @@ public class DebuggingController {
 	public boolean stepIntoAction() {
 		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
+		TracePoint callStackTp = getTracePointSelectedOnCallStack();
+		if (callStackTp != null && !(callStackTp.equals(debuggingTp))) {
+			debuggingTp = callStackTp;
+		}
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		debuggingTp.stepFull();
@@ -191,6 +192,10 @@ public class DebuggingController {
 	public boolean stepOverAction() {
 		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
+		TracePoint callStackTp = getTracePointSelectedOnCallStack();
+		if (callStackTp != null && !(callStackTp.equals(debuggingTp))) {
+			debuggingTp = callStackTp;
+		}
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		int currentLineNo = debuggingTp.getStatement().getLineNo();
@@ -232,6 +237,10 @@ public class DebuggingController {
 	public boolean stepReturnAction() {
 		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
+		TracePoint callStackTp = getTracePointSelectedOnCallStack();
+		if (callStackTp != null && !(callStackTp.equals(debuggingTp))) {
+			debuggingTp = callStackTp;
+		}
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		while (debuggingTp.stepOver());
@@ -247,6 +256,10 @@ public class DebuggingController {
 	public boolean stepNextAction() {
 		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
+		TracePoint callStackTp = getTracePointSelectedOnCallStack();
+		if (callStackTp != null && !(callStackTp.equals(debuggingTp))) {
+			debuggingTp = callStackTp;
+		}
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		TracePoint startTp = debuggingTp.duplicate();
@@ -297,6 +310,10 @@ public class DebuggingController {
 	public boolean stepBackIntoAction() {
 		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
+		TracePoint callStackTp = getTracePointSelectedOnCallStack();
+		if (callStackTp != null && !(callStackTp.equals(debuggingTp))) {
+			debuggingTp = callStackTp;
+		}
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		debuggingTp.stepBackFull();
@@ -312,6 +329,10 @@ public class DebuggingController {
 	public boolean stepBackOverAction() {
 		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
+		TracePoint callStackTp = getTracePointSelectedOnCallStack();
+		if (callStackTp != null && !(callStackTp.equals(debuggingTp))) {
+			debuggingTp = callStackTp;
+		}
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		int currentLineNo = debuggingTp.getStatement().getLineNo();
@@ -331,6 +352,10 @@ public class DebuggingController {
 	public boolean stepBackReturnAction() {
 		if (!isRunning) return false;
 		if (debuggingTp == null) return false;
+		TracePoint callStackTp = getTracePointSelectedOnCallStack();
+		if (callStackTp != null && !(callStackTp.equals(debuggingTp))) {
+			debuggingTp = callStackTp;
+		}
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		while (debuggingTp.stepBackOver());
@@ -436,5 +461,20 @@ public class DebuggingController {
 			e.printStackTrace();
 		}
 		return currentLineMarker;
-	}	
+	}
+	
+	private TracePoint getTracePointSelectedOnCallStack() {
+		CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
+		CallStackModel callStackModel = callStackView.getSelectionCallStackModel();
+		if (callStackModel != null) {
+			return callStackModel.getTracePoint();
+		}
+		return null;
+//		if (!(callStackView.isSelectionOnTop())) {
+//			CallStackModel selectionCallStackModel = callStackView.getSelectionCallStackModel();
+//			if (selectionCallStackModel != null) {
+//				debuggingTp = selectionCallStackModel.getTracePoint();
+//			}
+//		}		
+	}
 }

@@ -51,18 +51,18 @@ public class Variables {
 		List<Statement> statements = methodExecution.getStatements();
 		int lastOrder = statements.size() - 1;
 		TracePoint tp  = methodExecution.getTracePoint(lastOrder);
-		updateAllObjectData(null, tp, false);
+		updateAllObjectData(null, tp, false, null);
 	}
 
-	public void updateAllObjectDataByTracePoint(TracePoint from, TracePoint to, boolean isReturned) {
-		updateAllObjectData(from, to, isReturned);
+	public void updateAllObjectDataByTracePoint(TracePoint from, TracePoint to, boolean isReturned, TracePoint before) {
+		updateAllObjectData(from, to, isReturned, before);
 	}
 
-	private void updateAllObjectData(TracePoint from, TracePoint to, boolean isReturned) {
+	private void updateAllObjectData(TracePoint from, TracePoint to, boolean isReturned, TracePoint before) {
 		resetData();
 		MethodExecution me = to.getMethodExecution();
-		updateRootThisState(me, to, isReturned);
-		updateArgsState(me, to, isReturned);		
+		updateRootThisState(me, to, isReturned, before);
+		updateArgsState(me, to, isReturned, before);		
 		for (int i = 0; i < roots.size(); i++) {
 			Variable rootVariableData = roots.get(i);
 			createVariablesTreeNodeList(null, rootTreeNodes, i, rootVariableData);
@@ -70,17 +70,19 @@ public class Variables {
 		createSpecialVariables(from, to, isReturned);	
 	}
 	
-	private void updateRootThisState(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
+	private void updateRootThisState(MethodExecution methodExecution, TracePoint tp, boolean isReturned, TracePoint before) {
 		String thisObjId = methodExecution.getThisObjId();
 		String thisClassName = methodExecution.getThisClassName();
-		Variable variable = new Variable("this", null, null, thisClassName, thisObjId, tp, isReturned);
+		if (before == null) before = tp;
+		Variable variable = new Variable("this", null, null, thisClassName, thisObjId, before, isReturned);
 		roots.add(variable);
 		variable.createNextHierarchyState();
 	}
 
-	private void updateArgsState(MethodExecution methodExecution, TracePoint tp, boolean isReturned) {
+	private void updateArgsState(MethodExecution methodExecution, TracePoint tp, boolean isReturned, TracePoint before) {
 		// methodExecutionが持つargumentsを取得(ArrayList)し、そのargumentsのサイズも取得(int)
 		List<ObjectReference> args = methodExecution.getArguments();
+		if (before == null) before = tp;
 		if (args.size() > 0) {
 			IType type = JavaElementFinder.findIType(methodExecution);
 			String methodSignature = methodExecution.getSignature();
@@ -91,7 +93,7 @@ public class Variables {
 				ObjectReference arg = args.get(i);
 				String argId = arg.getId();
 				String argType = arg.getActualType();
-				Variable argData = new Variable(argName, null, null, argType, argId, tp, isReturned, VariableType.PARAMETER);
+				Variable argData = new Variable(argName, null, null, argType, argId, before, isReturned, VariableType.PARAMETER);
 				argData.createNextHierarchyState();
 				roots.add(argData);
 			}
