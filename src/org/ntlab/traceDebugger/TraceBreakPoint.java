@@ -33,6 +33,7 @@ public class TraceBreakPoint {
 			for (Statement statement : me.getStatements()) {
 				if (statement.getLineNo() == lineNo) {
 					tracePoints.add(me.getTracePoint(order));
+					break;
 				}
 				order++;
 			}

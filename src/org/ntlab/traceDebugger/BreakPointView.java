@@ -88,8 +88,6 @@ public class BreakPointView extends ViewPart {
 					MethodExecution methodExecution = tbp.getMethodExecutions().iterator().next();
 					int highlightLineNo = tbp.getLineNo();
 					JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, highlightLineNo);
-//					IMarker marker = DebuggingController.getInstance().createCurrentLineMarker(methodExecution, highlightLineNo);
-//					JavaEditorOperator.markAndOpenJavaFile(marker);
 				}
 			}
 		});
@@ -149,7 +147,6 @@ public class BreakPointView extends ViewPart {
 			@Override
 			public void run() {
 				debuggingController.debugAction();
-				updateImages(true);
 			}
 		};
 		debugAction.setText("Debug");
@@ -161,7 +158,6 @@ public class BreakPointView extends ViewPart {
 			@Override
 			public void run() {
 				debuggingController.terminateAction();
-				updateImages(false);
 			}
 		};
 		terminateAction.setText("Terminate");

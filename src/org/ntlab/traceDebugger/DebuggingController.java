@@ -144,10 +144,13 @@ public class DebuggingController {
 			return false;
 		}
 		terminateAction();
-		traceBreakPoints.reset();
 		debuggingTp = traceBreakPoints.getFirstTracePoint();
-		if (debuggingTp == null) return false;
+		if (debuggingTp == null) {
+			MessageDialog.openInformation(null, "Error", "An available breakpoint was not found");
+			return false;
+		}
 		refresh(null, debuggingTp, false);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImages(true);
 		isRunning = true;
 		return true;
 	}
@@ -342,9 +345,9 @@ public class DebuggingController {
 	
 	public boolean backResumeAction() {
 		if (!isRunning) return false;
-		if (debuggingTp == null) return false;
-		long currentTime = debuggingTp.getStatement().getTimeStamp();
+		if (debuggingTp == null) return false;		
 		TracePoint previousTp = debuggingTp;
+		long currentTime = debuggingTp.getStatement().getTimeStamp();
 		debuggingTp = traceBreakPoints.getPreviousTracePoint(currentTime);
 		if (debuggingTp == null) {
 			terminateAction();
