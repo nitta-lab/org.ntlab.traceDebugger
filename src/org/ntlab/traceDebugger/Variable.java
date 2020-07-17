@@ -35,6 +35,7 @@ public class Variable {
 	private boolean alreadyCreatedChildHierarchy = false;
 	private boolean alreadyCreatedGrandChildHierarchy = false;
 	private Map<String, Object> additionalAttributes = new HashMap<>();
+	public static final String NULL_VALUE = "null";
 	public static final String RETURN_VARIABLE_NAME = "return";
 	public static final String ARG_VARIABLE_NAME = "arg";
 	public static final String RECEIVER_VARIABLE_NAME = "receiver";
@@ -275,12 +276,12 @@ public class Variable {
 				if (updateTracePoint != null) {
 					FieldUpdate fieldUpdate = (FieldUpdate)updateTracePoint.getStatement();
 					// フィールドのIDとTypeを取得(String)
-					String fieldObjId = (fieldUpdate != null) ? fieldUpdate.getValueObjId()     : "0";
-					String fieldType  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : "---";
+					String fieldObjId = (fieldUpdate != null) ? fieldUpdate.getValueObjId()     : "---";
+					String fieldType  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : NULL_VALUE;
 					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, fieldType, fieldObjId, updateTracePoint, before, isReturned, VariableType.USE_VALUE);
 					this.addChild(fieldData);
 				} else {
-					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, "?", "???", updateTracePoint, before, isReturned, VariableType.USE_VALUE);
+					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, NULL_VALUE, "---", updateTracePoint, before, isReturned, VariableType.USE_VALUE);
 					this.addChild(fieldData);					
 				}
 			}

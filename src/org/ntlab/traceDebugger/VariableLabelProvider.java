@@ -39,7 +39,11 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 						id = variableData.getValueId();
 					}
 					simpleName = simpleName.substring(simpleName.lastIndexOf(".") + 1);
-					return simpleName + " (" + "id = " + id + ")";
+					if (simpleName.equals(Variable.NULL_VALUE)) {
+						return simpleName;
+					} else {
+						return simpleName + " (" + "id = " + id + ")";	
+					}
 				}
 			}
 		}
