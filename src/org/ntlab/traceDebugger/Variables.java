@@ -2,6 +2,7 @@ package org.ntlab.traceDebugger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -160,12 +161,12 @@ public class Variables {
 	
 	private void updateForDifferential() {
 		for (Variable variable : roots) {
-			updateForDifferential(variable);
+			updateForDifferential(variable, new HashSet<String>());
 		}
 		containerIdToDifferentialUpdateTracePoints.clear();
 	}
 
-	private void updateForDifferential(Variable variable) {
+	private void updateForDifferential(Variable variable, Set<String> hasCheckedObjectIdSet) {
 		Set<String> containerIdList = containerIdToDifferentialUpdateTracePoints.keySet();
 		String containerId = variable.getContainerId();
 		if (containerIdList.contains(containerId)) {
@@ -185,8 +186,11 @@ public class Variables {
 				}
 			}
 		}
+		HashSet<String> hasCheckedObjectIdSetOnNext = new HashSet<>(hasCheckedObjectIdSet);
+		hasCheckedObjectIdSetOnNext.add(variable.getContainerId());
 		for (Variable child : variable.getChildren()) {
-			updateForDifferential(child);
+			if (hasCheckedObjectIdSetOnNext.contains(child.getContainerId())) continue;
+			updateForDifferential(child, hasCheckedObjectIdSetOnNext);
 		}
 	}
 	

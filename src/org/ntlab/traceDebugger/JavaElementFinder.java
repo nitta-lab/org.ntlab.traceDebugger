@@ -28,6 +28,12 @@ public class JavaElementFinder {
 		String declaringClassName = methodExecution.getDeclaringClassName();
 		declaringClassName = declaringClassName.replace(".<clinit>", "");
 		ClassInfo info = trace.getClassInfo(declaringClassName);
+		if (info == null) {
+			// 無名クラスの場合はその外のクラス名でClassInfoを取得する (Javaのソースファイルを取得するため)
+			StringBuilder tmp = new StringBuilder();
+			tmp.append(declaringClassName.substring(0, declaringClassName.lastIndexOf(".")));
+			info = trace.getClassInfo(tmp.toString());
+		}
 		if (info == null) return null;
 
 		String tmp = info.getPath();

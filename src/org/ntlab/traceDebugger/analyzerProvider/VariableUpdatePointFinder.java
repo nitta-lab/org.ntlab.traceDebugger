@@ -19,14 +19,15 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 public class VariableUpdatePointFinder {
 	private static VariableUpdatePointFinder theInstance = new VariableUpdatePointFinder();
 	private Trace trace;
-	private Map<String, Map<String, List<TracePoint>>> updatePoints = new HashMap<>();
-	private Map<String, Map<String, List<TracePoint>>> definitionInvocationPoints = new HashMap<>();
+	private Map<String, Map<String, List<TracePoint>>> updatePoints = new HashMap<>(); // コンテナIDとフィールド名をキーにした変数更新ポイント
+	private Map<String, Map<String, List<TracePoint>>> definitionInvocationPoints = new HashMap<>(); // レシーバIDと引数IDをキーにしたコレクションへの追加ポイント
+	private Map<String, TracePoint> gettingIteratorPoints = new HashMap<>(); // イテレータのIDをキーにそれを取得したポイント
 
 	public void setTrace(Trace trace) {
 		this.trace = trace;
 		init();
 	}
-	
+
 	public static VariableUpdatePointFinder getInstance() {
 		return theInstance;
 	}
@@ -49,32 +50,54 @@ public class VariableUpdatePointFinder {
 				while (start.stepFull()) {
 					Statement statement = start.getStatement();
 					if (statement instanceof FieldUpdate) {
-						registerFieldUpdatePoints(start, (FieldUpdate)statement);
+						registerFieldUpdatePoint(start, (FieldUpdate)statement);
 					} else if (statement instanceof MethodInvocation) {
-						registerdefinitionInvocationPoints(start, (MethodInvocation)statement);
+						MethodInvocation mi = (MethodInvocation)statement;
+						MethodExecution calledME = mi.getCalledMethodExecution();
+						String methodName = calledME.getSignature();						
+						if (methodName.contains(".add(") || methodName.contains(".addElement(")) {
+							registerdefinitionInvocationPoint(start, calledME);							
+						} else if (methodName.contains(".iterator(") || methodName.contains("Iterator(")) {
+							registerIteratorPoint(start, calledME);
+						}
 					}
 				}
 			}
 		}		
 	}
 	
-	private void registerFieldUpdatePoints(TracePoint tp, FieldUpdate fu) {
+	private void registerFieldUpdatePoint(TracePoint tp, FieldUpdate fu) {
 		String objectId = fu.getContainerObjId();
 		String fieldName = fu.getFieldName();
 		register(updatePoints, objectId, fieldName, tp);
 	}
 
-	private void registerdefinitionInvocationPoints(TracePoint tp, MethodInvocation mi) {
-		MethodExecution calledME = mi.getCalledMethodExecution();
-		String methodName = calledME.getSignature();
+//	private void registerdefinitionInvocationPoints(TracePoint tp, MethodInvocation mi) {
+//		MethodExecution calledME = mi.getCalledMethodExecution();
+//		String methodName = calledME.getSignature();
+//		List<ObjectReference> args = calledME.getArguments();
+//		if (methodName.contains(".add(") || methodName.contains(".addElement(")) {
+//			if (args.size() == 1) {
+//				String receiverId = calledME.getThisObjId();
+//				String argId = args.get(0).getId();
+//				register(definitionInvocationPoints, receiverId, argId, tp);
+//			}
+//		}
+//	}
+	
+	private void registerdefinitionInvocationPoint(TracePoint tp, MethodExecution calledME) {
 		List<ObjectReference> args = calledME.getArguments();
-		if (methodName.contains(".add(") || methodName.contains(".addElement(")) {
-			if (args.size() == 1) {
-				String receiverId = calledME.getThisObjId();
-				String argId = args.get(0).getId();
-				register(definitionInvocationPoints, receiverId, argId, tp);
-			}
+		if (args.size() == 1) {
+			String receiverId = calledME.getThisObjId();
+			String argId = args.get(0).getId();
+			register(definitionInvocationPoints, receiverId, argId, tp);
 		}
+	}
+	
+	private void registerIteratorPoint(TracePoint tp, MethodExecution calledME) {
+		ObjectReference returnIteratorValue = calledME.getReturnValue();
+		String iteratorId = returnIteratorValue.getId();
+		gettingIteratorPoints.put(iteratorId, tp.duplicate());
 	}
 	
 	private void register(Map<String, Map<String, List<TracePoint>>> map, String key1, String key2, TracePoint tp) {
@@ -114,6 +137,10 @@ public class VariableUpdatePointFinder {
 		return getPoint(definitionInvocationPoints, receiverId, argId, before);
 	}
 	
+	public TracePoint getIteratorPoint(String iteratorId) {
+		return gettingIteratorPoints.get(iteratorId);
+	}
+	
 	private TracePoint getPoint(Map<String, Map<String, List<TracePoint>>> map, String key1, String key2, TracePoint before) {
 		Map<String, List<TracePoint>> innerMap = map.get(key1);
 		if (innerMap == null) return null;
@@ -127,5 +154,5 @@ public class VariableUpdatePointFinder {
 			tmp = tp;
 		}
 		return tmp;		
-	}
+	}	
 }
