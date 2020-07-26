@@ -201,11 +201,15 @@ public class VariableView extends ViewPart {
 				VariableType variableType = selectedVariable.getVariableType();
 				if (variableType.equals(VariableType.USE_VALUE)) {
 					manager.add(jumpAction);
+					jumpAction.setText("Jump to Definition");
+					jumpAction.setToolTipText("Jump to Definition");
 				} else if (variableType.equals(VariableType.USE_RETURN)) {
 					manager.add(jumpAction);
 					if (updateDeltaActionForThisToAnotherTexts(selectedVariable)) {
 						manager.add(deltaActionForThisToAnother);
-					}			
+					}
+					jumpAction.setText("Jump to Addition");
+					jumpAction.setToolTipText("Jump to Addition");
 				} else if (variableType.isDef()) {
 					if (updateDeltaActionForContainerToComponentTexts(selectedVariable)) {
 						manager.add(deltaActionForContainerToComponent);

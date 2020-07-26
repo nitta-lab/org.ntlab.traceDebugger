@@ -10,6 +10,8 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class VariableLabelProvider extends LabelProvider implements ITableLabelProvider, ITableColorProvider {
@@ -17,6 +19,18 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 	public String getColumnText(Object element, int columnIndex) {
 		if (element instanceof TreeNode) {
 			Object value = ((TreeNode)element).getValue();
+			if (value instanceof String) {
+				String name = (String)value;
+				switch (columnIndex) {
+				case 0:
+					return name.substring(0, name.indexOf(":"));
+				case 1:
+					String valueName = name.substring(name.indexOf(":") + 1);
+					valueName = valueName.substring(valueName.lastIndexOf(" ") + 1);
+					boolean isConstructor = name.contains("Constructor");
+					return getReadableName(valueName, isConstructor);
+				}
+			}
 			if (value instanceof Variable) {
 				Variable variableData = (Variable)value;
 				String variableName = variableData.getVariableName();
@@ -84,5 +98,39 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 			}
 		}
 		return null;
+	}
+	
+	private String getReadableName(String name, boolean isConstrutor) {
+		if (!(name.contains("("))) {
+			String[] splits = name.split("\\.");
+			if (splits.length < 2) return name;
+			return splits[splits.length - 2] + "." + splits[splits.length - 1];
+		}
+		StringBuilder sb = new StringBuilder();	
+		String receiverTypeAndMethodName = name.substring(0, name.indexOf("("));
+		String[] receiverTypeAndMethodNameSplits = receiverTypeAndMethodName.split("\\."); 
+		if (receiverTypeAndMethodNameSplits.length < 2) {
+			sb.append(receiverTypeAndMethodName);
+		} else {
+			if (!isConstrutor) {
+				sb.append(receiverTypeAndMethodNameSplits[receiverTypeAndMethodNameSplits.length - 2]);
+				sb.append(".");
+			}
+			sb.append(receiverTypeAndMethodNameSplits[receiverTypeAndMethodNameSplits.length - 1]);
+		}
+		sb.append("(");
+		String argsName = name.substring(name.indexOf("(") + 1, name.lastIndexOf(")"));
+		String delimiter = "";
+		for (String argName : argsName.split(",")) {
+			String[] argNameSplits = argName.split("\\.");
+			if (argNameSplits.length < 1) {
+				sb.append(delimiter + argName);
+			} else {
+				sb.append(delimiter + argNameSplits[argNameSplits.length - 1]);
+			}
+			delimiter = ",";
+		}
+		sb.append(")");
+		return sb.toString();		
 	}
 }

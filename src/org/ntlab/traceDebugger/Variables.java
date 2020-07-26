@@ -207,7 +207,11 @@ public class Variables {
 	}
 	
 	private void createSpecialVariables(TracePoint from, TracePoint to, boolean isReturned) {
-		List<Variable> list = new ArrayList<>();
+//		List<Variable> list = new ArrayList<>();
+		List<Variable> specialVariablesOfUseSide = new ArrayList<>();
+		List<Variable> specialVariablesDefSide = new ArrayList<>();
+		String parentNodeNameOfUseSide = null;
+		String parentNodeNameOfDefSide = null;
 		if (from != null) {
 			// é¿çsíºå„ÇÃuseóvëf
 			Statement fromStatement = from.getStatement();
@@ -219,8 +223,9 @@ public class Variables {
 				String valueObjId = fa.getValueObjId();
 				Variable container = new Variable(Variable.CONTAINER_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_CONTAINER);
 				Variable value = new Variable(Variable.VALUE_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_VALUE);
-				list.add(value);
-				list.add(container);
+				specialVariablesOfUseSide.add(container);
+				specialVariablesOfUseSide.add(value);
+				parentNodeNameOfUseSide = "PreviousFieldAccess:" + fa.getFieldName();
 			} else if (fromStatement instanceof MethodInvocation) {
 				MethodInvocation mi = (MethodInvocation)fromStatement;
 				MethodExecution calledME = mi.getCalledMethodExecution();
@@ -232,8 +237,13 @@ public class Variables {
 					String valueObjId = returnValue.getId();
 					Variable receiver = new Variable(Variable.RECEIVER_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_RECEIVER);
 					Variable returned = new Variable(Variable.RETURN_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_RETURN);
-					list.add(returned);
-					list.add(receiver);
+					specialVariablesOfUseSide.add(receiver);
+					specialVariablesOfUseSide.add(returned);
+					if (calledME.isConstructor()) {
+						parentNodeNameOfUseSide = "ReturnConstructor:" + calledME.getSignature();
+					} else {
+						parentNodeNameOfUseSide = "ReturnMethod:" + calledME.getSignature();	
+					}
 				}
 			}			
 		}
@@ -249,8 +259,9 @@ public class Variables {
 				String valueObjId = fu.getValueObjId();
 				Variable container = new Variable(Variable.CONTAINER_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_CONTAINER);
 				Variable value = new Variable(Variable.VALUE_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_VALUE);
-				list.add(value);
-				list.add(container);
+				specialVariablesDefSide.add(container);
+				specialVariablesDefSide.add(value);
+				parentNodeNameOfDefSide = "NextUpdate:" + fu.getFieldName();
 			} else if (toStatement instanceof MethodInvocation) {
 				MethodInvocation mi = (MethodInvocation)toStatement;
 				MethodExecution calledME = mi.getCalledMethodExecution();
@@ -263,23 +274,60 @@ public class Variables {
 					String valueObjId = argObj.getId();
 					Variable receiver = new Variable(Variable.RECEIVER_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_RECEIVER);
 					Variable arg = new Variable(Variable.ARG_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_ARG);
-					list.add(arg);
-					list.add(receiver);
+					specialVariablesDefSide.add(receiver);
+					specialVariablesDefSide.add(arg);
+					if (calledME.isConstructor()) {
+						parentNodeNameOfDefSide = "NextConstructor:" + calledME.getSignature();
+					} else {
+						parentNodeNameOfDefSide = "NextMethod:" + calledME.getSignature();	
+					}
 				}
-			} 			
+			} 
 		}
-
-		for (Variable variable : list) {
+		if (parentNodeNameOfUseSide != null) {
+			setSpecialVariableNodes(parentNodeNameOfUseSide, specialVariablesOfUseSide);
+		}	
+		if (parentNodeNameOfDefSide != null) {
+			setSpecialVariableNodes(parentNodeNameOfDefSide, specialVariablesDefSide);
+		}
+		
+//		for (Variable variable : list) {
+//			variable.createNextHierarchyState();
+//			roots.add(0, variable);
+//			MyTreeNode variableNode = new MyTreeNode(variable);
+////			rootTreeNodes.add(0, variableNode);
+//			List<MyTreeNode> childList = new ArrayList<>();
+//			variableNode.setChildList(childList);
+//			for (int i = 0; i < variable.getChildren().size(); i++) {
+//				Variable childVariable = variable.getChildren().get(i);
+//				createVariablesTreeNodeList(variableNode, childList, i, childVariable);	
+//			}
+//		}
+	}
+	
+	private void setSpecialVariableNodes(String parentNodeName, List<Variable> specialVariables) {
+		MyTreeNode parentNode = new MyTreeNode(parentNodeName);
+		rootTreeNodes.add(0, parentNode);
+		MyTreeNode[] children = new MyTreeNode[specialVariables.size()];
+		for (int i = 0; i < specialVariables.size(); i++) {
+			Variable variable = specialVariables.get(i);
 			variable.createNextHierarchyState();
 			roots.add(0, variable);
 			MyTreeNode variableNode = new MyTreeNode(variable);
-			rootTreeNodes.add(0, variableNode);
-			List<MyTreeNode> childList = new ArrayList<>();
-			variableNode.setChildList(childList);
-			for (int i = 0; i < variable.getChildren().size(); i++) {
-				Variable childVariable = variable.getChildren().get(i);
-				createVariablesTreeNodeList(variableNode, childList, i, childVariable);	
-			}
+			children[i] = variableNode;
+			variableNode.setParent(parentNode);
+			createChildNodesOfSpecialVariableNode(variableNode);				
+		}
+		parentNode.setChildren(children);		
+	}
+	
+	private void createChildNodesOfSpecialVariableNode(MyTreeNode variableNode) {
+		List<MyTreeNode> childList = new ArrayList<>();
+		variableNode.setChildList(childList);
+		Variable variable = (Variable)variableNode.getValue();
+		for (int i = 0; i < variable.getChildren().size(); i++) {
+			Variable childVariable = variable.getChildren().get(i);
+			createVariablesTreeNodeList(variableNode, childList, i, childVariable);	
 		}
 	}
 	
@@ -290,7 +338,7 @@ public class Variables {
 	}
 	
 	private void resetSpecialValues() {
-		for (int i = roots.size() - 1; i >=0; i--) {
+		for (int i = roots.size() - 1; i >= 0; i--) {
 			Variable root = roots.get(i);
 			String variableName = root.getVariableName();
 			if (variableName.equals(Variable.CONTAINER_VARIABLE_NAME)
@@ -299,6 +347,11 @@ public class Variables {
 				|| variableName.equals(Variable.ARG_VARIABLE_NAME)
 				|| variableName.equals(Variable.RETURN_VARIABLE_NAME)) {
 				roots.remove(i);
+			}
+		}
+		for (int i = rootTreeNodes.size() - 1; i >= 0; i--) {
+			MyTreeNode node = rootTreeNodes.get(i);
+			if (node.getValue() instanceof String) {
 				rootTreeNodes.remove(i);
 			}
 		}
