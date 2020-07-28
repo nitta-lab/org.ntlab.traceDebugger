@@ -145,7 +145,7 @@ public class VariableView extends ViewPart {
 					String valueId = selectedVariable.getValueId();
 					String receiverClassName = selectedVariable.getContainerClassName();
 					VariableUpdatePointFinder finder = VariableUpdatePointFinder.getInstance();
-					if (receiverClassName.contains("Iterator") 
+					if (receiverClassName.contains("Iterator") || receiverClassName.contains("Itr")
 							|| receiverClassName.contains("Collections$UnmodifiableCollection$1")) {
 						tp = finder.getIteratorPoint(receiverId);
 						if (tp == null) return;
