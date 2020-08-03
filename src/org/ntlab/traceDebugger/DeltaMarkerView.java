@@ -166,7 +166,7 @@ public class DeltaMarkerView extends ViewPart {
 //				callTreeView.highlight(selectionME);
 				CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
 				callStackView.highlight(coordinatorPoint.getMethodExecution());
-				VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);
+				VariableViewRelatedDelta variableView = (VariableViewRelatedDelta)TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID);
 				variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
 			} catch (CoreException e) {
 				e.printStackTrace();
@@ -192,7 +192,7 @@ public class DeltaMarkerView extends ViewPart {
 			MethodExecution bottomME = creationPoint.getMethodExecution();			
 			DebuggingController controller = DebuggingController.getInstance();
 			controller.jumpToTheTracePoint(creationPoint, false);
-			VariableView variableView = (VariableView)(TraceDebuggerPlugin.getActiveView(VariableView.ID));
+			VariableViewRelatedDelta variableView = (VariableViewRelatedDelta)(TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID));
 			variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
 			CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
 			callStackView.highlight(coordinatorME);

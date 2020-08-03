@@ -188,34 +188,12 @@ public class TracePointsView extends ViewPart {
 		viewer.refresh();
 	}
 	
-	private void jumpToTheTracePoint(TracePoint tp) {
+	protected void jumpToTheTracePoint(TracePoint tp) {
 		DebuggingController debuggingController = DebuggingController.getInstance();
 		debuggingController.jumpToTheTracePoint(tp, false);
 		MethodExecution currentME = tp.getMethodExecution();
 		int lineNo = tp.getStatement().getLineNo();
 		IMarker marker = DebuggingController.getInstance().createCurrentLineMarker(currentME, lineNo);
 		JavaEditorOperator.markAndOpenJavaFile(marker);
-
-		CallStackView callStackView = ((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID));
-		VariableView variableView = ((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID));
-
-		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
-		if (analyzer instanceof DeltaExtractionAnalyzer) {
-			DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
-			if (deltaMarkerView != null) {
-				DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
-				Map<String, List<IMarker>> deltaMarkers = deltaMarkerManager.getMarkers();
-				if (deltaMarkers != null) {
-					variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkers);
-				}
-				IMarker coordinatorMarker = deltaMarkerManager.getCoordinatorDeltaMarker();
-				if (coordinatorMarker != null) {
-					MethodExecution coordinatorME = DeltaMarkerManager.getMethodExecution(coordinatorMarker);
-					callStackView.highlight(coordinatorME);					
-				}
-				CallTreeView callTreeView = ((CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID));
-				callTreeView.highlight(currentME);
-			}
-		}
 	}	
 }

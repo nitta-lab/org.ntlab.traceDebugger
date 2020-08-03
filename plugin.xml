@@ -51,6 +51,42 @@
             name="TracePoints"
             restorable="true">
       </view>
+      <category
+            id="org.ntlab.traceDebugger.category2"
+            name="TraceDebuggerRelatedReverse">
+      </category>
+      <view
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.VariableViewRelatedReverse"
+            id="org.ntlab.traceDebugger.variableViewRelatedReverse"
+            name="Variables"
+            restorable="true">
+      </view>
+      <view
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.BreakPointViewRelatedReverse"
+            id="org.ntlab.traceDebugger.breakPointViewRelatedReverse"
+            name="Breakpoints"
+            restorable="true">
+      </view>
+      <category
+            id="org.ntlab.traceDebugger.category3"
+            name="TraceDebuggerRelatedDelta">
+      </category>
+      <view
+            category="org.ntlab.traceDebugger.category3"
+            class="org.ntlab.traceDebugger.CallStackViewRelatedDelta"
+            id="org.ntlab.traceDebugger.callStackViewRelatedDelta"
+            name="CallStack"
+            restorable="true">
+      </view>
+      <view
+            category="org.ntlab.traceDebugger.category3"
+            class="org.ntlab.traceDebugger.VariableViewRelatedDelta"
+            id="org.ntlab.traceDebugger.variableViewRelatedDelta"
+            name="Variables"
+            restorable="true">
+      </view>
    </extension>
    <extension
          point="org.eclipse.ui.perspectives">
@@ -58,6 +94,16 @@
             class="org.ntlab.traceDebugger.TraceDebuggerPerspective"
             id="org.ntlab.traceDebugger.traceDebuggerPerspective"
             name="TraceDebugger">
+      </perspective>
+      <perspective
+            class="org.ntlab.traceDebugger.TraceDebuggerPerspectiveRelatedReverse"
+            id="org.ntlab.traceDebugger.traceDebuggerPerspectiveRelatedReverse"
+            name="TraceDebugger (Reverse)">
+      </perspective>
+      <perspective
+            class="org.ntlab.traceDebugger.TraceDebuggerPerspectiveRelatedDelta"
+            id="org.ntlab.traceDebugger.traceDebuggerPerspectiveRelatedDelta"
+            name="TraceDebugger (Delta)">
       </perspective>
    </extension>
    <extension

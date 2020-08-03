@@ -19,7 +19,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
-import org.ntlab.traceAnalysisPlatform.tracer.trace.BlockEnter;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
@@ -80,13 +79,8 @@ public class DebuggingController {
 		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
 		((TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID)).reset();
-		if (TraceDebuggerPlugin.getAnalyzer() instanceof DeltaExtractionAnalyzer) {
-			((CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID)).reset();
-//			Set<IViewPart> views = TraceDebuggerPlugin.getViews(DeltaMarkerView.ID);
-//			for (IViewPart view : views) {
-//				((DeltaMarkerView)view).dispose();
-//			}
-		}
+		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
+		if (callTreeView != null) callTreeView.reset();
 		return true;
 	}
 	
@@ -177,9 +171,6 @@ public class DebuggingController {
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		debuggingTp.stepFull();
-//		if (debuggingTp.getStatement() instanceof BlockEnter) {
-//			debuggingTp.stepFull();
-//		}
 		if (!debuggingTp.isValid()) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
@@ -227,9 +218,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}		
-//		if (debuggingTp.getStatement() instanceof BlockEnter) {
-//			debuggingTp.stepFull();
-//		}
 		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;
 	}
@@ -285,9 +273,6 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}		
-//		if (debuggingTp.getStatement() instanceof BlockEnter) {
-//			debuggingTp.stepFull();
-//		}
 		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;	
 	}
@@ -414,8 +399,8 @@ public class DebuggingController {
 		} else {
 			variableView.updateVariablesByTracePoint(from, to, isReturned);
 		}
-		if ((TraceDebuggerPlugin.getAnalyzer() instanceof DeltaExtractionAnalyzer)) {
-			refreshRelatedDelta(to);	
+		if (TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID) != null) {
+			refreshRelatedDelta(to);
 		}
 	}
 	
@@ -431,7 +416,7 @@ public class DebuggingController {
 		callStackView.highlight(coordinatorME);
 		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 		callTreeView.highlight(tp.getMethodExecution());
-		VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);
+		VariableViewRelatedDelta variableView = (VariableViewRelatedDelta)TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID);
 		variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
 	}
 
@@ -470,11 +455,5 @@ public class DebuggingController {
 			return callStackModel.getTracePoint();
 		}
 		return null;
-//		if (!(callStackView.isSelectionOnTop())) {
-//			CallStackModel selectionCallStackModel = callStackView.getSelectionCallStackModel();
-//			if (selectionCallStackModel != null) {
-//				debuggingTp = selectionCallStackModel.getTracePoint();
-//			}
-//		}		
 	}
 }

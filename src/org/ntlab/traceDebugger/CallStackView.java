@@ -4,13 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.resources.IMarker;
-import org.eclipse.jface.action.Action;
-import org.eclipse.jface.action.IAction;
-import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
-import org.eclipse.jface.action.MenuManager;
-import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
@@ -18,11 +13,6 @@ import org.eclipse.jface.viewers.TreeNode;
 import org.eclipse.jface.viewers.TreeNodeContentProvider;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Menu;
-import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.IWorkbenchActionConstants;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
@@ -31,11 +21,9 @@ import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class CallStackView extends ViewPart {
-	private TreeViewer viewer;
-//	private IAction refreshAction;
-	private IAction deltaAction;
-	private CallStackModel selectionCallStackModel;
-	private CallStackModels callStackModels = new CallStackModels();
+	protected TreeViewer viewer;
+	protected CallStackModel selectionCallStackModel;
+	protected CallStackModels callStackModels = new CallStackModels();
 	public static final String ID = "org.ntlab.traceDebugger.callStackView";
 	
 	public CallStackView() {
@@ -64,27 +52,8 @@ public class CallStackView extends ViewPart {
 						CallStackModel callStackModel = (CallStackModel)value;
 						selectionCallStackModel = callStackModel;
 						MethodExecution methodExecution = callStackModel.getMethodExecution();
-						TracePoint tp = callStackModel.getTracePoint();
 						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, callStackModel.getCallLineNo());
-						CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
-						callTreeView.highlight(methodExecution);
-
-						TracePoint debuggingTp = DebuggingController.getInstance().getCurrentTp();
-						VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);
-						variableView.updateVariablesByTracePoint(tp, false, debuggingTp);						
-						AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
-						if (analyzer instanceof DeltaExtractionAnalyzer) {
-							DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
-							if (deltaMarkerView != null) {
-								DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
-								if (deltaMarkerManager != null) {
-									Map<String, List<IMarker>> deltaMarkers = deltaMarkerManager.getMarkers();
-									if (deltaMarkers != null) {
-										variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkers);	
-									}
-								}
-							}
-						}
+						additonalActionOnSelectionChanged(callStackModel);
 					}
 				}
 			}
@@ -103,74 +72,24 @@ public class CallStackView extends ViewPart {
 		viewer.getControl().setFocus();
 	}
 	
-	private void createActions() {
-//		refreshAction = new Action() {
-//			@Override
-//			public void run() {
-//				refresh();
-//			}
-//		};
-//		refreshAction.setText("refresh");
-//		refreshAction.setToolTipText("refresh");
-//		refreshAction.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_ELCL_SYNCED));
-		
-		deltaAction = new Action() {
-			@Override
-			public void run() {
-				if (selectionCallStackModel != null) {
-					MethodExecution callee = selectionCallStackModel.getMethodExecution();
-					MethodExecution caller = callee.getParent();
-					String callerClassName = caller.getThisClassName();
-					String callerId = caller.getThisObjId();
-					String calleeClassName = callee.getThisClassName();
-					String calleeId = callee.getThisObjId();
-					TracePoint before = callee.getCallerTracePoint();
-					Variable variable = new Variable("tmp", callerClassName, callerId, calleeClassName, calleeId, before, false);
-					DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.createNewView(DeltaMarkerView.ID, IWorkbenchPage.VIEW_ACTIVATE);
-					newDeltaMarkerView.extractDelta(variable, false);
-				}
-			}
-		};
-		deltaAction.setText("Extract Delta");
-		deltaAction.setToolTipText("Extract Delta");		
+	protected void createActions() {
+
 	}
 	
-	private void createToolBar() {
+	protected void createToolBar() {
 		IToolBarManager mgr = getViewSite().getActionBars().getToolBarManager();
-//		mgr.add(refreshAction);
 	}
 	
-	private void createMenuBar() {
+	protected void createMenuBar() {
 		IMenuManager mgr = getViewSite().getActionBars().getMenuManager();
-//		mgr.add(refreshAction);
 	}
 	
-	private void createPopupMenu() {
-		MenuManager menuMgr = new MenuManager("#PopupMenu");
-		menuMgr.setRemoveAllWhenShown(true);
-		menuMgr.addMenuListener(new IMenuListener() {
-			@Override
-			public void menuAboutToShow(IMenuManager manager) {
-				if (selectionCallStackModel != null) {
-					MethodExecution callee = selectionCallStackModel.getMethodExecution();
-					MethodExecution caller = callee.getParent();
-					String callerId = caller.getThisObjId();
-					String callerClassName = caller.getThisClassName();
-					callerClassName = callerClassName.substring(callerClassName.lastIndexOf(".") + 1);
-					String calleeId = callee.getThisObjId();
-					String calleeClassName = callee.getThisClassName();
-					calleeClassName = calleeClassName.substring(calleeClassName.lastIndexOf(".") + 1);
-					String text = String.format("Extract Delta (%s: %s Å® %s: %s)", callerId, callerClassName, calleeId, calleeClassName);
-					deltaAction.setText(text);
-					deltaAction.setToolTipText(text);
-					manager.add(deltaAction);
-					manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
-				}
-			}
-		});
-		Menu menu = menuMgr.createContextMenu(viewer.getControl());
-		viewer.getControl().setMenu(menu);
-		getSite().registerContextMenu(menuMgr, viewer);
+	protected void createPopupMenu() {
+
+	}
+	
+	protected void additonalActionOnSelectionChanged(CallStackModel selectedCallStackModel) {
+		
 	}
 	
 	public void updateByTracePoint(TracePoint tp) {
@@ -217,5 +136,5 @@ public class CallStackView extends ViewPart {
 	public void highlight(MethodExecution methodExecution) {
 		callStackModels.highlight(methodExecution);
 		viewer.refresh();
-	}
+	}	
 }

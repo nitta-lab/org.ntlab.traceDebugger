@@ -29,24 +29,24 @@ import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 
 public class BreakPointView extends ViewPart {
-	private TableViewer viewer;
-	private IAction fileOpenAction;
-	private IAction addTraceBreakPointAction;
-	private IAction removeTraceBreakPointAction;
-	private IAction changeAvailableAction;
-	private IAction debugAction;
-	private IAction terminateAction;
-	private IAction stepIntoAction;
-	private IAction stepOverAction;
-	private IAction stepReturnAction;
-	private IAction stepNextAction;
-	private IAction resumeAction;
-	private IAction stepBackIntoAction;
-	private IAction stepBackOverAction;
-	private IAction stepBackReturnAction;
-	private IAction backResumeAction;
-	private Shell shell;
-	private DebuggingController debuggingController = DebuggingController.getInstance();
+	protected TableViewer viewer;
+	protected IAction fileOpenAction;
+	protected IAction addTraceBreakPointAction;
+	protected IAction removeTraceBreakPointAction;
+	protected IAction changeAvailableAction;
+	protected IAction debugAction;
+	protected IAction terminateAction;
+	protected IAction stepIntoAction;
+	protected IAction stepOverAction;
+	protected IAction stepReturnAction;
+	protected IAction stepNextAction;
+	protected IAction resumeAction;
+//	private IAction stepBackIntoAction;
+//	private IAction stepBackOverAction;
+//	private IAction stepBackReturnAction;
+//	private IAction backResumeAction;
+	protected Shell shell;
+	protected DebuggingController debuggingController = DebuggingController.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.breakPointView";
 
 	public BreakPointView() {
@@ -106,7 +106,7 @@ public class BreakPointView extends ViewPart {
 		viewer.getControl().setFocus();
 	}
 	
-	private void createActions() {				
+	protected void createActions() {				
 		ImageDescriptor fileOpenIcon = PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_OBJ_FOLDER);
 		fileOpenAction = new Action("Open Trace File...", fileOpenIcon) {
 			@Override
@@ -218,44 +218,44 @@ public class BreakPointView extends ViewPart {
 		ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_RESUME);
 		resumeAction.setImageDescriptor(image);
 		
-		stepBackIntoAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.stepBackIntoAction();
-			}
-		};
-		stepBackIntoAction.setText("Step Back Into");
-		stepBackIntoAction.setToolTipText("Step Back Into");
-		
-		stepBackOverAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.stepBackOverAction();
-			}
-		};
-		stepBackOverAction.setText("Step Back Over");
-		stepBackOverAction.setToolTipText("Step Back Over");
-		
-		stepBackReturnAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.stepBackReturnAction();
-			}
-		};
-		stepBackReturnAction.setText("Step Back Return");
-		stepBackReturnAction.setToolTipText("Step Back Return");
-		
-		backResumeAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.backResumeAction();
-			}
-		};
-		backResumeAction.setText("Back Resume");
-		backResumeAction.setToolTipText("Back Resume");
+//		stepBackIntoAction = new Action() {
+//			@Override
+//			public void run() {
+//				debuggingController.stepBackIntoAction();
+//			}
+//		};
+//		stepBackIntoAction.setText("Step Back Into");
+//		stepBackIntoAction.setToolTipText("Step Back Into");
+//		
+//		stepBackOverAction = new Action() {
+//			@Override
+//			public void run() {
+//				debuggingController.stepBackOverAction();
+//			}
+//		};
+//		stepBackOverAction.setText("Step Back Over");
+//		stepBackOverAction.setToolTipText("Step Back Over");
+//		
+//		stepBackReturnAction = new Action() {
+//			@Override
+//			public void run() {
+//				debuggingController.stepBackReturnAction();
+//			}
+//		};
+//		stepBackReturnAction.setText("Step Back Return");
+//		stepBackReturnAction.setToolTipText("Step Back Return");
+//		
+//		backResumeAction = new Action() {
+//			@Override
+//			public void run() {
+//				debuggingController.backResumeAction();
+//			}
+//		};
+//		backResumeAction.setText("Back Resume");
+//		backResumeAction.setToolTipText("Back Resume");
 	}
 	
-	private void createToolBar() {
+	protected void createToolBar() {
 		IToolBarManager mgr = getViewSite().getActionBars().getToolBarManager();
 		mgr.add(fileOpenAction);
 		mgr.add(debugAction);
@@ -265,13 +265,13 @@ public class BreakPointView extends ViewPart {
 		mgr.add(stepOverAction);
 		mgr.add(stepReturnAction);
 		mgr.add(stepNextAction);
-		mgr.add(stepBackIntoAction);
-		mgr.add(stepBackOverAction);
-		mgr.add(stepBackReturnAction);
-		mgr.add(backResumeAction);
+//		mgr.add(stepBackIntoAction);
+//		mgr.add(stepBackOverAction);
+//		mgr.add(stepBackReturnAction);
+//		mgr.add(backResumeAction);
 	}
 	
-	private void createMenuBar() {
+	protected void createMenuBar() {
 		IMenuManager mgr = getViewSite().getActionBars().getMenuManager();
 		mgr.add(fileOpenAction);
 		mgr.add(debugAction);
@@ -281,10 +281,10 @@ public class BreakPointView extends ViewPart {
 		mgr.add(stepOverAction);
 		mgr.add(stepReturnAction);
 		mgr.add(stepNextAction);
-		mgr.add(stepBackIntoAction);
-		mgr.add(stepBackOverAction);
-		mgr.add(stepBackReturnAction);
-		mgr.add(backResumeAction);
+//		mgr.add(stepBackIntoAction);
+//		mgr.add(stepBackOverAction);
+//		mgr.add(stepBackReturnAction);
+//		mgr.add(backResumeAction);
 	}
 	
 	private void createPopupMenu() {
