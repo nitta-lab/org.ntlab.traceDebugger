@@ -4,14 +4,10 @@ import org.eclipse.jface.viewers.ITableColorProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TreeNode;
-import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
-import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
-import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class VariableLabelProvider extends LabelProvider implements ITableLabelProvider, ITableColorProvider {
@@ -23,6 +19,9 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 				String name = (String)value;
 				switch (columnIndex) {
 				case 0:
+					if (name.contains("Constructor")) {
+						return name.substring(0, name.indexOf("Constructor"));
+					}
 					return name.substring(0, name.indexOf(":"));
 				case 1:
 					String valueName = name.substring(name.indexOf(":") + 1);
@@ -89,11 +88,11 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 				if (!(markerId instanceof String)) return null;
 				switch ((String)markerId) {
 				case DeltaMarkerManager.SRC_SIDE_DELTA_MARKER:
-					return new Color(Display.getDefault(), 255, 128, 0);
+					return DeltaMarkerLabelProvider.SETTER_SIDE_LABEL_COLOR;
 				case DeltaMarkerManager.DST_SIDE_DELTA_MARKER:
-					return Display.getDefault().getSystemColor(SWT.COLOR_CYAN);
+					return DeltaMarkerLabelProvider.GETTER_SIDE_LABEL_COLOR;
 				case DeltaMarkerManager.COORDINATOR_DELTA_MARKER:
-					return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
+					return DeltaMarkerLabelProvider.COORDINATOR_LABEL_COLOR;
 				}
 			}
 		}

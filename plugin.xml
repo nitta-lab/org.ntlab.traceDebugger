@@ -186,7 +186,7 @@
       <specification
             annotationType="org.ntlab.traceDebugger.bottomDeltaAnnotation"
             colorPreferenceKey="clcolor"
-            colorPreferenceValue="255,128,128"
+            colorPreferenceValue="255,178,101"
             highlightPreferenceKey="clhighlight"
             highlightPreferenceValue="true"
             icon="icons/deltaMarker.png"
@@ -204,7 +204,7 @@
       <specification
             annotationType="org.ntlab.traceDebugger.coordinatorDeltaAnnotation"
             colorPreferenceKey="clcolor2"
-            colorPreferenceValue="0,255,0"
+            colorPreferenceValue="255,255,153"
             highlightPreferenceKey="clhighlight2"
             highlightPreferenceValue="true"
             icon="icons/deltaMarker.png"
@@ -222,7 +222,7 @@
       <specification
             annotationType="org.ntlab.traceDebugger.srcSideDeltaAnnotation"
             colorPreferenceKey="clcolor3"
-            colorPreferenceValue="255,128,0"
+            colorPreferenceValue="255,204,216"
             highlightPreferenceKey="clhighlight3"
             highlightPreferenceValue="true"
             icon="icons/deltaMarker.png"
@@ -240,7 +240,7 @@
       <specification
             annotationType="org.ntlab.traceDebugger.dstSideDeltaAnnotation"
             colorPreferenceKey="clcolor4"
-            colorPreferenceValue="0,255,255"
+            colorPreferenceValue="153,255,255"
             highlightPreferenceKey="clhighlight4"
             highlightPreferenceValue="true"
             icon="icons/deltaMarker.png"

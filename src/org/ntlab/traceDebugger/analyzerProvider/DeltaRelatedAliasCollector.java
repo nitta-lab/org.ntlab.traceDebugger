@@ -79,6 +79,14 @@ public class DeltaRelatedAliasCollector implements IAliasCollector {
 		return relatedAliases;
 	}
 	
+	public List<Alias> getSrcSideRelatedAliases() {
+		return srcSideRelatedAliases;
+	}
+	
+	public List<Alias> getDstSideRelatedAliases() {
+		return dstSideRelatedAliases;
+	}
+		
 	public String resolveSideInTheDelta(Alias alias) {
 		int index;
 		index = srcSideRelatedAliases.indexOf(alias);

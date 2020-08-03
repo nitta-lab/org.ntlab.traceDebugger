@@ -31,6 +31,7 @@ public class DeltaMarkerView extends ViewPart {
 	private TreeViewer viewer;
 	private Shell shell;
 	private IMarker selectionMarker;
+	private boolean doNotUpdateCallTreeView;
 	private DeltaMarkerManager deltaMarkerManager;
 	public static String ID = "org.ntlab.traceDebugger.deltaMarkerView";
 
@@ -65,7 +66,8 @@ public class DeltaMarkerView extends ViewPart {
 				if (!(value instanceof IMarker)) return;
 				selectionMarker = (IMarker)value;
 				updateOtherViewsByMarker(selectionMarker);
-				setFocus();
+				doNotUpdateCallTreeView = true;
+				viewer.getControl().setFocus();
 			}
 		});
 		viewer.refresh();
@@ -97,9 +99,12 @@ public class DeltaMarkerView extends ViewPart {
 	public void setFocus() {
 		// TODO Auto-generated method stub
 		TraceDebuggerPlugin.setActiveView(ID, this);
-		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
-		callTreeView.update(deltaMarkerManager);
-//		updateOtherViewsByMarker(selectionMarker);
+		if (!doNotUpdateCallTreeView) {
+			CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
+			callTreeView.update(deltaMarkerManager);
+//			updateOtherViewsByMarker(selectionMarker);
+		}
+		doNotUpdateCallTreeView = false;
 		viewer.getControl().setFocus();
 	}
 	
@@ -157,8 +162,8 @@ public class DeltaMarkerView extends ViewPart {
 				controller.jumpToTheTracePoint(jumpPoint, isReturned);
 				IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 				IDE.openEditor(page, marker);
-				CallTreeView callTreeView = ((CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID));
-				callTreeView.highlight(selectionME);
+//				CallTreeView callTreeView = ((CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID));
+//				callTreeView.highlight(selectionME);
 				CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
 				callStackView.highlight(coordinatorPoint.getMethodExecution());
 				VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);

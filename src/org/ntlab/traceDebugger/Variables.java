@@ -225,7 +225,7 @@ public class Variables {
 				Variable value = new Variable(Variable.VALUE_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_VALUE);
 				specialVariablesOfUseSide.add(container);
 				specialVariablesOfUseSide.add(value);
-				parentNodeNameOfUseSide = "PreviousFieldAccess:" + fa.getFieldName();
+				parentNodeNameOfUseSide = "after field get of:" + fa.getFieldName();
 			} else if (fromStatement instanceof MethodInvocation) {
 				MethodInvocation mi = (MethodInvocation)fromStatement;
 				MethodExecution calledME = mi.getCalledMethodExecution();
@@ -240,9 +240,9 @@ public class Variables {
 					specialVariablesOfUseSide.add(receiver);
 					specialVariablesOfUseSide.add(returned);
 					if (calledME.isConstructor()) {
-						parentNodeNameOfUseSide = "ReturnConstructor:" + calledME.getSignature();
+						parentNodeNameOfUseSide = "after invocation of Constructor:" + calledME.getSignature();
 					} else {
-						parentNodeNameOfUseSide = "ReturnMethod:" + calledME.getSignature();	
+						parentNodeNameOfUseSide = "after invocation of:" + calledME.getSignature();	
 					}
 				}
 			}			
@@ -261,7 +261,7 @@ public class Variables {
 				Variable value = new Variable(Variable.VALUE_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_VALUE);
 				specialVariablesDefSide.add(container);
 				specialVariablesDefSide.add(value);
-				parentNodeNameOfDefSide = "NextUpdate:" + fu.getFieldName();
+				parentNodeNameOfDefSide = "before field set of:" + fu.getFieldName();
 			} else if (toStatement instanceof MethodInvocation) {
 				MethodInvocation mi = (MethodInvocation)toStatement;
 				MethodExecution calledME = mi.getCalledMethodExecution();
@@ -277,9 +277,9 @@ public class Variables {
 					specialVariablesDefSide.add(receiver);
 					specialVariablesDefSide.add(arg);
 					if (calledME.isConstructor()) {
-						parentNodeNameOfDefSide = "NextConstructor:" + calledME.getSignature();
+						parentNodeNameOfDefSide = "before invocation of Constructor:" + calledME.getSignature();
 					} else {
-						parentNodeNameOfDefSide = "NextMethod:" + calledME.getSignature();	
+						parentNodeNameOfDefSide = "before invocation of:" + calledME.getSignature();	
 					}
 				}
 			} 

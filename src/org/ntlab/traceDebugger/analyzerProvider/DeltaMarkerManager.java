@@ -72,33 +72,31 @@ public class DeltaMarkerManager {
 	
 	public TreeNode[] getMarkerTreeNodes() {
 		TreeNode[] roots = new TreeNode[] {
-				new TreeNode("Coordinator"),
+				new TreeNode(""),
 				new TreeNode("Related Aliases"),
-				new TreeNode("Related Point")
+				new TreeNode("")
 		};
-		List<TreeNode> treeNodeList = new ArrayList<>();
-		for (IMarker marker : markersByOrder) {
-			try {
-				TreeNode node = new TreeNode(marker);
-				String markerType = marker.getType();
-				switch (markerType) {
-				case COORDINATOR_DELTA_MARKER:
-					roots[0] = node;
-					break;
-				case SRC_SIDE_DELTA_MARKER:
-				case DST_SIDE_DELTA_MARKER:
-					node.setParent(roots[1]);
-					treeNodeList.add(node);
-					break;
-				case BOTTOM_DELTA_MARKER:
-					roots[2] = node;
-					break;
-				}
-			} catch (CoreException e) {
-				e.printStackTrace();
+		List<IMarker> markers;
+		markers = markerIdToMarkers.get(COORDINATOR_DELTA_MARKER);
+		roots[0] = new TreeNode(markers.get(0));
+		List<IMarker> dstSideMarkers = markerIdToMarkers.get(DST_SIDE_DELTA_MARKER);
+		List<IMarker> srcSideMarkers = markerIdToMarkers.get(SRC_SIDE_DELTA_MARKER);
+		int dstSideMarkersSize = (dstSideMarkers != null) ? dstSideMarkers.size() : 0;
+		int srcSideMarkersSize = (srcSideMarkers != null) ? srcSideMarkers.size() : 0;
+		TreeNode[] children = new TreeNode[dstSideMarkersSize + srcSideMarkersSize];
+		if (dstSideMarkers != null) {
+			for (int i = 0; i < dstSideMarkers.size(); i++) {
+				children[i] = new TreeNode(dstSideMarkers.get(i));
 			}
 		}
-		roots[1].setChildren(treeNodeList.toArray(new TreeNode[treeNodeList.size()]));
+		if (srcSideMarkers != null) {
+			for (int i = 0; i < srcSideMarkers.size(); i++) {
+				children[dstSideMarkersSize + i] = new TreeNode(srcSideMarkers.get(i));
+			}
+		}
+		roots[1].setChildren(children);
+		markers = markerIdToMarkers.get(BOTTOM_DELTA_MARKER);
+		roots[2] = new TreeNode(markers.get(0));		
 		return roots;
 	}
 	
@@ -149,21 +147,21 @@ public class DeltaMarkerManager {
 	}
 
 	public void createMarkerAndOpenJavaFileForAll() {
-		int srcSideCnt = 1;
-		int dstSideCnt = 1;
 		markAndOpenJavaFileForCoordinator(coordinator, "Coordinator", DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
-		List<Alias> relatedAliases = aliasCollector.getRelatedAliases();
-		Collections.reverse(relatedAliases);
-		for (Alias alias : relatedAliases) {
-			String side = aliasCollector.resolveSideInTheDelta(alias);
-			if (side.contains(DeltaRelatedAliasCollector.SRC_SIDE)) {
-				String message = String.format("SrcSide%03d", srcSideCnt);
-				markAndOpenJavaFileForAlias(alias, message, DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
-				srcSideCnt++;
-			} else if (side.contains(DeltaRelatedAliasCollector.DST_SIDE)) {
-				String message = String.format("DstSide%03d", dstSideCnt);
-				markAndOpenJavaFileForAlias(alias, message, DeltaMarkerManager.DST_SIDE_DELTA_MARKER);
-				dstSideCnt++;		
+		List<Alias> dstSideAliases = new ArrayList<>(aliasCollector.getDstSideRelatedAliases());
+		List<Alias> srcSideAliases = new ArrayList<>(aliasCollector.getSrcSideRelatedAliases());
+		List<List<Alias>> relatedAliasesList = new ArrayList<>();
+		relatedAliasesList.add(dstSideAliases);
+		relatedAliasesList.add(srcSideAliases);
+		String[] messagesTemplates = {"GetterSide%03d", "SetterSide%03d"};
+		String[] markerIDList = {DST_SIDE_DELTA_MARKER, SRC_SIDE_DELTA_MARKER};
+		for (int i = 0; i < relatedAliasesList.size(); i++) {
+			List<Alias> relatedAliases = relatedAliasesList.get(i);
+			Collections.reverse(relatedAliases);
+			int cnt = 1;
+			for (Alias alias : relatedAliases) {
+				String message = String.format(messagesTemplates[i], cnt++);
+				markAndOpenJavaFileForAlias(alias, message, markerIDList[i]);
 			}
 		}
 		markAndOpenJavaFileForCreationPoint(relatedPoint, relatedPointReference, "RelatedPoint", DeltaMarkerManager.BOTTOM_DELTA_MARKER);

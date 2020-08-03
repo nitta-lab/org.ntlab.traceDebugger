@@ -6,14 +6,17 @@ import org.eclipse.jface.viewers.ITableColorProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TreeNode;
-import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLabelProvider, ITableColorProvider {
-
+	public static final Color COORDINATOR_LABEL_COLOR = new Color(Display.getDefault(), 255, 255, 153);
+	public static final Color SETTER_SIDE_LABEL_COLOR = new Color(Display.getDefault(), 255, 204, 216);
+	public static final Color GETTER_SIDE_LABEL_COLOR = new Color(Display.getDefault(), 153, 255, 255);
+	public static final Color BOTTOM_LABEL_COLOR = new Color(Display.getDefault(), 255, 178, 101);
+	
 	@Override
 	public String getColumnText(Object element, int columnIndex) {
 		if (element instanceof TreeNode) {
@@ -96,13 +99,13 @@ public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLab
 			if (value instanceof String) {
 				String str = (String)value;
 				if (str.contains("RelatedPoint")) {
-					return new Color(Display.getDefault(), 255, 128, 128);
+					return BOTTOM_LABEL_COLOR;
 				} else if (str.contains("Coordinator")) {
-					return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
+					return COORDINATOR_LABEL_COLOR;
 				} else if (str.contains("Src")) {
-					return new Color(Display.getDefault(), 255, 128, 0);
+					return SETTER_SIDE_LABEL_COLOR;
 				} else if (str.contains("Dst")) {
-					return Display.getDefault().getSystemColor(SWT.COLOR_CYAN);
+					return GETTER_SIDE_LABEL_COLOR;
 				}
 				return null;
 			}
@@ -111,13 +114,13 @@ public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLab
 				try {
 					String markerType = marker.getType();
 					if (markerType.equals(DeltaMarkerManager.BOTTOM_DELTA_MARKER)) {
-						return new Color(Display.getDefault(), 255, 128, 128);
+						return BOTTOM_LABEL_COLOR;
 					} else if (markerType.equals(DeltaMarkerManager.COORDINATOR_DELTA_MARKER)) {
-						return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
+						return COORDINATOR_LABEL_COLOR;
 					} else if (markerType.equals(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER)) {
-						return new Color(Display.getDefault(), 255, 128, 0);			
+						return SETTER_SIDE_LABEL_COLOR;
 					} else if (markerType.equals(DeltaMarkerManager.DST_SIDE_DELTA_MARKER)) {
-						return Display.getDefault().getSystemColor(SWT.COLOR_CYAN);
+						return GETTER_SIDE_LABEL_COLOR;
 					}
 				} catch (CoreException e) {
 					e.printStackTrace();

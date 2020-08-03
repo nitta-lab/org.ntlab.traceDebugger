@@ -177,9 +177,9 @@ public class DebuggingController {
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		debuggingTp.stepFull();
-		if (debuggingTp.getStatement() instanceof BlockEnter) {
-			debuggingTp.stepFull();
-		}
+//		if (debuggingTp.getStatement() instanceof BlockEnter) {
+//			debuggingTp.stepFull();
+//		}
 		if (!debuggingTp.isValid()) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
@@ -227,9 +227,9 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}		
-		if (debuggingTp.getStatement() instanceof BlockEnter) {
-			debuggingTp.stepFull();
-		}
+//		if (debuggingTp.getStatement() instanceof BlockEnter) {
+//			debuggingTp.stepFull();
+//		}
 		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;
 	}
@@ -285,9 +285,9 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
 		}		
-		if (debuggingTp.getStatement() instanceof BlockEnter) {
-			debuggingTp.stepFull();
-		}
+//		if (debuggingTp.getStatement() instanceof BlockEnter) {
+//			debuggingTp.stepFull();
+//		}
 		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;	
 	}
