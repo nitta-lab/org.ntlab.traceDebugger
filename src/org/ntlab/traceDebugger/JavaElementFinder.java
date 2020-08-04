@@ -123,9 +123,16 @@ public class JavaElementFinder {
 
 	private static boolean checkProjectPath(IProject project, String projectPath) {
 		String projectLocation = project.getLocation().toString();
+//		if (projectPath.startsWith(projectLocation)) {
+//			String[] projectPathSplit = projectPath.split(projectLocation);
+//			return (projectPathSplit[1].charAt(0) == '/'); // プロジェクト名の前方一致による他プロジェクトとの誤判定を避ける
+//		}
 		if (projectPath.startsWith(projectLocation)) {
 			String[] projectPathSplit = projectPath.split(projectLocation);
-			return (projectPathSplit[1].charAt(0) == '/'); // プロジェクト名の前方一致による他プロジェクトとの誤判定を避ける
+			return (projectPathSplit[1].charAt(0) == '/');  // プロジェクト名の前方一致による他プロジェクトとの誤判定を避ける
+		} else if (projectPath.startsWith(projectLocation.substring(1))) {
+			String[] projectPathSplit = projectPath.split(projectLocation.substring(1));
+			return (projectPathSplit[1].charAt(0) == '/');  // プロジェクト名の前方一致による他プロジェクトとの誤判定を避ける
 		}
 		return false;
 	}
