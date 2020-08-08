@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
@@ -19,7 +21,7 @@ import org.osgi.framework.BundleContext;
 public class TraceDebuggerPlugin extends AbstractUIPlugin {
 
 	// The plug-in ID
-	public static final String PLUGIN_ID = "org.ntlab.helloWorld"; //$NON-NLS-1$
+	public static final String PLUGIN_ID = "org.ntlab.traceDebugger"; //$NON-NLS-1$
 
 	private static AbstractAnalyzer analyzer;
 	
@@ -107,5 +109,21 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 		} catch (PartInitException e) {
 			throw new RuntimeException(e);
 		}
-	}	
+	}
+	
+	@Override
+	protected void initializeImageRegistry(ImageRegistry reg) {
+		reg.put(BreakPointViewRelatedReverse.STEP_BACK_INTO_ELCL, getImageDescriptor("/icons/debug/stepbackinto_elcl.png"));
+		reg.put(BreakPointViewRelatedReverse.STEP_BACK_INTO_DLCL, getImageDescriptor("/icons/debug/stepbackinto_dlcl.png"));
+		reg.put(BreakPointViewRelatedReverse.STEP_BACK_OVER_ELCL, getImageDescriptor("/icons/debug/stepbackover_elcl.png"));
+		reg.put(BreakPointViewRelatedReverse.STEP_BACK_OVER_DLCL, getImageDescriptor("/icons/debug/stepbackover_dlcl.png"));
+		reg.put(BreakPointViewRelatedReverse.STEP_BACK_RETURN_ELCL, getImageDescriptor("/icons/debug/stepbackreturn_elcl.png"));
+		reg.put(BreakPointViewRelatedReverse.STEP_BACK_RETURN_DLCL, getImageDescriptor("/icons/debug/stepbackreturn_dlcl.png"));
+		reg.put(BreakPointViewRelatedReverse.BACK_RESUME_ELCL, getImageDescriptor("/icons/debug/backresume_elcl.png"));		
+		reg.put(BreakPointViewRelatedReverse.BACK_RESUME_DLCL, getImageDescriptor("/icons/debug/backresume_dlcl.png"));			
+	}
+	
+	public static ImageDescriptor getImageDescriptor(String path) {
+		return imageDescriptorFromPlugin(PLUGIN_ID, path);
+	}
 }
