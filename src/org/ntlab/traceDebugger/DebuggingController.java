@@ -89,28 +89,27 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
 			return false;
 		}
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "E.setC(C)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "D.setC(_arraySample.C)", null);		
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "Company.pay(Money,Person)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "P.setM(worstCase.M)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "DefaultDrawingView.addToSelection(Figure)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "SelectionManager.addFig(Fig)", null);
-//		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "SelectionManager.makeSelectionFor(Fig)", null);
-		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "ActionRemoveFromDiagram.actionPerformed(ActionEvent)", null);
+		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "", null);
 		if (inputDialog.open() != InputDialog.OK) return false;
 		String methodSignature = inputDialog.getValue();
 		inputDialog = new InputDialog(null, "line No dialog", "Input line no", "", null);
 		if (inputDialog.open() != InputDialog.OK) return false;
 		int lineNo = Integer.parseInt(inputDialog.getValue());
-		long currentTime = 0L;
-		if (debuggingTp != null) {
-			currentTime = debuggingTp.getStatement().getTimeStamp();
-		}
-		boolean isSuccess = traceBreakPoints.addTraceBreakPoint(methodSignature, lineNo, currentTime);
+		boolean isSuccess = traceBreakPoints.addTraceBreakPoint(methodSignature, lineNo);
 		if (!isSuccess) {
 			MessageDialog.openInformation(null, "Error", "This trace point does not exist in the trace.");
 			return false;
 		}
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
+		return true;
+	}
+
+	public boolean impoerBreakpointAction() {
+		if (TraceDebuggerPlugin.getAnalyzer() == null) {
+			MessageDialog.openInformation(null, "Error", "Trace file was not found");
+			return false;
+		}
+		traceBreakPoints.importBreakpointFromEclipse();
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
 		return true;
 	}

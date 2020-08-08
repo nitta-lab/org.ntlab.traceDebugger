@@ -9,6 +9,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.debug.core.DebugPlugin;
+import org.eclipse.debug.core.model.IBreakpoint;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
@@ -42,7 +46,12 @@ public class TraceBreakPoints {
 		return list;
 	}
 
-	public boolean addTraceBreakPoint(String inputSignature, int lineNo, long currentTime) {
+	public boolean addTraceBreakPoint(String inputSignature, int lineNo) {
+		boolean isSuccess = addTraceBreakPoint(inputSignature, lineNo, true);
+		return isSuccess;
+	}
+	
+	public boolean addTraceBreakPoint(String inputSignature, int lineNo, boolean isAvailable) {
 		String methodSignature = findMethodSignaureOnTrace(inputSignature);
 		if (methodSignature == null) return false;
 		Map<Integer, TraceBreakPoint> innerMap = traceBreakPoints.get(methodSignature);
@@ -50,15 +59,14 @@ public class TraceBreakPoints {
 			innerMap = new HashMap<>();
 			traceBreakPoints.put(methodSignature, innerMap);
 		}
-		TraceBreakPoint tbp = new TraceBreakPoint(methodSignature, lineNo, currentTime);
-		if (!tbp.isAvailable()) return false;
-		innerMap.put(lineNo, tbp);
-		addHistories(tbp);
-		return true;
-	}
-	
-	public boolean addTraceBreakPoint(String methodSignature, int lineNo) {
-		return addTraceBreakPoint(methodSignature, lineNo, 0L);
+		try {
+			TraceBreakPoint tbp = TraceBreakPoint.createNewTraceBreakPoint(methodSignature, lineNo, isAvailable, inputSignature);
+			innerMap.put(lineNo, tbp);
+			addHistories(tbp);
+			return true;		
+		} catch (IllegalArgumentException e) {
+			return false;
+		}
 	}
 	
 	private void removeTraceBreakPoint(String methodSignature, int lineNo) {
@@ -73,6 +81,32 @@ public class TraceBreakPoints {
 		String methodSignature = traceBreakPoint.getMethodSignature();
 		int lineNo = traceBreakPoint.getLineNo();
 		removeTraceBreakPoint(methodSignature, lineNo);
+	}
+	
+	public void importBreakpointFromEclipse() {
+		IBreakpoint[] breakpoints = DebugPlugin.getDefault().getBreakpointManager().getBreakpoints();
+		for (IBreakpoint breakpoint : breakpoints) {
+			try {
+				IMarker breakpointMarker = breakpoint.getMarker();
+				Map<String, Object> attributes = breakpointMarker.getAttributes();
+				String type = (String)attributes.get("org.eclipse.jdt.debug.core.typeName");
+				type = type.substring(type.lastIndexOf(".") + 1);
+				int lineNo = (int)attributes.get(IMarker.LINE_NUMBER);
+				boolean available = (boolean)attributes.get(IBreakpoint.ENABLED);
+				String message = (String)attributes.get(IMarker.MESSAGE);
+				String methodName = message.substring(message.indexOf("-") + 2);
+				methodName = methodName.replace(" ", "");
+				String signature; 
+				if (methodName.startsWith(type + "(")) {
+					signature = methodName; // コンストラクタ内の場合
+				} else {
+					signature = type + "." + methodName;
+				}
+				addTraceBreakPoint(signature, lineNo, available);
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	private String findMethodSignaureOnTrace(String inputSignature) {
