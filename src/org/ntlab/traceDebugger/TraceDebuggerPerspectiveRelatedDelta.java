@@ -12,23 +12,23 @@ public class TraceDebuggerPerspectiveRelatedDelta implements IPerspectiveFactory
 		String editorArea = layout.getEditorArea();
 
 		// 右にブレークポイントのビューを配置
-		IFolderLayout right = layout.createFolder("right", IPageLayout.RIGHT, 0.5f, editorArea);
-		right.addView(BreakPointViewRelatedReverse.ID);
-		
-		// 右下にトレースポイントのビューを配置
-		IFolderLayout rightBottom = layout.createFolder("rightBottom", IPageLayout.BOTTOM, 0.5f, "right");
-		rightBottom.addView(TracePointsView.ID);
-		
-		// 右上に変数のビューを配置
-		IFolderLayout topRight = layout.createFolder("topRight", IPageLayout.TOP, 0.25f, editorArea);
-		topRight.addView(VariableViewRelatedDelta.ID);
+		IFolderLayout breakpointViewArea = layout.createFolder("BreakpointViewArea", IPageLayout.RIGHT, 0.5f, editorArea);
+		breakpointViewArea.addView(BreakPointViewRelatedDelta.ID);
 
 		// 左上にコールツリーのビューを配置
-		IFolderLayout topLeft = layout.createFolder("topLeft", IPageLayout.LEFT, 0.25f, "topRight");
-		topLeft.addView(CallTreeView.ID);
+		IFolderLayout callTreeViewArea = layout.createFolder("CallTreeViewArea", IPageLayout.BOTTOM, 0.25f, "BreakpointViewArea");
+		callTreeViewArea.addView(CallTreeView.ID);
+		
+		// 右下にトレースポイントのビューを配置
+		IFolderLayout tracePointsViewArea = layout.createFolder("TracePointsViewArea", IPageLayout.BOTTOM, 0.5f, "CallTreeViewArea");
+		tracePointsViewArea.addView(TracePointsView.ID);
+		
+		// 右上に変数のビューを配置
+		IFolderLayout variableViewArea = layout.createFolder("VariableViewArea", IPageLayout.TOP, 0.25f, editorArea);
+		variableViewArea.addView(VariableViewRelatedDelta.ID);
 		
 		// 左上にコールスタックのビューを配置
-		IFolderLayout topLeft2 = layout.createFolder("topLeft2", IPageLayout.TOP, 0.25f, "topLeft");
-		topLeft2.addView(CallStackViewRelatedDelta.ID);
+		IFolderLayout callStackViewArea = layout.createFolder("CallStackViewArea", IPageLayout.LEFT, 0.25f, "VariableViewArea");
+		callStackViewArea.addView(CallStackViewRelatedDelta.ID);		
 	}
 }

@@ -8,13 +8,13 @@ import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.swt.widgets.Composite;
 
-public class BreakPointViewRelatedReverse extends BreakPointView {
+public class BreakPointViewRelatedDelta extends BreakPointView {
 	private IAction stepBackIntoAction;
 	private IAction stepBackOverAction;
 	private IAction stepBackReturnAction;
 	private IAction backResumeAction;
 	private DebuggingController debuggingController = DebuggingController.getInstance();
-	public static final String ID = "org.ntlab.traceDebugger.breakPointViewRelatedReverse";
+	public static final String ID = "org.ntlab.traceDebugger.breakPointViewRelatedDelta";
 	public static final String STEP_BACK_INTO_ELCL = "StepBackInto_ELCL";
 	public static final String STEP_BACK_INTO_DLCL = "StepBackInto_DLCL";
 	public static final String STEP_BACK_OVER_ELCL = "StepOverInto_ELCL";
@@ -24,15 +24,15 @@ public class BreakPointViewRelatedReverse extends BreakPointView {
 	public static final String BACK_RESUME_ELCL = "BackResume_ELCL";
 	public static final String BACK_RESUME_DLCL = "BackResume_DLCL";
 
-	public BreakPointViewRelatedReverse() {
+	public BreakPointViewRelatedDelta() {
 		// TODO Auto-generated constructor stub
-		System.out.println("BreakPointViewRelatedReverseクラスが生成されたよ!");
+		System.out.println("BreakPointViewRelatedDeltaクラスが生成されたよ!");
 	}
 
 	@Override
 	public void createPartControl(Composite parent) {
 		// TODO Auto-generated method stub
-		System.out.println("BreakPointViewRelatedReverse#createPartControl(Composite)が呼ばれたよ!");
+		System.out.println("BreakPointViewRelatedDelta#createPartControl(Composite)が呼ばれたよ!");
 		super.createPartControl(parent);
 		TraceDebuggerPlugin.setActiveView(ID, this);
 	}

@@ -21,12 +21,15 @@ import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.IWorkbenchPage;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.Variable.VariableType;
 import org.ntlab.traceDebugger.analyzerProvider.Alias;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
+import org.ntlab.traceDebugger.analyzerProvider.VariableUpdatePointFinder;
 
-public class VariableViewRelatedDelta extends VariableViewRelatedReverse {	
+public class VariableViewRelatedDelta extends VariableView {
+	protected IAction jumpAction;
 	private IAction deltaActionForContainerToComponent;
 	private IAction deltaActionForThisToAnother;
 	public static final String ID = "org.ntlab.traceDebugger.variableViewRelatedDelta";
@@ -53,7 +56,38 @@ public class VariableViewRelatedDelta extends VariableViewRelatedReverse {
 
 	@Override
 	protected void createActions() {
-		super.createActions();		
+		super.createActions();
+		jumpAction = new Action() {
+			public void run() {
+				TracePoint tp = null;
+				TracePoint before = DebuggingController.getInstance().getCurrentTp();
+				VariableType variableType = selectedVariable.getVariableType();
+				if (variableType.equals(VariableType.USE_VALUE)) {
+					String containerId = selectedVariable.getContainerId();
+					String fieldName = selectedVariable.getFullyQualifiedVariableName();
+					tp = VariableUpdatePointFinder.getInstance().getPoint(containerId, fieldName, before);
+				} else if (variableType.equals(VariableType.USE_RETURN)) {
+					String receiverId = selectedVariable.getContainerId();
+					String valueId = selectedVariable.getValueId();
+					String receiverClassName = selectedVariable.getContainerClassName();
+					VariableUpdatePointFinder finder = VariableUpdatePointFinder.getInstance();
+					if (receiverClassName.contains("Iterator") || receiverClassName.contains("Itr")
+							|| receiverClassName.contains("Collections$UnmodifiableCollection$1")) {
+						tp = finder.getIteratorPoint(receiverId);
+						if (tp == null) return;
+						MethodInvocation mi = ((MethodInvocation)tp.getStatement()); 
+						receiverId = mi.getCalledMethodExecution().getThisObjId();
+					}
+					tp = finder.getDefinitionInvocationPoint(receiverId, valueId, before);
+				}
+				if (tp == null) return;
+				DebuggingController controller = DebuggingController.getInstance();
+				controller.jumpToTheTracePoint(tp, false);
+			}
+		};
+		jumpAction.setText("Jump to Definition");
+		jumpAction.setToolTipText("Jump to Definition");
+
 		deltaActionForContainerToComponent = new Action() {
 			@Override
 			public void run() {				

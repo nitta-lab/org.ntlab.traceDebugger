@@ -9,9 +9,9 @@
       </category>
       <view
             category="org.ntlab.traceDebugger.category"
-            class="org.ntlab.traceDebugger.CallStackView"
-            id="org.ntlab.traceDebugger.callStackView"
-            name="CallStack"
+            class="org.ntlab.traceDebugger.BreakPointView"
+            id="org.ntlab.traceDebugger.breakPointView"
+            name="Breakpoints"
             restorable="true">
       </view>
       <view
@@ -23,14 +23,46 @@
       </view>
       <view
             category="org.ntlab.traceDebugger.category"
-            class="org.ntlab.traceDebugger.BreakPointView"
-            id="org.ntlab.traceDebugger.breakPointView"
+            class="org.ntlab.traceDebugger.CallStackView"
+            id="org.ntlab.traceDebugger.callStackView"
+            name="CallStack"
+            restorable="true">
+      </view>
+      <category
+            id="org.ntlab.traceDebugger.category2"
+            name="TraceDebuggerRelatedDelta">
+      </category>
+      <view
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.BreakPointViewRelatedDelta"
+            id="org.ntlab.traceDebugger.breakPointViewRelatedDelta"
             name="Breakpoints"
             restorable="true">
       </view>
       <view
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.VariableViewRelatedDelta"
+            id="org.ntlab.traceDebugger.variableViewRelatedDelta"
+            name="Variables"
+            restorable="true">
+      </view>
+      <view
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.CallStackViewRelatedDelta"
+            id="org.ntlab.traceDebugger.callStackViewRelatedDelta"
+            name="CallStack"
+            restorable="true">
+      </view>
+      <view
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.TracePointsView"
+            id="org.ntlab.traceDebugger.tracePointsView"
+            name="MarkedExecutionPoints"
+            restorable="true">
+      </view>
+      <view
             allowMultiple="true"
-            category="org.ntlab.traceDebugger.category"
+            category="org.ntlab.traceDebugger.category2"
             class="org.ntlab.traceDebugger.DeltaMarkerView"
             id="org.ntlab.traceDebugger.deltaMarkerView"
             name="ExtractedExecutionPoints"
@@ -38,53 +70,10 @@
       </view>
       <view
             allowMultiple="true"
-            category="org.ntlab.traceDebugger.category"
+            category="org.ntlab.traceDebugger.category2"
             class="org.ntlab.traceDebugger.CallTreeView"
             id="org.ntlab.traceDebugger.callTreeView"
             name="CurrentExecutionPoint"
-            restorable="true">
-      </view>
-      <view
-            category="org.ntlab.traceDebugger.category"
-            class="org.ntlab.traceDebugger.TracePointsView"
-            id="org.ntlab.traceDebugger.tracePointsView"
-            name="MarkedExecutionPoints"
-            restorable="true">
-      </view>
-      <category
-            id="org.ntlab.traceDebugger.category2"
-            name="TraceDebuggerRelatedReverse">
-      </category>
-      <view
-            category="org.ntlab.traceDebugger.category2"
-            class="org.ntlab.traceDebugger.VariableViewRelatedReverse"
-            id="org.ntlab.traceDebugger.variableViewRelatedReverse"
-            name="Variables"
-            restorable="true">
-      </view>
-      <view
-            category="org.ntlab.traceDebugger.category2"
-            class="org.ntlab.traceDebugger.BreakPointViewRelatedReverse"
-            id="org.ntlab.traceDebugger.breakPointViewRelatedReverse"
-            name="Breakpoints"
-            restorable="true">
-      </view>
-      <category
-            id="org.ntlab.traceDebugger.category3"
-            name="TraceDebuggerRelatedDelta">
-      </category>
-      <view
-            category="org.ntlab.traceDebugger.category3"
-            class="org.ntlab.traceDebugger.CallStackViewRelatedDelta"
-            id="org.ntlab.traceDebugger.callStackViewRelatedDelta"
-            name="CallStack"
-            restorable="true">
-      </view>
-      <view
-            category="org.ntlab.traceDebugger.category3"
-            class="org.ntlab.traceDebugger.VariableViewRelatedDelta"
-            id="org.ntlab.traceDebugger.variableViewRelatedDelta"
-            name="Variables"
             restorable="true">
       </view>
    </extension>
@@ -94,11 +83,6 @@
             class="org.ntlab.traceDebugger.TraceDebuggerPerspective"
             id="org.ntlab.traceDebugger.traceDebuggerPerspective"
             name="TraceDebugger">
-      </perspective>
-      <perspective
-            class="org.ntlab.traceDebugger.TraceDebuggerPerspectiveRelatedReverse"
-            id="org.ntlab.traceDebugger.traceDebuggerPerspectiveRelatedReverse"
-            name="TraceDebugger (Reverse)">
       </perspective>
       <perspective
             class="org.ntlab.traceDebugger.TraceDebuggerPerspectiveRelatedDelta"

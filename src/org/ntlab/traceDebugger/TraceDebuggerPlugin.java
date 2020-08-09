@@ -113,14 +113,14 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 	
 	@Override
 	protected void initializeImageRegistry(ImageRegistry reg) {
-		reg.put(BreakPointViewRelatedReverse.STEP_BACK_INTO_ELCL, getImageDescriptor("/icons/debug/stepbackinto_elcl.png"));
-		reg.put(BreakPointViewRelatedReverse.STEP_BACK_INTO_DLCL, getImageDescriptor("/icons/debug/stepbackinto_dlcl.png"));
-		reg.put(BreakPointViewRelatedReverse.STEP_BACK_OVER_ELCL, getImageDescriptor("/icons/debug/stepbackover_elcl.png"));
-		reg.put(BreakPointViewRelatedReverse.STEP_BACK_OVER_DLCL, getImageDescriptor("/icons/debug/stepbackover_dlcl.png"));
-		reg.put(BreakPointViewRelatedReverse.STEP_BACK_RETURN_ELCL, getImageDescriptor("/icons/debug/stepbackreturn_elcl.png"));
-		reg.put(BreakPointViewRelatedReverse.STEP_BACK_RETURN_DLCL, getImageDescriptor("/icons/debug/stepbackreturn_dlcl.png"));
-		reg.put(BreakPointViewRelatedReverse.BACK_RESUME_ELCL, getImageDescriptor("/icons/debug/backresume_elcl.png"));		
-		reg.put(BreakPointViewRelatedReverse.BACK_RESUME_DLCL, getImageDescriptor("/icons/debug/backresume_dlcl.png"));			
+		reg.put(BreakPointViewRelatedDelta.STEP_BACK_INTO_ELCL, getImageDescriptor("/icons/debug/stepbackinto_elcl.png"));
+		reg.put(BreakPointViewRelatedDelta.STEP_BACK_INTO_DLCL, getImageDescriptor("/icons/debug/stepbackinto_dlcl.png"));
+		reg.put(BreakPointViewRelatedDelta.STEP_BACK_OVER_ELCL, getImageDescriptor("/icons/debug/stepbackover_elcl.png"));
+		reg.put(BreakPointViewRelatedDelta.STEP_BACK_OVER_DLCL, getImageDescriptor("/icons/debug/stepbackover_dlcl.png"));
+		reg.put(BreakPointViewRelatedDelta.STEP_BACK_RETURN_ELCL, getImageDescriptor("/icons/debug/stepbackreturn_elcl.png"));
+		reg.put(BreakPointViewRelatedDelta.STEP_BACK_RETURN_DLCL, getImageDescriptor("/icons/debug/stepbackreturn_dlcl.png"));
+		reg.put(BreakPointViewRelatedDelta.BACK_RESUME_ELCL, getImageDescriptor("/icons/debug/backresume_elcl.png"));		
+		reg.put(BreakPointViewRelatedDelta.BACK_RESUME_DLCL, getImageDescriptor("/icons/debug/backresume_dlcl.png"));			
 	}
 	
 	public static ImageDescriptor getImageDescriptor(String path) {
