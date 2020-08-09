@@ -52,7 +52,7 @@ public class CallStackLabelProvider extends LabelProvider implements IColorProvi
 			if (value instanceof CallStackModel) {
 				CallStackModel callStackModel = (CallStackModel)value;
 				if (callStackModel.isHighlighting()) {
-					return Display.getDefault().getSystemColor(SWT.COLOR_GREEN);
+					return DeltaMarkerLabelProvider.COORDINATOR_LABEL_COLOR;
 				}
 			}
 		}

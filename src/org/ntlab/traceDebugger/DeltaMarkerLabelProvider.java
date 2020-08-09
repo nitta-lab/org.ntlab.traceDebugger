@@ -15,7 +15,7 @@ public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLab
 	public static final Color COORDINATOR_LABEL_COLOR = new Color(Display.getDefault(), 255, 255, 153);
 	public static final Color SETTER_SIDE_LABEL_COLOR = new Color(Display.getDefault(), 255, 204, 216);
 	public static final Color GETTER_SIDE_LABEL_COLOR = new Color(Display.getDefault(), 153, 255, 255);
-	public static final Color BOTTOM_LABEL_COLOR = new Color(Display.getDefault(), 255, 178, 101);
+	public static final Color BOTTOM_LABEL_COLOR = new Color(Display.getDefault(), 255, 204, 153);
 	
 	@Override
 	public String getColumnText(Object element, int columnIndex) {

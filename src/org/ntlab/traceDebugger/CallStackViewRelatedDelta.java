@@ -95,21 +95,14 @@ public class CallStackViewRelatedDelta extends CallStackView {
 	
 	@Override
 	protected void additonalActionOnSelectionChanged(CallStackModel selectedCallStackModel) {
-		CallStackModel callStackModel = selectedCallStackModel;
-		MethodExecution methodExecution = callStackModel.getMethodExecution();
-		TracePoint tp = callStackModel.getTracePoint();
-		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
-		callTreeView.highlight(methodExecution);
-
-		TracePoint debuggingTp = DebuggingController.getInstance().getCurrentTp();
-		VariableViewRelatedDelta variableView = (VariableViewRelatedDelta)TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID);
-		variableView.updateVariablesByTracePoint(tp, false, debuggingTp);						
+		super.additonalActionOnSelectionChanged(selectedCallStackModel);
 		DeltaMarkerView deltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.getActiveView(DeltaMarkerView.ID);
 		if (deltaMarkerView != null) {
 			DeltaMarkerManager deltaMarkerManager = deltaMarkerView.getDeltaMarkerManager();
 			if (deltaMarkerManager != null) {
 				Map<String, List<IMarker>> deltaMarkers = deltaMarkerManager.getMarkers();
 				if (deltaMarkers != null) {
+					VariableViewRelatedDelta variableView = (VariableViewRelatedDelta)TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID);
 					variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkers);	
 				}
 			}

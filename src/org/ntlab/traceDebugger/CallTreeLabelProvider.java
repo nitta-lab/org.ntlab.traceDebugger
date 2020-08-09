@@ -42,7 +42,7 @@ public class CallTreeLabelProvider extends LabelProvider implements IColorProvid
 			if (value instanceof CallTreeModel) {
 				CallTreeModel callTreeModel = (CallTreeModel)value;
 				if (callTreeModel.isHighlighting()) {
-					return new Color(Display.getDefault(), 0, 192, 255);
+					return new Color(Display.getDefault(), 198, 219, 174);
 				}
 			}
 		}

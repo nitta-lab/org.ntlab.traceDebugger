@@ -33,7 +33,7 @@
             category="org.ntlab.traceDebugger.category"
             class="org.ntlab.traceDebugger.DeltaMarkerView"
             id="org.ntlab.traceDebugger.deltaMarkerView"
-            name="DeltaMarkers"
+            name="ExtractedExecutionPoints"
             restorable="true">
       </view>
       <view
@@ -41,14 +41,14 @@
             category="org.ntlab.traceDebugger.category"
             class="org.ntlab.traceDebugger.CallTreeView"
             id="org.ntlab.traceDebugger.callTreeView"
-            name="CallTree"
+            name="CurrentExecutionPoint"
             restorable="true">
       </view>
       <view
             category="org.ntlab.traceDebugger.category"
             class="org.ntlab.traceDebugger.TracePointsView"
             id="org.ntlab.traceDebugger.tracePointsView"
-            name="TracePoints"
+            name="MarkedExecutionPoints"
             restorable="true">
       </view>
       <category
@@ -232,7 +232,7 @@
       <specification
             annotationType="org.ntlab.traceDebugger.bottomDeltaAnnotation"
             colorPreferenceKey="clcolor"
-            colorPreferenceValue="255,178,101"
+            colorPreferenceValue="255,204,153"
             highlightPreferenceKey="clhighlight"
             highlightPreferenceValue="true"
             icon="icons/deltaMarker.png"
@@ -304,7 +304,7 @@
       <specification
             annotationType="org.ntlab.traceDebugger.currentAnnotation"
             colorPreferenceKey="clcolor5"
-            colorPreferenceValue="0,255,0"
+            colorPreferenceValue="198,219,174"
             highlightPreferenceKey="clhighlight5"
             highlightPreferenceValue="true"
             includeOnPreferencePage="true"

@@ -89,7 +89,10 @@ public class CallStackView extends ViewPart {
 	}
 	
 	protected void additonalActionOnSelectionChanged(CallStackModel selectedCallStackModel) {
-		
+		TracePoint tp = selectedCallStackModel.getTracePoint();
+		TracePoint debuggingTp = DebuggingController.getInstance().getCurrentTp();
+		VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);
+		variableView.updateVariablesByTracePoint(tp, false, debuggingTp);
 	}
 	
 	public void updateByTracePoint(TracePoint tp) {

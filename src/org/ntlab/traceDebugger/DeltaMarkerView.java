@@ -46,7 +46,7 @@ public class DeltaMarkerView extends ViewPart {
 		tree.setLinesVisible(true);
 
 		// テーブルのカラムを作成
-		String[] tableColumnTexts = {"Description", "Object ID", "Object Type", "Alias Type", "Source", "Line"};
+		String[] tableColumnTexts = {"Description", "Object ID", "Type", "Alias", "Source", "Line"};
 		int[] tableColumnWidth = {120, 100, 120, 120, 100, 80};
 		TreeColumn[] tableColumns = new TreeColumn[tableColumnTexts.length];
 		for (int i = 0; i < tableColumns.length; i++) {
