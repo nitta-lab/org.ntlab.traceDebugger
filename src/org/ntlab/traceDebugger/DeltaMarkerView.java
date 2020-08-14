@@ -108,12 +108,6 @@ public class DeltaMarkerView extends ViewPart {
 		viewer.getControl().setFocus();
 	}
 	
-	public void update() {
-		viewer.setInput(deltaMarkerManager.getMarkerTreeNodes());
-		viewer.expandAll();
-		viewer.refresh();		
-	}
-	
 	public DeltaMarkerManager getDeltaMarkerManager() {
 		return deltaMarkerManager;
 	}
@@ -144,26 +138,20 @@ public class DeltaMarkerView extends ViewPart {
 			try {
 				Object obj = marker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_DATA);
 				TracePoint jumpPoint;
-				MethodExecution selectionME;
 				boolean isReturned = false;
 				if (obj instanceof Alias) {
 					Alias alias = (Alias)obj;
 					jumpPoint = alias.getOccurrencePoint();
-					selectionME = jumpPoint.getMethodExecution();
 					Alias.AliasType type = alias.getAliasType();
 					isReturned = type.equals(AliasType.METHOD_INVOCATION) || type.equals(AliasType.CONSTRACTOR_INVOCATION);
 				} else if (obj instanceof TracePoint) {
 					jumpPoint = (TracePoint)obj;
-					selectionME = jumpPoint.getMethodExecution();
 				} else {
 					jumpPoint = coordinatorPoint;
-					selectionME = coordinatorPoint.getMethodExecution();
 				}
 				controller.jumpToTheTracePoint(jumpPoint, isReturned);
 				IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 				IDE.openEditor(page, marker);
-//				CallTreeView callTreeView = ((CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID));
-//				callTreeView.highlight(selectionME);
 				CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
 				callStackView.highlight(coordinatorPoint.getMethodExecution());
 				VariableViewRelatedDelta variableView = (VariableViewRelatedDelta)TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID);
@@ -173,34 +161,75 @@ public class DeltaMarkerView extends ViewPart {
 			}
 		}
 	}
-	
-	public void extractDelta(Variable variable, boolean isContainerToComponent) {
+
+	public void extractDeltaForContainerToComponent(Variable variable) {
 		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
 		if (analyzer instanceof DeltaExtractionAnalyzer) {
 			DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;
-			if (isContainerToComponent) {
-				deltaMarkerManager = deltaAnalyzer.extractDeltaForContainerToComponent(variable);	
-			} else {
-				deltaMarkerManager = deltaAnalyzer.extractDeltaForThisToAnother(variable);
-			}
+			deltaMarkerManager = deltaAnalyzer.extractDeltaForContainerToComponent(variable);
 			deltaMarkerManager.createMarkerAndOpenJavaFileForAll(); // デルタ抽出の結果を元にソースコードを反転表示する
-			update();
-			
-			TracePoint coordinatorPoint = getCoordinatorPoint();
-			TracePoint creationPoint = getCreationPoint();
-			MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();
-			MethodExecution bottomME = creationPoint.getMethodExecution();			
-			DebuggingController controller = DebuggingController.getInstance();
-			controller.jumpToTheTracePoint(creationPoint, false);
-			VariableViewRelatedDelta variableView = (VariableViewRelatedDelta)(TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID));
-			variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
-			CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
-			callStackView.highlight(coordinatorME);
-			CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
-			callTreeView.update(deltaMarkerManager);
-			callTreeView.highlight(bottomME);
-			TracePointsView tracePointsView = (TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID);
-			tracePointsView.addTracePoint(creationPoint);
+			updateAfterExtractingDelta();			
 		}
 	}
+
+	public void extractDeltaForThisToAnother(String thisId, String thisClassName, String anotherId, String anotherClassName, TracePoint before) {
+		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
+		if (analyzer instanceof DeltaExtractionAnalyzer) {
+			DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;
+			deltaMarkerManager = deltaAnalyzer.extractDeltaForThisToAnother(thisId, thisClassName, anotherId, anotherClassName, before);
+			deltaMarkerManager.createMarkerAndOpenJavaFileForAll(); // デルタ抽出の結果を元にソースコードを反転表示する
+			updateAfterExtractingDelta();	
+		}
+	}
+	
+	private void updateAfterExtractingDelta() {
+		viewer.setInput(deltaMarkerManager.getMarkerTreeNodes());
+		viewer.expandAll();
+		viewer.refresh();
+		TracePoint coordinatorPoint = getCoordinatorPoint();
+		TracePoint creationPoint = getCreationPoint();
+		MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();
+		MethodExecution bottomME = creationPoint.getMethodExecution();			
+		DebuggingController controller = DebuggingController.getInstance();
+		controller.jumpToTheTracePoint(creationPoint, false);
+		VariableViewRelatedDelta variableView = (VariableViewRelatedDelta)(TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID));
+		variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
+		CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
+		callStackView.highlight(coordinatorME);
+		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
+		callTreeView.update(deltaMarkerManager);
+		callTreeView.highlight(bottomME);
+		TracePointsView tracePointsView = (TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID);
+		tracePointsView.addTracePoint(creationPoint);		
+	}
+	
+//	public void extractDelta(Variable variable, boolean isContainerToComponent) {
+//		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
+//		if (analyzer instanceof DeltaExtractionAnalyzer) {
+//			DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;
+//			if (isContainerToComponent) {
+//				deltaMarkerManager = deltaAnalyzer.extractDeltaForContainerToComponent(variable);	
+//			} else {
+//				deltaMarkerManager = deltaAnalyzer.extractDeltaForThisToAnother(variable);
+//			}
+//			deltaMarkerManager.createMarkerAndOpenJavaFileForAll(); // デルタ抽出の結果を元にソースコードを反転表示する
+//			update();
+//			
+//			TracePoint coordinatorPoint = getCoordinatorPoint();
+//			TracePoint creationPoint = getCreationPoint();
+//			MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();
+//			MethodExecution bottomME = creationPoint.getMethodExecution();			
+//			DebuggingController controller = DebuggingController.getInstance();
+//			controller.jumpToTheTracePoint(creationPoint, false);
+//			VariableViewRelatedDelta variableView = (VariableViewRelatedDelta)(TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID));
+//			variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
+//			CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
+//			callStackView.highlight(coordinatorME);
+//			CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
+//			callTreeView.update(deltaMarkerManager);
+//			callTreeView.highlight(bottomME);
+//			TracePointsView tracePointsView = (TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID);
+//			tracePointsView.addTracePoint(creationPoint);
+//		}
+//	}
 }

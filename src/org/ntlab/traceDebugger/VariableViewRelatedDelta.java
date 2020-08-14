@@ -92,7 +92,8 @@ public class VariableViewRelatedDelta extends VariableView {
 			@Override
 			public void run() {				
 				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.createNewView(DeltaMarkerView.ID, IWorkbenchPage.VIEW_ACTIVATE);
-				newDeltaMarkerView.extractDelta(selectedVariable, true);				
+//				newDeltaMarkerView.extractDelta(selectedVariable, true);
+				newDeltaMarkerView.extractDeltaForContainerToComponent(selectedVariable);
 			}
 		};
 		deltaActionForContainerToComponent.setText("Extract Delta");
@@ -101,8 +102,21 @@ public class VariableViewRelatedDelta extends VariableView {
 		deltaActionForThisToAnother = new Action() {
 			@Override
 			public void run() {
+				TracePoint before = selectedVariable.getBeforeTracePoint();
+				String thisId = before.getMethodExecution().getThisObjId();
+				String thisClassName = before.getMethodExecution().getThisClassName();
+				String anotherId;
+				String anotherClassName;
+				if (selectedVariable.getVariableType().isContainerSide()) {
+					anotherId = selectedVariable.getContainerId();
+					anotherClassName = selectedVariable.getContainerClassName();
+				} else {
+					anotherId = selectedVariable.getValueId();
+					anotherClassName = selectedVariable.getValueClassName();
+				}
 				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.createNewView(DeltaMarkerView.ID, IWorkbenchPage.VIEW_ACTIVATE);				
-				newDeltaMarkerView.extractDelta(selectedVariable, false);
+//				newDeltaMarkerView.extractDelta(selectedVariable, false);
+				newDeltaMarkerView.extractDeltaForThisToAnother(thisId, thisClassName, anotherId, anotherClassName, before);
 			}
 		};
 		deltaActionForThisToAnother.setText("Extract Delta");
@@ -161,7 +175,8 @@ public class VariableViewRelatedDelta extends VariableView {
 		String containerClassName = selectedVariable.getContainerClassName();
 		if (containerId != null  && containerClassName != null) {
 			containerClassName = containerClassName.substring(containerClassName.lastIndexOf(".") + 1);
-			String textForContainerToComponent = String.format("Extract Delta (%s: %s Å® %s: %s)", containerId, containerClassName, valueId, valueClassName);
+//			String textForContainerToComponent = String.format("Extract Delta (%s: %s Å® %s: %s)", containerId, containerClassName, valueId, valueClassName);
+			String textForContainerToComponent = String.format("Extract Delta [ %s (id = %s) -> %s (id = %s) ]", containerClassName, containerId, valueClassName, valueId);
 			deltaActionForContainerToComponent.setText(textForContainerToComponent);
 			deltaActionForContainerToComponent.setToolTipText(textForContainerToComponent);
 			return true;
@@ -171,17 +186,26 @@ public class VariableViewRelatedDelta extends VariableView {
 			return false;
 		}
 	}
-	
+
 	private boolean updateDeltaActionForThisToAnotherTexts(Variable variable) {
-		String valueId = selectedVariable.getValueId();
-		String valueClassName = selectedVariable.getValueClassName();
-		valueClassName = valueClassName.substring(valueClassName.lastIndexOf(".") + 1);
+		VariableType variableType = variable.getVariableType();
+		String anotherId;
+		String anotherClassName;
+		if (variableType.isContainerSide()) {
+			anotherId = selectedVariable.getContainerId();
+			anotherClassName = selectedVariable.getContainerClassName();
+		} else {
+			anotherId = selectedVariable.getValueId();
+			anotherClassName = selectedVariable.getValueClassName();
+		}
+		anotherClassName = anotherClassName.substring(anotherClassName.lastIndexOf(".") + 1);		
 		TracePoint before = selectedVariable.getBeforeTracePoint();
 		String thisId = before.getMethodExecution().getThisObjId();
 		String thisClassName = before.getMethodExecution().getThisClassName();
 		if (thisId != null && thisClassName != null) {			
-			thisClassName = thisClassName.substring(thisClassName.lastIndexOf(".") + 1);
-			String textForThisToAnother = String.format("Extract Delta (%s: %s Å® %s: %s)", thisId, thisClassName, valueId, valueClassName);
+			thisClassName = thisClassName.substring(thisClassName.lastIndexOf(".") + 1);			
+//			String textForThisToAnother = String.format("Extract Delta (%s: %s Å® %s: %s)", thisId, thisClassName, anotherId, anotherClassName);
+			String textForThisToAnother = String.format("Extract Delta [ %s (id = %s) -> %s (id = %s) ]", thisClassName, thisId, anotherClassName, anotherId);
 			deltaActionForThisToAnother.setText(textForThisToAnother);
 			deltaActionForThisToAnother.setToolTipText(textForThisToAnother);
 			return true;
@@ -191,6 +215,26 @@ public class VariableViewRelatedDelta extends VariableView {
 			return false;
 		}
 	}
+	
+//	private boolean updateDeltaActionForThisToAnotherTexts(Variable variable) {
+//		String valueId = selectedVariable.getValueId();
+//		String valueClassName = selectedVariable.getValueClassName();
+//		valueClassName = valueClassName.substring(valueClassName.lastIndexOf(".") + 1);
+//		TracePoint before = selectedVariable.getBeforeTracePoint();
+//		String thisId = before.getMethodExecution().getThisObjId();
+//		String thisClassName = before.getMethodExecution().getThisClassName();
+//		if (thisId != null && thisClassName != null) {			
+//			thisClassName = thisClassName.substring(thisClassName.lastIndexOf(".") + 1);
+//			String textForThisToAnother = String.format("Extract Delta (%s: %s Å® %s: %s)", thisId, thisClassName, valueId, valueClassName);
+//			deltaActionForThisToAnother.setText(textForThisToAnother);
+//			deltaActionForThisToAnother.setToolTipText(textForThisToAnother);
+//			return true;
+//		} else {
+//			deltaActionForThisToAnother.setText("");
+//			deltaActionForThisToAnother.setToolTipText("");
+//			return false;
+//		}
+//	}
 
 	public void markAndExpandVariablesByDeltaMarkers(Map<String, List<IMarker>> markers) {
 		List<IMarker> srcSideDeltaMarkers = markers.get(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
