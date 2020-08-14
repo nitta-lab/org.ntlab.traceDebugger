@@ -95,22 +95,38 @@ public class BreakPointViewRelatedDelta extends BreakPointView {
 	
 	@Override
 	protected void createToolBar() {
-		super.createToolBar();
 		IToolBarManager mgr = getViewSite().getActionBars().getToolBarManager();
-		mgr.add(backResumeAction);
-		mgr.add(stepBackIntoAction);
-		mgr.add(stepBackOverAction);
+		mgr.add(fileOpenAction);
+		mgr.add(importBreakpointAction);
+		mgr.add(debugAction);
 		mgr.add(stepBackReturnAction);
+		mgr.add(stepBackOverAction);
+		mgr.add(stepBackIntoAction);
+		mgr.add(backResumeAction);
+		mgr.add(terminateAction);
+		mgr.add(resumeAction);
+		mgr.add(stepIntoAction);
+		mgr.add(stepOverAction);
+		mgr.add(stepReturnAction);
+		mgr.add(stepNextAction);
 	}
 	
 	@Override
 	protected void createMenuBar() {
-		super.createMenuBar();
-		IMenuManager mgr = getViewSite().getActionBars().getMenuManager();
-		mgr.add(backResumeAction);
-		mgr.add(stepBackIntoAction);
-		mgr.add(stepBackOverAction);
+		IMenuManager mgr = getViewSite().getActionBars().getMenuManager();		
+		mgr.add(fileOpenAction);
+		mgr.add(importBreakpointAction);
+		mgr.add(debugAction);
 		mgr.add(stepBackReturnAction);
+		mgr.add(stepBackOverAction);
+		mgr.add(stepBackIntoAction);
+		mgr.add(backResumeAction);
+		mgr.add(terminateAction);
+		mgr.add(resumeAction);
+		mgr.add(stepIntoAction);
+		mgr.add(stepOverAction);
+		mgr.add(stepReturnAction);
+		mgr.add(stepNextAction);
 	}
 	
 	@Override

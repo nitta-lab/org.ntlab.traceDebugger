@@ -41,7 +41,7 @@ public class BreakPointView extends ViewPart {
 	protected IAction stepReturnAction;
 	protected IAction stepNextAction;
 	protected IAction resumeAction;
-	private IAction importBreakpointAction;
+	protected IAction importBreakpointAction;
 	protected Shell shell;
 	protected DebuggingController debuggingController = DebuggingController.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.breakPointView";
@@ -62,7 +62,7 @@ public class BreakPointView extends ViewPart {
 		table.setLinesVisible(true);
 
 		// テーブルのカラムを作成
-		String[] tableColumnTexts = {"Available", "Line No", "Signature"};
+		String[] tableColumnTexts = {"Available", "Line", "Signature"};
 		int[] tableColumnWidth = {80, 80, 500};
 		TableColumn[] tableColumns = new TableColumn[tableColumnTexts.length];
 		for (int i = 0; i < tableColumns.length; i++) {
@@ -146,8 +146,8 @@ public class BreakPointView extends ViewPart {
 				debuggingController.impoerBreakpointAction();
 			}
 		};
-		importBreakpointAction.setText("Import breakpoints");
-		importBreakpointAction.setToolTipText("Copy breakpoint from Eclipse");
+		importBreakpointAction.setText("Import Breakpoints");
+		importBreakpointAction.setToolTipText("Copy Breakpoints from Eclipse");
 		
 		debugAction = new Action() {
 			@Override

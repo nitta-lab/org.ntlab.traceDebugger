@@ -82,12 +82,12 @@
       <perspective
             class="org.ntlab.traceDebugger.TraceDebuggerPerspective"
             id="org.ntlab.traceDebugger.traceDebuggerPerspective"
-            name="TraceDebugger">
+            name="TraceDebugger (Forward)">
       </perspective>
       <perspective
             class="org.ntlab.traceDebugger.TraceDebuggerPerspectiveRelatedDelta"
             id="org.ntlab.traceDebugger.traceDebuggerPerspectiveRelatedDelta"
-            name="TraceDebugger (Delta)">
+            name="TraceDebugger (Reverse)">
       </perspective>
    </extension>
    <extension

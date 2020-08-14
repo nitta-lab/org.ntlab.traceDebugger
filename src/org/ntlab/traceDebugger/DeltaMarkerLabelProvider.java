@@ -66,7 +66,7 @@ public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLab
 						String resource = marker.getResource().toString();
 						return resource.substring(resource.lastIndexOf("/") + 1);
 					case 5:
-						return "line: " + marker.getAttribute(IMarker.LINE_NUMBER);
+						return "" + marker.getAttribute(IMarker.LINE_NUMBER);
 					}
 				} catch(CoreException e) {
 					e.printStackTrace();
