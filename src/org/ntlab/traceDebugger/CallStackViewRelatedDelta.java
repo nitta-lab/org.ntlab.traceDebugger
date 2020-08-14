@@ -55,9 +55,7 @@ public class CallStackViewRelatedDelta extends CallStackView {
 					String calleeClassName = callee.getThisClassName();
 					String calleeId = callee.getThisObjId();
 					TracePoint before = callee.getCallerTracePoint();
-//					Variable variable = new Variable("tmp", callerClassName, callerId, calleeClassName, calleeId, before, false);
 					DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.createNewView(DeltaMarkerView.ID, IWorkbenchPage.VIEW_ACTIVATE);
-//					newDeltaMarkerView.extractDelta(variable, false);
 					newDeltaMarkerView.extractDeltaForThisToAnother(callerId, callerClassName, calleeId, calleeClassName, before);
 				}
 			}

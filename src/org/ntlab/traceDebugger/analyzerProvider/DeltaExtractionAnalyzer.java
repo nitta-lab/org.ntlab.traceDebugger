@@ -60,11 +60,6 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 	}
 
 	public DeltaMarkerManager extractDeltaForThisToAnother(String thisId, String thisClassName, String anotherId, String anotherClassName, TracePoint before) {
-//		TracePoint before = variable.getBeforeTracePoint();
-//		String srcId = before.getMethodExecution().getThisObjId();
-//		String srcClassName = before.getMethodExecution().getThisClassName();
-//		String dstId = variable.getValueId();
-//		String dstClassName = variable.getValueClassName();
 		MethodExecution me = before.getMethodExecution();
 		Map<ObjectReference, TracePoint> references = me.getObjectReferences(anotherClassName);
 		ObjectReference objectReference = null;
@@ -86,34 +81,6 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		Reference reference = new Reference(thisId, anotherId, thisClassName, anotherClassName);
 		return new DeltaMarkerManager(coordinator, bottomPoint, reference, aliasCollector);
 	}
-	
-//	public DeltaMarkerManager extractDeltaForThisToAnother(Variable variable) {
-//		TracePoint before = variable.getBeforeTracePoint();
-//		String srcId = before.getMethodExecution().getThisObjId();
-//		String srcClassName = before.getMethodExecution().getThisClassName();
-//		String dstId = variable.getValueId();
-//		String dstClassName = variable.getValueClassName();
-//		MethodExecution me = before.getMethodExecution();
-//		Map<ObjectReference, TracePoint> references = me.getObjectReferences(dstClassName);
-//		ObjectReference objectReference = null;
-//		TracePoint tp = null;
-//		for (Map.Entry<ObjectReference, TracePoint> entry : references.entrySet()) {
-//			ObjectReference key = entry.getKey();
-//			if (key.getId().equals(dstId)) {
-//				objectReference = key;
-//				tp = entry.getValue();
-//				break;
-//			}
-//		}
-//		
-//		// ÉfÉãÉ^íäèo
-//		TracePoint bottomPoint = tp.duplicate();
-//		DeltaRelatedAliasCollector aliasCollector = new DeltaRelatedAliasCollector(srcId, dstId);
-//		extractedStructure = deltaExtractor.extract(tp, objectReference, aliasCollector);
-//		MethodExecution coordinator = extractedStructure.getCoordinator();
-//		Reference reference = new Reference(srcId, dstId, srcClassName, dstClassName);
-//		return new DeltaMarkerManager(coordinator, bottomPoint, reference, aliasCollector);
-//	}
 
 	private TracePoint findTracePoint(Reference reference, MethodExecution methodExecution, long beforeTime) {
 		List<Statement> statements = methodExecution.getStatements();
