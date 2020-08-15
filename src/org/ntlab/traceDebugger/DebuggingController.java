@@ -10,12 +10,17 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.dialogs.InputDialog;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
@@ -34,8 +39,13 @@ public class DebuggingController {
 	private TraceBreakPoint selectedTraceBreakPoint;
 	private TraceBreakPoints traceBreakPoints;
 	private IMarker currentLineMarker;
+	private LoadingTraceFileStatus loadingTraceFileStatus = LoadingTraceFileStatus.NOT_YET;
 	private boolean isRunning = false;
 	public static final String CURRENT_MARKER_ID = "org.ntlab.traceDebugger.currentMarker";
+	
+	private enum LoadingTraceFileStatus {
+		NOT_YET, PROGRESS, DONE
+	}
 	
 	private DebuggingController() {
 		
@@ -62,6 +72,10 @@ public class DebuggingController {
 	}
 	
 	public boolean fileOpenAction(Shell shell) {
+		if (loadingTraceFileStatus == LoadingTraceFileStatus.PROGRESS) {
+			MessageDialog.openInformation(null, "Loading", "This debugger is loading the trace.");
+			return false;
+		}
 		if (isRunning) {
 			MessageDialog.openInformation(null, "Running", "This debugger is running on the trace.");
 			return false;
@@ -71,21 +85,54 @@ public class DebuggingController {
 		fileDialog.setFilterExtensions(new String[]{"*.*"});
 		String path = fileDialog.open();
 		if (path == null) return false;
-		TraceJSON trace = new TraceJSON(path);
-		TraceDebuggerPlugin.setAnalyzer(new DeltaExtractionAnalyzer(trace));
-		VariableUpdatePointFinder.getInstance().setTrace(trace);
-		traceBreakPoints = new TraceBreakPoints(trace);
+		
 		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
 		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).reset();
 		((TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID)).reset();
 		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 		if (callTreeView != null) callTreeView.reset();
+		loadTraceFileOnOtherThread(path);
 		return true;
 	}
 	
+	private void loadTraceFileOnOtherThread(final String filePath) {
+		Job job = new Job("Loading Trace File") {
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {							
+				monitor.beginTask("Loading Trace File" + " (" + filePath + ")", IProgressMonitor.UNKNOWN);
+				loadingTraceFileStatus = LoadingTraceFileStatus.PROGRESS;
+				TraceDebuggerPlugin.setAnalyzer(null);
+				TraceJSON trace = new TraceJSON(filePath);
+				TraceDebuggerPlugin.setAnalyzer(new DeltaExtractionAnalyzer(trace));
+				VariableUpdatePointFinder.getInstance().setTrace(trace);
+				traceBreakPoints = new TraceBreakPoints(trace);
+				
+				// GUIの操作はGUIのイベントディスパッチを行っているスレッドからしか操作できないのでそうする
+				final BreakPointView breakpointView = (BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID);
+				Control control = breakpointView.getViewer().getControl();
+				control.getDisplay().syncExec(new Runnable() {
+					@Override
+					public void run() {
+						breakpointView.updateTraceBreakPoints(traceBreakPoints);
+					}
+				});
+				monitor.done();
+				if (!(monitor.isCanceled())) {
+					loadingTraceFileStatus = LoadingTraceFileStatus.DONE;
+					return Status.OK_STATUS;
+				} else {
+					loadingTraceFileStatus = LoadingTraceFileStatus.NOT_YET;
+					return Status.CANCEL_STATUS;
+				}
+			}
+		};
+		job.setUser(true);
+		job.schedule();
+	}
+	
 	public boolean addTraceBreakPointAction() {
-		if (TraceDebuggerPlugin.getAnalyzer() == null) {
+		if (loadingTraceFileStatus != LoadingTraceFileStatus.DONE) {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
 			return false;
 		}
@@ -105,7 +152,7 @@ public class DebuggingController {
 	}
 
 	public boolean impoerBreakpointAction() {
-		if (TraceDebuggerPlugin.getAnalyzer() == null) {
+		if (loadingTraceFileStatus != LoadingTraceFileStatus.DONE) {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
 			return false;
 		}
@@ -129,11 +176,13 @@ public class DebuggingController {
 	}
 	
 	public boolean debugAction() {
-		if (TraceDebuggerPlugin.getAnalyzer() == null) {
+		if (loadingTraceFileStatus != LoadingTraceFileStatus.DONE) {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
 			return false;
 		}
-		terminateAction();
+		if (isRunning) {
+			return false;
+		}
 		debuggingTp = traceBreakPoints.getFirstTracePoint();
 		if (debuggingTp == null) {
 			MessageDialog.openInformation(null, "Error", "An available breakpoint was not found");

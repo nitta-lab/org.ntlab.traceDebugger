@@ -1,5 +1,7 @@
 package org.ntlab.traceDebugger;
 
+import java.util.ArrayList;
+
 import org.eclipse.debug.internal.ui.IInternalDebugUIConstants;
 import org.eclipse.debug.ui.DebugUITools;
 import org.eclipse.debug.ui.IDebugUIConstants;
@@ -16,6 +18,7 @@ import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TableViewer;
+import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Menu;
@@ -96,6 +99,10 @@ public class BreakPointView extends ViewPart {
 		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
+	public Viewer getViewer() {
+		return viewer;
+	}
+	
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
@@ -266,6 +273,11 @@ public class BreakPointView extends ViewPart {
 		Menu menu = menuMgr.createContextMenu(viewer.getControl());
 		viewer.getControl().setMenu(menu);
 		getSite().registerContextMenu(menuMgr, viewer);
+	}
+
+	public void reset() {
+		viewer.setInput(new ArrayList<TraceBreakPoint>());
+		viewer.refresh();
 	}
 	
 	public void updateTraceBreakPoints(TraceBreakPoints traceBreakPoints) {
