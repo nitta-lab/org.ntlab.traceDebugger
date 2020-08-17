@@ -14,7 +14,8 @@ public class BreakPointLabelProvider  extends LabelProvider implements ITableLab
 			TraceBreakPoint tbp = (TraceBreakPoint)element;
 			switch (columnIndex) {
 			case 0:
-				return tbp.isAvailable() ? "True" : "False";
+//				return tbp.isAvailable() ? "True" : "False";
+				return "";
 			case 1:
 				return String.valueOf(tbp.getLineNo());
 			case 2:
@@ -26,6 +27,7 @@ public class BreakPointLabelProvider  extends LabelProvider implements ITableLab
 	
 	@Override
 	public Image getColumnImage(Object element, int columnIndex) {
+		if (columnIndex == 0) return null;
 		return getImage(element);
 	}
 	

@@ -37,7 +37,7 @@ public class DebuggingController {
 	private static final DebuggingController theInstance = new DebuggingController();
 	private TracePoint debuggingTp;
 	private TraceBreakPoint selectedTraceBreakPoint;
-	private TraceBreakPoints traceBreakPoints;
+//	private TraceBreakPoints traceBreakPoints;
 	private IMarker currentLineMarker;
 	private LoadingTraceFileStatus loadingTraceFileStatus = LoadingTraceFileStatus.NOT_YET;
 	private boolean isRunning = false;
@@ -106,8 +106,8 @@ public class DebuggingController {
 				TraceJSON trace = new TraceJSON(filePath);
 				TraceDebuggerPlugin.setAnalyzer(new DeltaExtractionAnalyzer(trace));
 				VariableUpdatePointFinder.getInstance().setTrace(trace);
-				traceBreakPoints = new TraceBreakPoints(trace);
-				
+				final TraceBreakPoints traceBreakPoints = new TraceBreakPoints(trace);
+
 				// GUIの操作はGUIのイベントディスパッチを行っているスレッドからしか操作できないのでそうする
 				final BreakPointView breakpointView = (BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID);
 				Control control = breakpointView.getViewer().getControl();
@@ -142,6 +142,7 @@ public class DebuggingController {
 		inputDialog = new InputDialog(null, "line No dialog", "Input line no", "", null);
 		if (inputDialog.open() != InputDialog.OK) return false;
 		int lineNo = Integer.parseInt(inputDialog.getValue());
+		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		boolean isSuccess = traceBreakPoints.addTraceBreakPoint(methodSignature, lineNo);
 		if (!isSuccess) {
 			MessageDialog.openInformation(null, "Error", "This trace point does not exist in the trace.");
@@ -156,6 +157,7 @@ public class DebuggingController {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
 			return false;
 		}
+		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		traceBreakPoints.importBreakpointFromEclipse();
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
 		return true;
@@ -163,6 +165,7 @@ public class DebuggingController {
 	
 	public boolean removeTraceBreakPointAction() {
 		if (selectedTraceBreakPoint == null) return false;
+		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		traceBreakPoints.removeTraceBreakPoint(selectedTraceBreakPoint);
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
 		return true;
@@ -171,6 +174,7 @@ public class DebuggingController {
 	public boolean changeAvailableAction() {
 		if (selectedTraceBreakPoint == null) return false;
 		selectedTraceBreakPoint.changeAvailable();
+		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
 		return true;
 	}
@@ -183,6 +187,7 @@ public class DebuggingController {
 		if (isRunning) {
 			return false;
 		}
+		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		debuggingTp = traceBreakPoints.getFirstTracePoint();
 		if (debuggingTp == null) {
 			MessageDialog.openInformation(null, "Error", "An available breakpoint was not found");
@@ -330,6 +335,7 @@ public class DebuggingController {
 		if (debuggingTp == null) return false;
 		long currentTime = debuggingTp.getStatement().getTimeStamp();
 		TracePoint previousTp = debuggingTp;
+		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		debuggingTp = traceBreakPoints.getNextTracePoint(currentTime);
 		if (debuggingTp == null) {
 			terminateAction();
@@ -406,6 +412,7 @@ public class DebuggingController {
 		if (debuggingTp == null) return false;		
 		TracePoint previousTp = debuggingTp;
 		long currentTime = debuggingTp.getStatement().getTimeStamp();
+		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		debuggingTp = traceBreakPoints.getPreviousTracePoint(currentTime);
 		if (debuggingTp == null) {
 			terminateAction();

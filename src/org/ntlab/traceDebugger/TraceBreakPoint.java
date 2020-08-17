@@ -114,6 +114,10 @@ public class TraceBreakPoint {
 		return isAvailable;
 	}
 	
+	public void setAvailable(boolean isAvailable) {
+		this.isAvailable = isAvailable;
+	}
+	
 	public void changeAvailable() {
 		isAvailable = !isAvailable;
 	}	

@@ -14,17 +14,24 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.CheckboxTableViewer;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.PlatformUI;
@@ -46,6 +53,7 @@ public class BreakPointView extends ViewPart {
 	protected IAction resumeAction;
 	protected IAction importBreakpointAction;
 	protected Shell shell;
+	protected TraceBreakPoints traceBreakPoints;
 	protected DebuggingController debuggingController = DebuggingController.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.breakPointView";
 
@@ -59,8 +67,8 @@ public class BreakPointView extends ViewPart {
 		// TODO Auto-generated method stub
 		System.out.println("BreakPointView#createPartControl(Composite)‚ªŒÄ‚Î‚ê‚½‚æ!");
 		shell = parent.getShell();
-		viewer = new TableViewer(parent, SWT.FULL_SELECTION);
-		Table table = viewer.getTable();
+		viewer = CheckboxTableViewer.newCheckList(parent, SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER | SWT.FULL_SELECTION);
+		final Table table = viewer.getTable();
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
 
@@ -88,6 +96,21 @@ public class BreakPointView extends ViewPart {
 					MethodExecution methodExecution = tbp.getMethodExecutions().iterator().next();
 					int highlightLineNo = tbp.getLineNo();
 					JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, highlightLineNo);
+				}
+			}
+		});
+		
+		table.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseDown(MouseEvent e) {
+				Point point = new Point(e.x, e.y);
+				TableItem item = table.getItem(point);
+				if (item == null) return;
+				boolean checked = item.getChecked();
+				Object data = item.getData();
+				if (data instanceof TraceBreakPoint) {
+					TraceBreakPoint tbp = (TraceBreakPoint)data;
+					tbp.setAvailable(checked);
 				}
 			}
 		});
@@ -274,6 +297,14 @@ public class BreakPointView extends ViewPart {
 		viewer.getControl().setMenu(menu);
 		getSite().registerContextMenu(menuMgr, viewer);
 	}
+	
+	public TraceBreakPoints getTraceBreakPoints() {
+		return traceBreakPoints;
+	}
+	
+//	public void setTraceBreakPoints(TraceBreakPoints traceBreakPoints) {
+//		this.traceBreakPoints = traceBreakPoints;
+//	}
 
 	public void reset() {
 		viewer.setInput(new ArrayList<TraceBreakPoint>());
@@ -281,7 +312,19 @@ public class BreakPointView extends ViewPart {
 	}
 	
 	public void updateTraceBreakPoints(TraceBreakPoints traceBreakPoints) {
+		this.traceBreakPoints = traceBreakPoints;
 		viewer.setInput(traceBreakPoints.getAllTraceBreakPoints());
+//		viewer.refresh();
+		
+		final Table table = viewer.getTable();
+		for (TableItem item : table.getItems()) {
+			Object data = item.getData();
+			if (data instanceof TraceBreakPoint) {
+				TraceBreakPoint tbp = (TraceBreakPoint)data;
+				boolean isAvailable = tbp.isAvailable();
+				item.setChecked(isAvailable);
+			}
+		}
 		viewer.refresh();
 	}
 	
