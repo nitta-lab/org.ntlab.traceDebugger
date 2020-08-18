@@ -152,7 +152,7 @@ public class DebuggingController {
 		return true;
 	}
 
-	public boolean impoerBreakpointAction() {
+	public boolean importBreakpointAction() {
 		if (loadingTraceFileStatus != LoadingTraceFileStatus.DONE) {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
 			return false;

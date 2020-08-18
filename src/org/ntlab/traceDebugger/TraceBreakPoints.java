@@ -13,6 +13,7 @@ import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.model.IBreakpoint;
+import org.eclipse.jdt.internal.debug.core.breakpoints.JavaLineBreakpoint;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
@@ -86,6 +87,7 @@ public class TraceBreakPoints {
 	public void importBreakpointFromEclipse() {
 		IBreakpoint[] breakpoints = DebugPlugin.getDefault().getBreakpointManager().getBreakpoints();
 		for (IBreakpoint breakpoint : breakpoints) {
+			if (!(breakpoint instanceof JavaLineBreakpoint)) continue;
 			try {
 				IMarker breakpointMarker = breakpoint.getMarker();
 				Map<String, Object> attributes = breakpointMarker.getAttributes();

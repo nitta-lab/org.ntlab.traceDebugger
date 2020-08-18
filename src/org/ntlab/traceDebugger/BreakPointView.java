@@ -173,7 +173,7 @@ public class BreakPointView extends ViewPart {
 		importBreakpointAction = new Action() {
 			@Override
 			public void run() {
-				debuggingController.impoerBreakpointAction();
+				debuggingController.importBreakpointAction();
 			}
 		};
 		importBreakpointAction.setText("Import Breakpoints");
