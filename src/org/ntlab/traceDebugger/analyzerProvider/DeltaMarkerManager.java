@@ -899,6 +899,8 @@ public class DeltaMarkerManager {
 				visitor = new MyASTVisitor(){
 					public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
 						int lineNo = cUnit.getLineNumber(node.getStartPosition());
+						int aliasLineNo = alias.getLineNo();
+						if (lineNo < aliasLineNo) return true; // 実際にリターンした場所の直前にある最終ステートメントよりも前のリターンは飛ばす
 						int start = node.getStartPosition();
 						int end = start + node.getLength();
 						attributes.put(IMarker.CHAR_START, start);
