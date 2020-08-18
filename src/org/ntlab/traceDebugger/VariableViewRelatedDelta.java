@@ -169,19 +169,34 @@ public class VariableViewRelatedDelta extends VariableView {
 		String valueId = selectedVariable.getValueId();
 		String valueClassName = selectedVariable.getValueClassName();
 		valueClassName = valueClassName.substring(valueClassName.lastIndexOf(".") + 1);
-		String containerId = selectedVariable.getContainerId();
-		String containerClassName = selectedVariable.getContainerClassName();
-		if (containerId != null  && containerClassName != null) {
-			containerClassName = containerClassName.substring(containerClassName.lastIndexOf(".") + 1);
-			String textForContainerToComponent = String.format("Extract Delta [ %s (id = %s) -> %s (id = %s) ]", containerClassName, containerId, valueClassName, valueId);
-			deltaActionForContainerToComponent.setText(textForContainerToComponent);
-			deltaActionForContainerToComponent.setToolTipText(textForContainerToComponent);
-			return true;
-		} else {
-			deltaActionForContainerToComponent.setText("");
-			deltaActionForContainerToComponent.setToolTipText("");
-			return false;
+		if (!(valueId.isEmpty()) && !(valueClassName.isEmpty())) {
+			String containerId = selectedVariable.getContainerId();
+			String containerClassName = selectedVariable.getContainerClassName();
+			if (containerId != null  && containerClassName != null) {
+				containerClassName = containerClassName.substring(containerClassName.lastIndexOf(".") + 1);
+				String textForContainerToComponent = String.format("Extract Delta [ %s (id = %s) -> %s (id = %s) ]", containerClassName, containerId, valueClassName, valueId);
+				deltaActionForContainerToComponent.setText(textForContainerToComponent);
+				deltaActionForContainerToComponent.setToolTipText(textForContainerToComponent);
+				return true;
+			}
 		}
+		deltaActionForContainerToComponent.setText("");
+		deltaActionForContainerToComponent.setToolTipText("");
+		return false;
+
+//		String containerId = selectedVariable.getContainerId();
+//		String containerClassName = selectedVariable.getContainerClassName();
+//		if (containerId != null  && containerClassName != null) {
+//			containerClassName = containerClassName.substring(containerClassName.lastIndexOf(".") + 1);
+//			String textForContainerToComponent = String.format("Extract Delta [ %s (id = %s) -> %s (id = %s) ]", containerClassName, containerId, valueClassName, valueId);
+//			deltaActionForContainerToComponent.setText(textForContainerToComponent);
+//			deltaActionForContainerToComponent.setToolTipText(textForContainerToComponent);
+//			return true;
+//		} else {
+//			deltaActionForContainerToComponent.setText("");
+//			deltaActionForContainerToComponent.setToolTipText("");
+//			return false;
+//		}
 	}
 
 	private boolean updateDeltaActionForThisToAnotherTexts(Variable variable) {

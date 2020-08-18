@@ -265,22 +265,27 @@ public class Variables {
 			} else if (toStatement instanceof MethodInvocation) {
 				MethodInvocation mi = (MethodInvocation)toStatement;
 				MethodExecution calledME = mi.getCalledMethodExecution();
-				List<ObjectReference> args = calledME.getArguments();
-				if (args.size() == 1) {
-					ObjectReference argObj = args.get(0);
-					String containerClassName = calledME.getThisClassName();
-					String containerObjId = calledME.getThisObjId();
-					String valueClassName = argObj.getActualType();
-					String valueObjId = argObj.getId();
-					Variable receiver = new Variable(Variable.RECEIVER_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_RECEIVER);
+				List<ObjectReference> args = calledME.getArguments();				
+				String valueClassName = "";
+				String valueObjId = "";
+				if (args.size() > 0) {
+					valueClassName = args.get(0).getActualType();
+					valueObjId = args.get(0).getId();
+				}
+				String containerClassName = calledME.getThisClassName();
+				String containerObjId = calledME.getThisObjId();
+				Variable receiver = new Variable(Variable.RECEIVER_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_RECEIVER);
+				specialVariablesDefSide.add(receiver);
+				for (ObjectReference obj : args) {
+					valueClassName = obj.getActualType();
+					valueObjId = obj.getId();
 					Variable arg = new Variable(Variable.ARG_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_ARG);
-					specialVariablesDefSide.add(receiver);
 					specialVariablesDefSide.add(arg);
-					if (calledME.isConstructor()) {
-						parentNodeNameOfDefSide = "before invocation of Constructor:" + calledME.getSignature();
-					} else {
-						parentNodeNameOfDefSide = "before invocation of:" + calledME.getSignature();	
-					}
+				}
+				if (calledME.isConstructor()) {
+					parentNodeNameOfDefSide = "before invocation of Constructor:" + calledME.getSignature();
+				} else {
+					parentNodeNameOfDefSide = "before invocation of:" + calledME.getSignature();	
 				}
 			} 
 		}
@@ -289,20 +294,7 @@ public class Variables {
 		}	
 		if (parentNodeNameOfDefSide != null) {
 			setSpecialVariableNodes(parentNodeNameOfDefSide, specialVariablesDefSide);
-		}
-		
-//		for (Variable variable : list) {
-//			variable.createNextHierarchyState();
-//			roots.add(0, variable);
-//			MyTreeNode variableNode = new MyTreeNode(variable);
-////			rootTreeNodes.add(0, variableNode);
-//			List<MyTreeNode> childList = new ArrayList<>();
-//			variableNode.setChildList(childList);
-//			for (int i = 0; i < variable.getChildren().size(); i++) {
-//				Variable childVariable = variable.getChildren().get(i);
-//				createVariablesTreeNodeList(variableNode, childList, i, childVariable);	
-//			}
-//		}
+		}		
 	}
 	
 	private void setSpecialVariableNodes(String parentNodeName, List<Variable> specialVariables) {
