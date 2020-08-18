@@ -1,13 +1,16 @@
 package org.ntlab.traceDebugger.analyzerProvider;
-
+ 
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
+import java.util.Map.Entry;
+ 
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayCreate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldAccess;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ObjectReference;
@@ -589,24 +592,50 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 		Reference r;
 		if (methodExecution.isCollectionType()) {
 			if (objectId != null) {
-				// コレクション型の場合、内部で個々の要素を直接保持していると仮定する
-				if (objectId.equals(srcObject.getId())) {
-					r = new Reference(thisObj, srcObject);
-					r.setCollection(true);
-					eStructure.addSrcSide(r);
-					srcObject = thisObj;
-					aliasCollector.changeTrackingObject(objectId, thisObjectId, true);
-					aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, tracePoint.duplicate()));
-				} else if(objectId.equals(dstObject.getId())) {
-					r = new Reference(thisObj, dstObject);
-					r.setCollection(true);
-					eStructure.addDstSide(r);
-					dstObject =thisObj;
-					aliasCollector.changeTrackingObject(objectId, thisObjectId, false);
-					aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, tracePoint.duplicate()));
+				if (methodExecution.getSignature().contains("Collections.unmodifiable") 
+						|| methodExecution.getSignature().contains("Collections.checked") 
+						|| methodExecution.getSignature().contains("Collections.synchronized") 
+						|| methodExecution.getSignature().contains("Arrays.asList") 
+						|| methodExecution.getSignature().contains("Arrays.copyOf")) {
+					// 配列やコレクションの間の変換の場合、変換元の第一引数に依存する
+					if (arguments.size() > 0) {
+						if (objectId.equals(srcObject.getId())) {
+							r = new Reference(arguments.get(0), srcObject);
+							r.setCollection(true);
+							eStructure.addSrcSide(r);
+							srcObject = arguments.get(0);
+							aliasCollector.changeTrackingObject(objectId, arguments.get(0).getId(), true);
+							aliasCollector.addAlias(new Alias(Alias.AliasType.FORMAL_PARAMETER, 0, arguments.get(0).getId(), tracePoint.duplicate()));
+						} else if(objectId.equals(dstObject.getId())) {
+							r = new Reference(arguments.get(0), dstObject);
+							r.setCollection(true);
+							eStructure.addDstSide(r);
+							dstObject =arguments.get(0);
+							aliasCollector.changeTrackingObject(objectId, arguments.get(0).getId(), false);
+							aliasCollector.addAlias(new Alias(Alias.AliasType.FORMAL_PARAMETER, 0, arguments.get(0).getId(), tracePoint.duplicate()));
+						}
+					}
+					objList.set(index, arguments.get(0).getId());
+				} else {
+					// コレクション型の場合、内部で個々の要素を直接保持していると仮定する
+					if (objectId.equals(srcObject.getId())) {
+						r = new Reference(thisObj, srcObject);
+						r.setCollection(true);
+						eStructure.addSrcSide(r);
+						srcObject = thisObj;
+						aliasCollector.changeTrackingObject(objectId, thisObjectId, true);
+						aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, tracePoint.duplicate()));
+					} else if(objectId.equals(dstObject.getId())) {
+						r = new Reference(thisObj, dstObject);
+						r.setCollection(true);
+						eStructure.addDstSide(r);
+						dstObject =thisObj;
+						aliasCollector.changeTrackingObject(objectId, thisObjectId, false);
+						aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, tracePoint.duplicate()));
+					}
+					objList.set(index, methodExecution.getThisObjId());
 				}
 			}
-			objList.set(index, methodExecution.getThisObjId());
 			isResolved = true;		// 必要なのでは?
 		}
 		
