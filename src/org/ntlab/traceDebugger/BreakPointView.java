@@ -1,5 +1,10 @@
 package org.ntlab.traceDebugger;
 
+import java.util.ArrayList;
+
+import org.eclipse.debug.internal.ui.IInternalDebugUIConstants;
+import org.eclipse.debug.ui.DebugUITools;
+import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuListener;
@@ -9,16 +14,24 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.CheckboxTableViewer;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TableViewer;
+import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.MouseAdapter;
+import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.PlatformUI;
@@ -26,24 +39,22 @@ import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 
 public class BreakPointView extends ViewPart {
-	private TableViewer viewer;
-	private IAction fileOpenAction;
-	private IAction addTraceBreakPointAction;
-	private IAction removeTraceBreakPointAction;
-	private IAction changeAvailableAction;
-	private IAction debugAction;
-	private IAction terminateAction;
-	private IAction stepIntoAction;
-	private IAction stepOverAction;
-	private IAction stepReturnAction;
-	private IAction resumeAction;
-	private IAction stepBackIntoAction;
-	private IAction stepBackOverAction;
-	private IAction stepBackReturnAction;
-	private IAction backResumeAction;
-	private IAction tmpAction;
-	private Shell shell;
-	private DebuggingController debuggingController = new DebuggingController();
+	protected TableViewer viewer;
+	protected IAction fileOpenAction;
+	protected IAction addTraceBreakPointAction;
+	protected IAction removeTraceBreakPointAction;
+	protected IAction changeAvailableAction;
+	protected IAction debugAction;
+	protected IAction terminateAction;
+	protected IAction stepIntoAction;
+	protected IAction stepOverAction;
+	protected IAction stepReturnAction;
+	protected IAction stepNextAction;
+	protected IAction resumeAction;
+	protected IAction importBreakpointAction;
+	protected Shell shell;
+	protected TraceBreakPoints traceBreakPoints;
+	protected DebuggingController debuggingController = DebuggingController.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.breakPointView";
 
 	public BreakPointView() {
@@ -56,14 +67,14 @@ public class BreakPointView extends ViewPart {
 		// TODO Auto-generated method stub
 		System.out.println("BreakPointView#createPartControl(Composite)が呼ばれたよ!");
 		shell = parent.getShell();
-		viewer = new TableViewer(parent, SWT.FULL_SELECTION);
-		Table table = viewer.getTable();
+		viewer = CheckboxTableViewer.newCheckList(parent, SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER | SWT.FULL_SELECTION);
+		final Table table = viewer.getTable();
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
 
 		// テーブルのカラムを作成
-		String[] tableColumnTexts = {"Available", "Line No", "Signature"};
-		int[] tableColumnWidth = {80, 80, 200};
+		String[] tableColumnTexts = {"", "Line", "Signature"};
+		int[] tableColumnWidth = {30, 80, 500};
 		TableColumn[] tableColumns = new TableColumn[tableColumnTexts.length];
 		for (int i = 0; i < tableColumns.length; i++) {
 			tableColumns[i] = new TableColumn(table, SWT.NULL);
@@ -88,20 +99,41 @@ public class BreakPointView extends ViewPart {
 				}
 			}
 		});
+		
+		table.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseDown(MouseEvent e) {
+				Point point = new Point(e.x, e.y);
+				TableItem item = table.getItem(point);
+				if (item == null) return;
+				boolean checked = item.getChecked();
+				Object data = item.getData();
+				if (data instanceof TraceBreakPoint) {
+					TraceBreakPoint tbp = (TraceBreakPoint)data;
+					tbp.setAvailable(checked);
+				}
+			}
+		});
 
 		createActions();
 		createToolBar();
 		createMenuBar();
 		createPopupMenu();
+		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
+	public Viewer getViewer() {
+		return viewer;
+	}
+	
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
+		TraceDebuggerPlugin.setActiveView(ID, this);
 		viewer.getControl().setFocus();
 	}
 	
-	private void createActions() {				
+	protected void createActions() {				
 		ImageDescriptor fileOpenIcon = PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_OBJ_FOLDER);
 		fileOpenAction = new Action("Open Trace File...", fileOpenIcon) {
 			@Override
@@ -138,6 +170,15 @@ public class BreakPointView extends ViewPart {
 		changeAvailableAction.setText("Change available of selected trace breakpoint");
 		changeAvailableAction.setToolTipText("Change available of selected trace breakpoint");
 		
+		importBreakpointAction = new Action() {
+			@Override
+			public void run() {
+				debuggingController.importBreakpointAction();
+			}
+		};
+		importBreakpointAction.setText("Import Breakpoints");
+		importBreakpointAction.setToolTipText("Copy Breakpoints from Eclipse");
+		
 		debugAction = new Action() {
 			@Override
 			public void run() {
@@ -146,6 +187,8 @@ public class BreakPointView extends ViewPart {
 		};
 		debugAction.setText("Debug");
 		debugAction.setToolTipText("Debug");
+		ImageDescriptor debugImage = DebugUITools.getImageDescriptor(IDebugUIConstants.IMG_ACT_DEBUG);
+		debugAction.setImageDescriptor(debugImage);
 		
 		terminateAction = new Action() {
 			@Override
@@ -155,6 +198,8 @@ public class BreakPointView extends ViewPart {
 		};
 		terminateAction.setText("Terminate");
 		terminateAction.setToolTipText("Terminate");
+		ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_TERMINATE);
+		terminateAction.setImageDescriptor(terminateImage);
 
 		stepIntoAction = new Action() {
 			@Override
@@ -164,6 +209,8 @@ public class BreakPointView extends ViewPart {
 		};
 		stepIntoAction.setText("Step Into");
 		stepIntoAction.setToolTipText("Step Into");
+		ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_INTO);
+		stepIntoAction.setImageDescriptor(stepIntoImage);
 		
 		stepOverAction = new Action() {
 			@Override
@@ -173,7 +220,9 @@ public class BreakPointView extends ViewPart {
 		};
 		stepOverAction.setText("Step Over");
 		stepOverAction.setToolTipText("Step Over");
-		
+		ImageDescriptor stepOverImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_OVER);
+		stepOverAction.setImageDescriptor(stepOverImage);
+
 		stepReturnAction = new Action() {
 			@Override
 			public void run() {
@@ -182,6 +231,17 @@ public class BreakPointView extends ViewPart {
 		};
 		stepReturnAction.setText("Step Return");
 		stepReturnAction.setToolTipText("Step Return");
+		ImageDescriptor stepReturnImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_RETURN);
+		stepReturnAction.setImageDescriptor(stepReturnImage);
+
+		stepNextAction = new Action() {
+			@Override
+			public void run() {
+				debuggingController.stepNextAction();
+			}
+		};
+		stepNextAction.setText("Step Next");
+		stepNextAction.setToolTipText("Step Next");		
 		
 		resumeAction = new Action() {
 			@Override
@@ -191,83 +251,34 @@ public class BreakPointView extends ViewPart {
 		};
 		resumeAction.setText("Resume");
 		resumeAction.setToolTipText("Resume");
-		
-		stepBackIntoAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.stepBackIntoAction();
-			}
-		};
-		stepBackIntoAction.setText("Step Back Into");
-		stepBackIntoAction.setToolTipText("Step Back Into");
-		
-		stepBackOverAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.stepBackOverAction();
-			}
-		};
-		stepBackOverAction.setText("Step Back Over");
-		stepBackOverAction.setToolTipText("Step Back Over");
-		
-		stepBackReturnAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.stepBackReturnAction();
-			}
-		};
-		stepBackReturnAction.setText("Step Back Return");
-		stepBackReturnAction.setToolTipText("Step Back Return");
-		
-		backResumeAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.backResumeAction();
-			}
-		};
-		backResumeAction.setText("Back Resume");
-		backResumeAction.setToolTipText("Back Resume");
-
-		tmpAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.tmp();
-			}
-		};
-		tmpAction.setText("Tmp");
-		tmpAction.setToolTipText("Tmp");
+		ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_RESUME);
+		resumeAction.setImageDescriptor(image);
 	}
 	
-	private void createToolBar() {
+	protected void createToolBar() {
 		IToolBarManager mgr = getViewSite().getActionBars().getToolBarManager();
 		mgr.add(fileOpenAction);
+		mgr.add(importBreakpointAction);
 		mgr.add(debugAction);
 		mgr.add(terminateAction);
 		mgr.add(resumeAction);
 		mgr.add(stepIntoAction);
 		mgr.add(stepOverAction);
 		mgr.add(stepReturnAction);
-		mgr.add(stepBackIntoAction);
-		mgr.add(stepBackOverAction);
-		mgr.add(stepBackReturnAction);
-		mgr.add(backResumeAction);
-		mgr.add(tmpAction);
+		mgr.add(stepNextAction);
 	}
 	
-	private void createMenuBar() {
+	protected void createMenuBar() {
 		IMenuManager mgr = getViewSite().getActionBars().getMenuManager();
 		mgr.add(fileOpenAction);
+		mgr.add(importBreakpointAction);
 		mgr.add(debugAction);
 		mgr.add(terminateAction);
 		mgr.add(resumeAction);
 		mgr.add(stepIntoAction);
 		mgr.add(stepOverAction);
 		mgr.add(stepReturnAction);
-		mgr.add(stepBackIntoAction);
-		mgr.add(stepBackOverAction);
-		mgr.add(stepBackReturnAction);
-		mgr.add(backResumeAction);
-		mgr.add(tmpAction);
+		mgr.add(stepNextAction);
 	}
 	
 	private void createPopupMenu() {
@@ -287,8 +298,59 @@ public class BreakPointView extends ViewPart {
 		getSite().registerContextMenu(menuMgr, viewer);
 	}
 	
-	public void update(TraceBreakPoints traceBreakPoints) {
-		viewer.setInput(traceBreakPoints.getAllTraceBreakPoints());
+	public TraceBreakPoints getTraceBreakPoints() {
+		return traceBreakPoints;
+	}
+	
+//	public void setTraceBreakPoints(TraceBreakPoints traceBreakPoints) {
+//		this.traceBreakPoints = traceBreakPoints;
+//	}
+
+	public void reset() {
+		viewer.setInput(new ArrayList<TraceBreakPoint>());
 		viewer.refresh();
+	}
+	
+	public void updateTraceBreakPoints(TraceBreakPoints traceBreakPoints) {
+		this.traceBreakPoints = traceBreakPoints;
+		viewer.setInput(traceBreakPoints.getAllTraceBreakPoints());
+//		viewer.refresh();
+		
+		final Table table = viewer.getTable();
+		for (TableItem item : table.getItems()) {
+			Object data = item.getData();
+			if (data instanceof TraceBreakPoint) {
+				TraceBreakPoint tbp = (TraceBreakPoint)data;
+				boolean isAvailable = tbp.isAvailable();
+				item.setChecked(isAvailable);
+			}
+		}
+		viewer.refresh();
+	}
+	
+	public void updateImages(boolean isRunning) {
+		if (isRunning) {
+			ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_TERMINATE);
+			terminateAction.setImageDescriptor(terminateImage);
+			ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_STEP_INTO);
+			stepIntoAction.setImageDescriptor(stepIntoImage);
+			ImageDescriptor stepOverImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_STEP_OVER);
+			stepOverAction.setImageDescriptor(stepOverImage);
+			ImageDescriptor stepReturnImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_STEP_RETURN);
+			stepReturnAction.setImageDescriptor(stepReturnImage);
+			ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_RESUME);
+			resumeAction.setImageDescriptor(image);
+		} else {
+			ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_TERMINATE);
+			terminateAction.setImageDescriptor(terminateImage);
+			ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_INTO);
+			stepIntoAction.setImageDescriptor(stepIntoImage);
+			ImageDescriptor stepOverImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_OVER);
+			stepOverAction.setImageDescriptor(stepOverImage);
+			ImageDescriptor stepReturnImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_RETURN);
+			stepReturnAction.setImageDescriptor(stepReturnImage);
+			ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_RESUME);
+			resumeAction.setImageDescriptor(image);
+		}
 	}
 }

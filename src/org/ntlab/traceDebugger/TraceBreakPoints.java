@@ -4,22 +4,31 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 
+import org.eclipse.core.resources.IMarker;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.debug.core.DebugPlugin;
+import org.eclipse.debug.core.model.IBreakpoint;
+import org.eclipse.jdt.internal.debug.core.breakpoints.JavaLineBreakpoint;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.Trace;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 
 public class TraceBreakPoints {
+	private Trace trace;
 	private Map<String, Map<Integer, TraceBreakPoint>> traceBreakPoints = new HashMap<>();
-	private List<TracePoint> histories = new LinkedList<>();
-	private ListIterator<TracePoint> historyIt = histories.listIterator();
-	private TracePoint curHistPoint;
-	private int curIdx = -1;
+	private List<TracePoint> histories = new ArrayList<>();
+	private TracePoint lastReferencePoint;
+	
+	public TraceBreakPoints(Trace trace) {
+		this.trace = trace;
+	}
 
 	public List<TraceBreakPoint> getAllTraceBreakPoints() {
 		List<TraceBreakPoint> list = new ArrayList<>();
@@ -38,24 +47,30 @@ public class TraceBreakPoints {
 		return list;
 	}
 
-	public boolean addTraceBreakPoint(String methodSignature, int lineNo, long currentTime) {
+	public boolean addTraceBreakPoint(String inputSignature, int lineNo) {
+		boolean isSuccess = addTraceBreakPoint(inputSignature, lineNo, true);
+		return isSuccess;
+	}
+	
+	public boolean addTraceBreakPoint(String inputSignature, int lineNo, boolean isAvailable) {
+		String methodSignature = findMethodSignaureOnTrace(inputSignature);
+		if (methodSignature == null) return false;
 		Map<Integer, TraceBreakPoint> innerMap = traceBreakPoints.get(methodSignature);
 		if (innerMap == null) {
 			innerMap = new HashMap<>();
 			traceBreakPoints.put(methodSignature, innerMap);
 		}
-		TraceBreakPoint tbp = new TraceBreakPoint(methodSignature, lineNo, currentTime);
-		if (!tbp.isAvailable()) return false;
-		innerMap.put(lineNo, tbp);
-		addHistories(tbp);
-		return true;
+		try {
+			TraceBreakPoint tbp = TraceBreakPoint.createNewTraceBreakPoint(methodSignature, lineNo, isAvailable, inputSignature);
+			innerMap.put(lineNo, tbp);
+			addHistories(tbp);
+			return true;		
+		} catch (IllegalArgumentException e) {
+			return false;
+		}
 	}
 	
-	public boolean addTraceBreakPoint(String methodSignature, int lineNo) {
-		return addTraceBreakPoint(methodSignature, lineNo, 0L);
-	}
-	
-	public void removeTraceBreakPoint(String methodSignature, int lineNo) {
+	private void removeTraceBreakPoint(String methodSignature, int lineNo) {
 		Map<Integer, TraceBreakPoint> innerMap = traceBreakPoints.get(methodSignature);
 		if (innerMap == null) return;
 		TraceBreakPoint tbp = innerMap.remove(lineNo);
@@ -68,63 +83,85 @@ public class TraceBreakPoints {
 		int lineNo = traceBreakPoint.getLineNo();
 		removeTraceBreakPoint(methodSignature, lineNo);
 	}
-
-	private void addHistories(TraceBreakPoint tbp) {		
-		ListIterator<TracePoint> it = histories.listIterator();
-		Iterator<TracePoint> tbpIt = tbp.getTracePoints().iterator();
-		if (!(tbpIt.hasNext())) return;
-		TracePoint addedTp = tbpIt.next();
-		int idx = 0;
-		while (it.hasNext()) {
-			TracePoint tp = it.next();
-			if (getTime(addedTp) < getTime(tp)) {
-				it.previous();
-				it.add(addedTp);
-				if (idx <= curIdx) {
-					curIdx++;
+	
+	public void importBreakpointFromEclipse() {
+		IBreakpoint[] breakpoints = DebugPlugin.getDefault().getBreakpointManager().getBreakpoints();
+		for (IBreakpoint breakpoint : breakpoints) {
+			if (!(breakpoint instanceof JavaLineBreakpoint)) continue;
+			try {
+				IMarker breakpointMarker = breakpoint.getMarker();
+				Map<String, Object> attributes = breakpointMarker.getAttributes();
+				String type = (String)attributes.get("org.eclipse.jdt.debug.core.typeName");
+				type = type.substring(type.lastIndexOf(".") + 1);
+				int lineNo = (int)attributes.get(IMarker.LINE_NUMBER);
+				boolean available = (boolean)attributes.get(IBreakpoint.ENABLED);
+				String message = (String)attributes.get(IMarker.MESSAGE);
+				String methodName = message.substring(message.indexOf("-") + 2);
+				methodName = methodName.replace(" ", "");
+				String signature; 
+				if (methodName.startsWith(type + "(")) {
+					signature = methodName; // コンストラクタ内の場合
+				} else {
+					signature = type + "." + methodName;
 				}
-				addedTp = null;
-				if (!(tbpIt.hasNext())) break;
-				addedTp = tbpIt.next();
-			}
-			idx++;
-		}
-		if (addedTp != null) {
-			it.add(addedTp);
-			while (tbpIt.hasNext()) {
-				it.add(tbpIt.next());
+				addTraceBreakPoint(signature, lineNo, available);
+			} catch (CoreException e) {
+				e.printStackTrace();
 			}
 		}
-		historyIt = histories.listIterator(curIdx + 1); // 次に取得するインデックスに合わせたイテレータを再取得
+	}
+	
+	private String findMethodSignaureOnTrace(String inputSignature) {
+		HashSet<String> methodSignatures = trace.getAllMethodSignatures();
+		for (String signature : methodSignatures) {
+			String signatureFront = signature.substring(0, signature.indexOf("(") + 1);
+			String inputSignatureFront = inputSignature.substring(0, inputSignature.indexOf("(") + 1);
+			if (!(signatureFront.endsWith(inputSignatureFront))) continue;
+			String signatureBack = signature.substring(signature.indexOf("(") + 1);
+			String[] signatureArgs = signatureBack.split(",");
+			String inputSignatureBack = inputSignature.substring(inputSignature.indexOf("(") + 1);
+			String[] inputSignatureArgs = inputSignatureBack.split(",");
+			if (signatureArgs.length != inputSignatureArgs.length) continue;
+			boolean isMatch = true;
+			for (int i = 0; i < signatureArgs.length; i++) {
+				if (!(signatureArgs[i].endsWith(inputSignatureArgs[i]))) {
+					isMatch = false;
+					break;
+				}
+			}
+			if (isMatch) return signature;
+		}
+		return null;
+	}
+
+	private void addHistories(TraceBreakPoint tbp) {
+		for (TracePoint tp : tbp.getTracePoints()) {
+			histories.add(tp);
+		}
+		Collections.sort(histories, new Comparator<TracePoint>() {
+			@Override
+			public int compare(TracePoint o1, TracePoint o2) {
+				long o1Time = getTime(o1);
+				long o2Time = getTime(o2);
+				return (o1Time < o2Time) ? -1 : 1;
+			}			
+			private long getTime(TracePoint tp) {
+				Statement statement = tp.getStatement();
+				if (statement instanceof MethodInvocation) {
+					return ((MethodInvocation)statement).getCalledMethodExecution().getEntryTime();
+				}
+				return statement.getTimeStamp();
+			}
+		});
 		confirm();
 	}
 	
 	private void removeHistories(TraceBreakPoint tbp) {
-		ListIterator<TracePoint> it = histories.listIterator();
-		Iterator<TracePoint> tbpIt = tbp.getTracePoints().iterator();
-		if (!(tbpIt.hasNext())) return;
-		TracePoint removedTp = tbpIt.next();
-		int idx = 0;
+		List<TracePoint> removedPoints = tbp.getTracePoints();
+		Iterator<TracePoint> it = histories.iterator();
 		while (it.hasNext()) {
 			TracePoint tp = it.next();
-			if (tp.equals(removedTp)) {
-				it.remove();
-				if (tp.equals(curHistPoint)) {
-					curHistPoint = null; // 現在位置に対応するブレークポイントが削除された場合は現在位置をなしにする
-					curIdx = -1;
-				} else if (-1 < curIdx && idx <= curIdx) {
-					curIdx--;
-				}
-				if (!(tbpIt.hasNext())) break;
-				removedTp = tbpIt.next();
-			} else {
-				idx++;
-			}
-		}
-		if (curHistPoint == null) {
-			historyIt = null;
-		} else {
-			historyIt = histories.listIterator(curIdx + 1); // 次に取得するインデックスに合わせたイテレータを再取得			
+			if (removedPoints.contains(tp)) it.remove();
 		}
 		confirm();
 	}
@@ -134,87 +171,33 @@ public class TraceBreakPoints {
 	}
 
 	public TracePoint getNextTracePoint(long time) {
-		long curHistTime;
-		if (curHistPoint == null) {
-			curHistTime = 0L;
-			curIdx = -1;
-			historyIt = histories.listIterator();
-		} else {
-			curHistTime = getTime(curHistPoint);
-		}
-		if (curHistTime <= time) {
-			while (historyIt.hasNext()) {
-				TracePoint tp = historyIt.next();
-				if (tp.equals(curHistPoint)) continue;
-				curHistPoint = tp;
-				curIdx++;
-				if (!checkAvailable(curHistPoint)) continue;
-				curHistTime = getTime(curHistPoint);
-				if (curHistTime > time) {
-					confirm();
-					return curHistPoint;
-				}
+		for (TracePoint tp : histories) {
+			if (!(checkAvailable(tp))) continue;
+			if (getTime(tp) > time) {
+				lastReferencePoint = tp;
+				confirm();
+				return tp.duplicate();
 			}
-		} else {
-			while (historyIt.hasPrevious()) {
-				TracePoint tp = historyIt.previous();
-				if (tp.equals(curHistPoint)) continue;
-				curIdx--;
-				if (!checkAvailable(tp)) continue;
-				curHistTime = getTime(tp); 
-				if (curHistTime <= time) {
-					confirm();
-					return curHistPoint;
-				}
-				curHistPoint = tp;
-			}
-			confirm();
-			return curHistPoint;
 		}
+		lastReferencePoint = null;
 		confirm();
 		return null;
 	}
 	
 	public TracePoint getPreviousTracePoint(long time) {
-		long curHistTime;
-		if (curHistPoint == null) {
-			curHistTime = Long.MAX_VALUE;
-			curIdx = histories.size();
-			historyIt = histories.listIterator(histories.size());
-		} else {
-			curHistTime = getTime(curHistPoint);
-		}
-		if (curHistTime >= time) {
-			while (historyIt.hasPrevious()) {
-				TracePoint tp = historyIt.previous();
-				if (tp.equals(curHistPoint)) continue;
-				curHistPoint = tp;
-				curIdx--;
-				if (!checkAvailable(curHistPoint)) continue;
-				curHistTime = getTime(curHistPoint);
-				if (curHistTime < time) {
-					confirm();
-					return curHistPoint;
-				}
+		TracePoint tmp = null;
+		for (TracePoint tp : histories) {
+			if (!(checkAvailable(tp))) continue;
+			if (getTime(tp) >= time) {
+				lastReferencePoint = tmp;
+				confirm();
+				return (tmp != null) ? tmp.duplicate() : null;
 			}
-		} else {
-			while (historyIt.hasNext()) {
-				TracePoint tp = historyIt.next();
-				if (tp.equals(curHistPoint)) continue;
-				curIdx++;
-				if (!checkAvailable(tp)) continue;
-				curHistTime = getTime(tp); 
-				if (curHistTime >= time) {
-					confirm();
-					return curHistPoint;
-				}
-				curHistPoint = tp;
-			}
-			confirm();
-			return curHistPoint;
+			tmp = tp;
 		}
+		lastReferencePoint = tmp;
 		confirm();
-		return null;
+		return (tmp != null) ? tmp.duplicate() : null;
 	}
 
 	private TraceBreakPoint getTraceBreakPoint(TracePoint tp) {
@@ -228,19 +211,9 @@ public class TraceBreakPoints {
 		TraceBreakPoint tbp = getTraceBreakPoint(tp);
 		return (tbp != null) ? tbp.isAvailable() : false;
 	}
-
-	public void reset() {
-		curIdx = -1;
-		historyIt = histories.listIterator();
-		curHistPoint = null;
-	}
 	
 	public void clear() {
 		traceBreakPoints.clear();
-		histories.clear();
-		curIdx = -1;
-		historyIt = null;
-		curHistPoint = null;
 	}
 	
 	private long getTime(TracePoint tp) {
@@ -250,91 +223,23 @@ public class TraceBreakPoints {
 		}
 		return statement.getTimeStamp();
 	}
-	
+
 	private void confirm() {
 		System.out.println();
-		if (curHistPoint == null) {
+		if (lastReferencePoint == null) {
 			System.out.println("cur: " + "Not Exist");
 		} else {
-			System.out.println("cur: " + getTime(curHistPoint));	
+			System.out.println("cur: " + getTime(lastReferencePoint));	
 		}
-		int idx = 0;
 		for (TracePoint tp : histories) {
 			String signature = tp.getMethodExecution().getSignature();
 			int lineNo = tp.getStatement().getLineNo();
 			long time = getTime(tp);
-			String idxStr = (idx == curIdx) ? "←←←←←" : "";
-			System.out.println(time + "	" + signature + " line: " + lineNo + " " + idxStr);
-			idx++;
+			StringBuilder msg = new StringBuilder();
+			msg.append(time + "	" + signature + " line: " + lineNo);
+			if (tp.equals(lastReferencePoint)) msg.append(" ←←←←←");
+			System.out.println(msg);
 		}
 		System.out.println();
-	}
-
-//	public TracePoint getNextTracePoint(long currentTime) {
-//		TraceBreakPoint resultTbp = null;
-//		long resultTpTime = 0L;
-//		for (Map<Integer, TraceBreakPoint> innerMap : traceBreakPoints.values()) {
-//			for (TraceBreakPoint tbp: innerMap.values()) {
-//				if (!tbp.isAvailable()) continue;
-//				TracePoint tp = tbp.peekTracePoint();
-//				if (tp == null) continue;
-//				long tpTime = tp.getStatement().getTimeStamp();
-//				if (tpTime <= currentTime) continue;
-//				if (resultTbp == null) {
-//					resultTbp = tbp;
-//					resultTpTime = tp.getStatement().getTimeStamp();
-//				} else if (tpTime < resultTpTime) {
-//					resultTbp = tbp;
-//					resultTpTime = tp.getStatement().getTimeStamp();
-//				}
-//			}
-//		}
-//		return (resultTbp != null) ? resultTbp.dequeueTracePoint(true) : null;
-//	}
-//
-//	public TracePoint getPreviousTracePoint(long currentTime) {
-//		TraceBreakPoint resultTbp = null;
-//		long resultTpTime = 0L;
-//		for (Map<Integer, TraceBreakPoint> innerMap : traceBreakPoints.values()) {
-//			for (TraceBreakPoint tbp: innerMap.values()) {
-//				if (!tbp.isAvailable()) continue;
-//				TracePoint tp = tbp.previousTracePoint();
-//				if (tp == null) continue;
-//				long tpTime = tp.getStatement().getTimeStamp();
-//				if (tpTime >= currentTime) continue;
-//				if (resultTbp == null) {
-//					resultTbp = tbp;
-//					resultTpTime = tp.getStatement().getTimeStamp();
-//				} else if (tpTime > resultTpTime) {
-//					resultTbp = tbp;
-//					resultTpTime = tp.getStatement().getTimeStamp();
-//				}
-//			}
-//		}
-//		return (resultTbp != null) ? resultTbp.dequeueTracePoint(false) : null;		
-//	}
-//	
-//	public void forwardAll(long currentTime) {
-//		for (Map<Integer, TraceBreakPoint> innerMap : traceBreakPoints.values()) {
-//			for (TraceBreakPoint tbp : innerMap.values()) {
-//				tbp.forwardIndex(currentTime);
-//			}
-//		}		
-//	}
-//	
-//	public void reverseAll(long currentTime) {
-//		for (Map<Integer, TraceBreakPoint> innerMap : traceBreakPoints.values()) {
-//			for (TraceBreakPoint tbp : innerMap.values()) {
-//				tbp.reverseIndex(currentTime);
-//			}
-//		}		
-//	}
-//	
-//	public void resetAll() {
-//		for (Map<Integer, TraceBreakPoint> innerMap : traceBreakPoints.values()) {
-//			for (TraceBreakPoint tbp : innerMap.values()) {
-//				tbp.reset();
-//			}
-//		}
-//	}	
+	}	
 }

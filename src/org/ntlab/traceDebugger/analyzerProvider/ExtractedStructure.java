@@ -1,7 +1,11 @@
 package org.ntlab.traceDebugger.analyzerProvider;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Reference;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 
 
 public class ExtractedStructure {
@@ -10,7 +14,11 @@ public class ExtractedStructure {
 	private MethodExecution coordinator = null;
 	private MethodExecution parent = null;
 	private MethodExecution creationCallTree;
-
+//	private List<TracePoint> srcSideRelatedTracePoints = new ArrayList<>();
+//	private List<TracePoint> dstSideRelatedTracePoints = new ArrayList<>();
+//	private List<Alias> srcSideRelatedAliases = new ArrayList<>();
+//	private List<Alias> dstSideRelatedAliases = new ArrayList<>();
+	
 	public Delta getDelta() {
 		return delta;
 	}
@@ -64,5 +72,36 @@ public class ExtractedStructure {
 	public MethodExecution getCreationCallTree() {
 		return creationCallTree;
 	}
+
+//	public List<TracePoint> getSrcSideRelatedTracePoints() {
+//		return srcSideRelatedTracePoints;
+//	}
+//	
+//	public List<TracePoint> getDstSideRelatedTracePoints() {
+//		return dstSideRelatedTracePoints;
+//	}	
+//
+//	public void addSrcSideRelatedTracePoint(TracePoint tp) {
+//		srcSideRelatedTracePoints.add(tp);
+//	}
+//	
+//	public void addDstSideRelatedTracePoint(TracePoint tp) {
+//		dstSideRelatedTracePoints.add(tp);
+//	}
 	
+//	public List<Alias> getSrcSideRelatedAliases() {
+//		return srcSideRelatedAliases;
+//	}
+//	
+//	public List<Alias> getDstSideRelatedAliases() {
+//		return dstSideRelatedAliases;
+//	}	
+//
+//	public void addSrcSideRelatedAlias(Alias alias) {
+//		srcSideRelatedAliases.add(alias);
+//	}
+//	
+//	public void addDstSideRelatedAlias(Alias alias) {
+//		dstSideRelatedAliases.add(alias);
+//	}
 }

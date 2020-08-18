@@ -1,42 +1,27 @@
 package org.ntlab.traceDebugger;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import org.eclipse.jface.action.Action;
-import org.eclipse.jface.action.IAction;
-import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
-import org.eclipse.jface.action.MenuManager;
-import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.ITreeViewerListener;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.viewers.TreeExpansionEvent;
 import org.eclipse.jface.viewers.TreeNode;
-import org.eclipse.jface.viewers.TreeNodeContentProvider;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
-import org.eclipse.ui.IViewPart;
-import org.eclipse.ui.IWorkbenchActionConstants;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
-import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
-import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
 
 public class VariableView extends ViewPart {	
-	private TreeViewer viewer; 
-	private IAction deltaAction;
-	private Variable selectedVariable;
-	private Variables variables = Variables.getInstance();
+	protected TreeViewer viewer;
+	protected Variable selectedVariable;
+	protected Variables variables = Variables.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.variableView";
 
 	public VariableView() {
@@ -60,9 +45,9 @@ public class VariableView extends ViewPart {
 			treeColumns[i] = new TreeColumn(tree, SWT.NULL);
 			treeColumns[i].setText(treeColumnTexts[i]);
 			treeColumns[i].setWidth(treeColumnWidth[i]);
-		}
-		viewer.setContentProvider(new TreeNodeContentProvider());
-		viewer.setLabelProvider(new VariableLabelProvider());		
+		}		
+		viewer.setContentProvider(new MyTreeNodeContentProvider());
+		viewer.setLabelProvider(new VariableLabelProvider());
 		viewer.addSelectionChangedListener(new ISelectionChangedListener() {
 			@Override
 			public void selectionChanged(SelectionChangedEvent event) {				
@@ -72,7 +57,7 @@ public class VariableView extends ViewPart {
 					Object value = ((TreeNode)element).getValue();
 					if (value instanceof Variable) {
 						selectedVariable = (Variable)value;
-					}					
+					}	
 				}
 			}
 		});
@@ -81,29 +66,28 @@ public class VariableView extends ViewPart {
 			public void treeExpanded(TreeExpansionEvent event) {
 				// ツリーを開いた後に実行される。 ここでは開いたノードから3つ先のノードを生成して追加する。
 				Object element = event.getElement();
-				if (!(element instanceof TreeNode)) return;
-				TreeNode expandedNode = (TreeNode)element;
+				if (!(element instanceof MyTreeNode)) return;
+				MyTreeNode expandedNode = (MyTreeNode)element;
 				Object value = expandedNode.getValue();
 				if (!(value instanceof Variable)) return;
-				TreeNode[] childNodes = expandedNode.getChildren();
+				List<MyTreeNode> childNodes = expandedNode.getChildList();
 				if (childNodes == null) return;
-				for (TreeNode childNode : childNodes) {
-					TreeNode[] grandChildNodes = childNode.getChildren();
+				for (MyTreeNode childNode : childNodes) {
+					List<MyTreeNode> grandChildNodes = childNode.getChildList();
 					if (grandChildNodes == null) continue;
-					for (TreeNode grandChildNode : grandChildNodes) {
+					for (MyTreeNode grandChildNode : grandChildNodes) {
 						Variable grandChildVariable = (Variable)grandChildNode.getValue();
 						grandChildVariable.createNextHierarchyState();
 						List<Variable> list = grandChildVariable.getChildren();
-						TreeNode[] nodes = new TreeNode[list.size()];
+						List<MyTreeNode> nodes = new ArrayList<>();
 						for (int i = 0; i < list.size(); i++) {
-							nodes[i] = new TreeNode(list.get(i));
+							nodes.add(i, new MyTreeNode(list.get(i)));
 						}
-						grandChildNode.setChildren(nodes);
+						grandChildNode.setChildList(nodes);
 					}
 				}
-				viewer.refresh();				
+				viewer.refresh();
 			}
-			
 			@Override
 			public void treeCollapsed(TreeExpansionEvent event) {}
 		});
@@ -111,74 +95,58 @@ public class VariableView extends ViewPart {
 		createToolBar();
 		createMenuBar();
 		createPopupMenu();
+		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
+		TraceDebuggerPlugin.setActiveView(ID, this);
 		viewer.getControl().setFocus();
 	}
 	
-	private void createActions() {
-		deltaAction = new Action() {
-			@Override
-			public void run() {
-				AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
-				if (analyzer instanceof DeltaExtractionAnalyzer) {
-					DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;
-					deltaAnalyzer.extractDelta(selectedVariable);
-				}
-			}
-		};
-		deltaAction.setText("Extract Delta");
-		deltaAction.setToolTipText("Extract Delta");
+	protected void createActions() {
+
 	}
 	
-	private void createToolBar() {
+	protected void createToolBar() {
 		IToolBarManager mgr = getViewSite().getActionBars().getToolBarManager();
 	}
 	
-	private void createMenuBar() {
+	protected void createMenuBar() {
 		IMenuManager mgr = getViewSite().getActionBars().getMenuManager();
 	}
 	
-	private void createPopupMenu() {
-		MenuManager menuMgr = new MenuManager("#PopupMenu");
-		menuMgr.setRemoveAllWhenShown(true);
-		menuMgr.addMenuListener(new IMenuListener() {
-			@Override
-			public void menuAboutToShow(IMenuManager manager) {
-				manager.add(deltaAction);
-				manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
-			}
-		});
-		Menu menu = menuMgr.createContextMenu(viewer.getControl());
-		viewer.getControl().setMenu(menu);
-		getSite().registerContextMenu(menuMgr, viewer);
+	protected void createPopupMenu() {
+
 	}
 	
 	public void reset() {
 		variables.resetData();
-		viewer.setInput(variables.getVariablesTreeNodes());
+		viewer.setInput(variables.getVariablesTreeNodesList());
 		viewer.refresh();
-	}
+	}	
 	
 	public void updateVariablesByTracePoint(TracePoint tp, boolean isReturned) {
-		variables.getAllObjectDataByTracePoint(tp, isReturned);
-		viewer.setInput(variables.getVariablesTreeNodes());
+		updateVariablesByTracePoint(tp, isReturned, null);
+	}
+		
+	public void updateVariablesByTracePoint(TracePoint tp, boolean isReturned, TracePoint before) {
+		updateVariablesByTracePoint(null, tp, isReturned, before);
+	}
+
+	public void updateVariablesByTracePoint(TracePoint from, TracePoint to, boolean isReturned) {
+		updateVariablesByTracePoint(from, to, isReturned, null);
 	}
 	
-//	public void updateVariablesByAlias(Alias alias) {
-//		variables.getAllObjectDataByAlias(alias);
-//		viewer.setInput(variables.getVariablesTreeNodesList());
-//	}
-	
-	private IViewPart getOtherView(String viewId) {
-		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		try {
-			return workbenchPage.showView(viewId);
-		} catch (PartInitException e) {
-			throw new RuntimeException(e);
-		}	
+	public void updateVariablesByTracePoint(TracePoint from, TracePoint to, boolean isReturned, TracePoint before) {
+		variables.updateAllObjectDataByTracePoint(from, to, isReturned, before);
+		viewer.setInput(variables.getVariablesTreeNodesList());
 	}
+	
+	public void updateVariablesForDifferential(TracePoint from, TracePoint to, boolean isReturned) {
+		variables.updateForDifferential(from, to, isReturned);
+//		viewer.setInput(variables.getVariablesTreeNodes());
+		viewer.refresh();
+	}	
 }

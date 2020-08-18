@@ -13,16 +13,24 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 public class TraceBreakPoint {
 	private List<TracePoint> tracePoints = new ArrayList<>();
 	private String methodSignature;
+	private String readableSignature;
 	private int lineNo;
 	private List<MethodExecution> methodExecutions = new ArrayList<>();
 	private boolean isAvailable = false;
-//	private int currentIndex = 0;
-
-	public TraceBreakPoint(String methodSignature, int lineNo, long currentTime) {
+	
+	private TraceBreakPoint(String methodSignature, int lineNo, boolean isAvailable, String readableSignature) {
 		this.methodSignature = methodSignature;
 		this.lineNo = lineNo;
-		isAvailable = initTracePoints(methodSignature, lineNo);
-//		if (isAvailable) forwardIndex(currentTime);
+		this.isAvailable = isAvailable;
+		this.readableSignature = readableSignature;
+	}
+
+	public static TraceBreakPoint createNewTraceBreakPoint(String methodSignature, int lineNo, boolean isAvailable, String readableSignature) 
+			throws IllegalArgumentException {
+		TraceBreakPoint newTraceBreakPoint = new TraceBreakPoint(methodSignature, lineNo, isAvailable, readableSignature);
+		boolean isValid = newTraceBreakPoint.initTracePoints(methodSignature, lineNo);
+		if (!isValid) throw new IllegalArgumentException();
+		return newTraceBreakPoint;
 	}
 
 	private boolean initTracePoints(String methodSignature, int lineNo) {
@@ -35,7 +43,7 @@ public class TraceBreakPoint {
 			for (Statement statement : me.getStatements()) {
 				if (statement.getLineNo() == lineNo) {
 					tracePoints.add(me.getTracePoint(order));
-//					break;
+					break;
 				}
 				order++;
 			}
@@ -47,8 +55,7 @@ public class TraceBreakPoint {
 				long o1Time = getTime(o1);
 				long o2Time = getTime(o2);
 				return (o1Time < o2Time) ? -1 : 1;
-			}
-			
+			}			
 			private long getTime(TracePoint tp) {
 				Statement statement = tp.getStatement();
 				if (statement instanceof MethodInvocation) {
@@ -64,6 +71,33 @@ public class TraceBreakPoint {
 		return methodSignature;
 	}
 	
+	public String getReadableSignature() {
+		return readableSignature;
+//		MethodExecution methodExecution = methodExecutions.iterator().next();
+//		String signature = methodExecution.getSignature();
+//		String objectType = methodExecution.getThisClassName();
+//		objectType = objectType.substring(objectType.lastIndexOf(".") + 1);
+//		boolean isConstructor = methodExecution.isConstructor();
+//		String declaringType = Trace.getDeclaringType(signature, isConstructor);
+//		declaringType = declaringType.substring(declaringType.lastIndexOf(".") + 1);
+//		String methodName = Trace.getMethodName(signature);
+//		String args = "(";
+//		String delimiter = "";
+//		String[] argArray = signature.split("\\(")[1].split(",");
+//		for (String arg : argArray) {
+//			args += (delimiter + arg.substring(arg.lastIndexOf(".") + 1));
+//			delimiter = ", ";
+//		}
+//		
+//		StringBuilder sb = new StringBuilder();
+//		sb.append(objectType);
+//		if (!declaringType.equals(objectType)) {
+//			sb.append("(" + declaringType + ")");
+//		}
+//		sb.append("." + methodName + args);
+//		return sb.toString();
+	}
+	
 	public int getLineNo() {
 		return lineNo;
 	}
@@ -75,70 +109,16 @@ public class TraceBreakPoint {
 	public List<TracePoint> getTracePoints() {
 		return tracePoints;
 	}
-	
-	
+
 	public boolean isAvailable() {
 		return isAvailable;
 	}
 	
-	public void changeAvailable() {
-		isAvailable = !isAvailable;
+	public void setAvailable(boolean isAvailable) {
+		this.isAvailable = isAvailable;
 	}
 	
-//	public void reset() {
-//		initTracePoints(methodSignature, lineNo);
-//		currentIndex = 0;
-//	}
-//	
-//	public TracePoint peekTracePoint() {
-//		if ((currentIndex < 0) || (currentIndex >= tracePoints.size())) return null;
-//		return tracePoints.get(currentIndex);
-//	}
-//	
-//	public TracePoint previousTracePoint() {
-//		if ((currentIndex - 1 < 0) || (currentIndex - 1 >= tracePoints.size())) return null;
-//		return tracePoints.get(currentIndex - 1);
-//	}
-//	
-//	public TracePoint dequeueTracePoint(boolean isForward) {
-//		TracePoint result = null;
-//		if (isForward) {
-//			result = peekTracePoint();
-//			currentIndex++;
-//		} else {
-//			result = previousTracePoint();
-//			currentIndex--;
-//		}
-//		return result;
-//	}
-//	
-//	public void forwardIndex(long currentTime) {
-//		int start = currentIndex;
-//		for (int i = start; i < tracePoints.size(); i++) {
-//			long time = getTime(tracePoints.get(i).getStatement());
-//			if (time > currentTime) {
-//				currentIndex = i;
-//				return;
-//			}
-//		}
-//		currentIndex = tracePoints.size();
-//	}
-//	
-//	public void reverseIndex(long currentTime) {
-//		for (int i = tracePoints.size() - 1; i >= 0; i--) {
-//			long time = getTime(tracePoints.get(i).getStatement());
-//			if (time <= currentTime) {
-//				currentIndex = i + 1;
-//				return;
-//			}
-//		}
-//		currentIndex = 0;
-//	}
-//
-//	private long getTime(Statement statement) {
-//		if (statement instanceof MethodInvocation) {
-//			return ((MethodInvocation)statement).getCalledMethodExecution().getEntryTime();
-//		}
-//		return statement.getTimeStamp();
-//	}
+	public void changeAvailable() {
+		isAvailable = !isAvailable;
+	}	
 }

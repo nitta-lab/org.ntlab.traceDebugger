@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.eclipse.jdt.core.Flags;
 import org.eclipse.jdt.core.IField;
@@ -14,35 +16,98 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
+import org.ntlab.traceDebugger.analyzerProvider.VariableUpdatePointFinder;
 
 public class Variable {
 	private String variableName;
-	private String className;
-	private String id;
+	private VariableType variableType;
+	private String fullyQualifiedVariableName;
+	private String valueClassName;
+	private String valueId;
 	private Variable parent;
 	private List<Variable> children = new ArrayList<>();
 	private String containerClassName;
 	private String containerId;
-	private TracePoint tracePoint;
+	private TracePoint lastUpdatePoint;
+	private TracePoint before;
 	private boolean isReturned;
 	private DeepHierarchy deepHierarchy;
 	private boolean alreadyCreatedChildHierarchy = false;
 	private boolean alreadyCreatedGrandChildHierarchy = false;
+	private Map<String, Object> additionalAttributes = new HashMap<>();
+	public static final String NULL_VALUE = "null";
+	public static final String RETURN_VARIABLE_NAME = "return";
+	public static final String ARG_VARIABLE_NAME = "arg";
+	public static final String RECEIVER_VARIABLE_NAME = "receiver";
+	public static final String VALUE_VARIABLE_NAME = "value";
+	public static final String CONTAINER_VARIABLE_NAME = "container";
+
+	public enum VariableType {
+		USE_VALUE, USE_CONTAINER, USE_RECEIVER, USE_RETURN,
+		DEF_VALUE, DEF_CONTAINER, DEF_RECEIVER, DEF_ARG, 
+		PARAMETER;
+		public boolean isContainerSide() {
+			return this.equals(USE_CONTAINER) || this.equals(DEF_CONTAINER) 
+					|| this.equals(USE_RECEIVER) || this.equals(DEF_RECEIVER);
+		}
+		public boolean isDef() {
+			return this.equals(DEF_CONTAINER) || this.equals(DEF_VALUE)
+					|| this.equals(DEF_RECEIVER) || this.equals(DEF_ARG);
+		}
+		public boolean isUse() {
+			return this.equals(USE_CONTAINER) || this.equals(USE_VALUE)
+					|| this.equals(USE_RECEIVER) || this.equals(USE_RETURN);
+		}
+	}
 	
 	public Variable(String variableName, String containerClassName, String containerId,
-			String className, String id, TracePoint before, boolean isReturned) {
+			String valueClassName, String valueId, TracePoint before, boolean isReturned) {
+		this(variableName, containerClassName, containerId, valueClassName, valueId, before, isReturned, VariableType.USE_VALUE);
+	}
+	
+	public Variable(String variableName, String containerClassName, String containerId,
+			String valueClassName, String valueId, TracePoint before, boolean isReturned, VariableType variableType) {
+		init(variableName, variableName, containerClassName, containerId, valueClassName, valueId, null, before, isReturned, variableType);
+	}
+	
+	public Variable(String variableName, String fullyQualifiedVariableName, String containerClassName, String containerId,
+			String valueClassName, String valueId, TracePoint lastUpdatePoint, TracePoint before, boolean isReturned, VariableType variableType) {
+		init(variableName, fullyQualifiedVariableName, containerClassName, containerId, valueClassName, valueId, lastUpdatePoint, before, isReturned, variableType);
+	}	
+	
+	private void init(String variableName, String fullyQualifiedVariableName, String containerClassName, String containerId,
+			String valueClassName, String valueId, TracePoint lastUpdatePoint, TracePoint before, boolean isReturned, VariableType variableType) {
 		this.variableName = variableName;
+		this.fullyQualifiedVariableName = fullyQualifiedVariableName;
 		this.containerClassName = containerClassName;
 		this.containerId = containerId;
-		this.className = className;
-		this.id = id;
-		this.tracePoint = before;
+		this.valueClassName = valueClassName;
+		this.valueId = valueId;
+		this.lastUpdatePoint = lastUpdatePoint;
+		this.before = before;
 		this.isReturned = isReturned;
 		this.deepHierarchy = checkDeepHierarchy();
+		this.alreadyCreatedChildHierarchy = false;
+		this.alreadyCreatedGrandChildHierarchy = false;
+		this.children.clear();
+		this.additionalAttributes.clear();
+		this.variableType = variableType;
+	}
+	
+	public void update(String valueClassName, String valueId, TracePoint lastUpdatePoint, boolean isReturned) {
+		init(variableName, fullyQualifiedVariableName, containerClassName, containerId, valueClassName, valueId, lastUpdatePoint, lastUpdatePoint, isReturned, variableType);
 	}
 	
 	public String getVariableName() {
 		return variableName;
+	}
+	
+	public VariableType getVariableType() {
+		return variableType;
+	}
+	
+	public String getFullyQualifiedVariableName() {
+		return fullyQualifiedVariableName;
 	}
 	
 	public String getContainerClassName() {
@@ -53,16 +118,20 @@ public class Variable {
 		return containerId;
 	}
 	
-	public String getClassName() {
-		return className;
+	public String getValueClassName() {
+		return valueClassName;
 	}
 	
-	public String getId() {
-		return id;
+	public String getValueId() {
+		return valueId;
 	}
 	
-	public TracePoint getTracePoint() {
-		return tracePoint;
+	public TracePoint getLastUpdatePoint() {
+		return lastUpdatePoint;
+	}
+	
+	public TracePoint getBeforeTracePoint() {
+		return before;
 	}
 	
 	public Variable getParent() {
@@ -80,7 +149,7 @@ public class Variable {
 	
 	@Override
 	public String toString() {
-		return variableName + ": " + className + "(" + "id = " + id + ")";
+		return variableName + ": " + valueClassName + "(" + "id = " + valueId + ")";
 	}
 	
 	/**
@@ -92,20 +161,20 @@ public class Variable {
 	 */
 	private DeepHierarchy checkDeepHierarchy() {
 		// フィールドのIDやTypeがない場合や、Type(=ActualType)が"---"の場合は何もしない
-		if (this.getId() == null || this.getId().isEmpty() 
-				|| this.getClassName() == null || this.getClassName().isEmpty()) {
+		if (this.getValueId() == null || this.getValueId().isEmpty() 
+				|| this.getValueClassName() == null || this.getValueClassName().isEmpty()) {
 			return DeepHierarchy.NONE;
 		}
 		final String NULL_ACTUAL_TYPE = "---"; // フィールドに対して明示的にnullを入れた場合のActualTypeの取得文字列
-		if (this.getClassName().equals(NULL_ACTUAL_TYPE)) return DeepHierarchy.NONE;
+		if (this.getValueClassName().equals(NULL_ACTUAL_TYPE)) return DeepHierarchy.NONE;
 
 		final String ARRAY_SIGNATURE_HEAD = "["; // 配列のシグネチャの先頭は、配列の次元数だけ [ が連なる
-		if (this.getClassName().startsWith(ARRAY_SIGNATURE_HEAD)) {
+		if (this.getValueClassName().startsWith(ARRAY_SIGNATURE_HEAD)) {
 			// フィールドのTypeが配列型(　[ で始まる　)場合 (その配列が持つ各要素についてさらなるデータ取得処理を呼び出す)
 			return DeepHierarchy.ARRAY;
 		} else {
 			String[] primitives = {"byte", "short", "int", "long", "float", "double", "char", "boolean"};
-			if (!Arrays.asList(primitives).contains(this.getClassName())) {
+			if (!Arrays.asList(primitives).contains(this.getValueClassName())) {
 				// フィールドのTypeが参照型(=オブジェクト)の場合 (そのオブジェクトが持っているフィールドについてさらなるデータ取得処理を呼び出す)
 				return DeepHierarchy.FIELD;
 			}
@@ -154,16 +223,41 @@ public class Variable {
 		}
 		alreadyCreatedChildHierarchy = true;
 	}
-	
+
 	private void getFieldsState() {
 		// フィールドのIDとTypeを取得して表示
-		TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
-		String declaringClassName = className;
-		IType type = JavaEditorOperator.findIType(null, declaringClassName);
-		if (type == null) {
-			System.out.println("IType == null: " + declaringClassName);
-			return;
+		IType type = null;
+		if (variableType.isContainerSide()) {
+			type = JavaElementFinder.findIType(null, containerClassName);
+		} else {
+			type = JavaElementFinder.findIType(null, valueClassName);
 		}
+		if (type == null) return;
+		getFieldsState(type);		
+		getFieldStateForSuperClass(type); // 親クラスを遡っていき、それらのクラスで定義されたフィールドの情報も取得していく (ただし処理が増加して非常に重くなる)
+	}
+	
+	/**
+	 * // 親クラスを遡っていき、それらのクラスで定義されたフィールドの情報も取得していく (ただし処理が増加して非常に重くなる)
+	 * @param type 起点となるクラス
+	 */
+	private void getFieldStateForSuperClass(IType type) {
+		try {
+			while (true) {
+				String superClassName = type.getSuperclassName();
+				if (superClassName == null) break;
+				String fullyQualifiedSuperClassName = JavaElementFinder.resolveType(type, superClassName);
+				if (fullyQualifiedSuperClassName == null) break;
+				type = JavaElementFinder.findIType(null, fullyQualifiedSuperClassName);
+				if (type == null) break;
+				getFieldsState(type);
+			}				
+		} catch (JavaModelException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void getFieldsState(IType type) {
 		try {
 			for (IField field : type.getFields()) {
 				if (Flags.isStatic(field.getFlags())) continue;
@@ -171,14 +265,25 @@ public class Variable {
 				String fullyQualifiedFieldName = field.getDeclaringType().getFullyQualifiedName() + "." + field.getElementName(); // 完全限定クラス名
 
 				// そのフィールドについての最新の更新情報を取得(FieldUpdate)
+				TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
 //				FieldUpdate fieldUpdate = trace.getRecentlyFieldUpdate(thisObjData.getId(), fieldName, tp);
-				FieldUpdate fieldUpdate = trace.getFieldUpdate(id, fullyQualifiedFieldName, tracePoint, isReturned);
-
-				// フィールドのIDとTypeを取得(String)
-				String fieldObjId = (fieldUpdate != null) ? fieldUpdate.getValueObjId()     : "0";
-				String fieldType  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : "---";
-				Variable fieldData = new Variable(fieldName, className, id, fieldType, fieldObjId, tracePoint, isReturned);
-				this.addChild(fieldData);
+//				FieldUpdate fieldUpdate = trace.getFieldUpdate(id, fullyQualifiedFieldName, before, isReturned);
+				
+//				TracePoint updateTracePoint = trace.getFieldUpdateTracePoint(valueId, fullyQualifiedFieldName, before, isReturned);
+				TracePoint updateTracePoint = VariableUpdatePointFinder.getInstance().getPoint(valueId, fullyQualifiedFieldName, before);
+				
+//				if (updateTracePoint == null) continue;
+				if (updateTracePoint != null) {
+					FieldUpdate fieldUpdate = (FieldUpdate)updateTracePoint.getStatement();
+					// フィールドのIDとTypeを取得(String)
+					String fieldObjId = (fieldUpdate != null) ? fieldUpdate.getValueObjId()     : "---";
+					String fieldType  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : NULL_VALUE;
+					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, fieldType, fieldObjId, updateTracePoint, before, isReturned, VariableType.USE_VALUE);
+					this.addChild(fieldData);
+				} else {
+					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, NULL_VALUE, "---", updateTracePoint, before, isReturned, VariableType.USE_VALUE);
+					this.addChild(fieldData);					
+				}
 			}
 		} catch (JavaModelException e) {
 			e.printStackTrace();
@@ -189,22 +294,30 @@ public class Variable {
 		TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
 		for (int i = 0;; i++){
 			// その配列要素についての最新の更新情報を取得(ArrayUpdate)
-			ArrayUpdate arrayUpdate = trace.getRecentlyArrayUpdate(id, i, tracePoint);
+			ArrayUpdate arrayUpdate = trace.getRecentlyArrayUpdate(valueId, i, before);
 			if (arrayUpdate == null) {
 				// 配列のサイズが取得できないため、インデックスがサイズ超過のときに確実に抜けられる方法として仮処理
 				// ただし、配列要素の途中に未定義があった場合でも、抜けてしまうのが問題点
 				break;
 			}
-			String arrayIndexName = this.getVariableName() + "[" + i + "]";
+			String arrayIndexName = variableName + "[" + i + "]";
 			
 			// 配列要素のIDとTypeを取得(String)
 			String valueObjId = arrayUpdate.getValueObjectId();
 			String valueType = arrayUpdate.getValueClassName();
-			Variable arrayIndexData = new Variable(arrayIndexName, className, id, valueType, valueObjId, tracePoint, isReturned);
+			Variable arrayIndexData = new Variable(arrayIndexName, valueClassName, valueId, valueType, valueObjId, before, isReturned);
 			this.addChild(arrayIndexData);
 		}
 	}
 	
+	public void addAdditionalAttribute(String key, Object value) {
+		additionalAttributes.put(key, value);
+	}
+	
+	public Object getAdditionalAttribute(String key) {
+		return additionalAttributes.get(key);
+	}
+
 	private enum DeepHierarchy {
 		NONE, FIELD, ARRAY;
 	}

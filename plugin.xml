@@ -9,23 +9,71 @@
       </category>
       <view
             category="org.ntlab.traceDebugger.category"
-            class="org.ntlab.traceDebugger.CallStackView"
-            id="org.ntlab.traceDebugger.callStackView"
-            name="CallStack (Offline)"
+            class="org.ntlab.traceDebugger.BreakPointView"
+            id="org.ntlab.traceDebugger.breakPointView"
+            name="Breakpoints"
             restorable="true">
       </view>
       <view
             category="org.ntlab.traceDebugger.category"
             class="org.ntlab.traceDebugger.VariableView"
             id="org.ntlab.traceDebugger.variableView"
-            name="Variable (Offline)"
+            name="Variables"
             restorable="true">
       </view>
       <view
             category="org.ntlab.traceDebugger.category"
-            class="org.ntlab.traceDebugger.BreakPointView"
-            id="org.ntlab.traceDebugger.breakPointView"
-            name="BreakPoint"
+            class="org.ntlab.traceDebugger.CallStackView"
+            id="org.ntlab.traceDebugger.callStackView"
+            name="CallStack"
+            restorable="true">
+      </view>
+      <category
+            id="org.ntlab.traceDebugger.category2"
+            name="TraceDebuggerRelatedDelta">
+      </category>
+      <view
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.BreakPointViewRelatedDelta"
+            id="org.ntlab.traceDebugger.breakPointViewRelatedDelta"
+            name="Breakpoints"
+            restorable="true">
+      </view>
+      <view
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.VariableViewRelatedDelta"
+            id="org.ntlab.traceDebugger.variableViewRelatedDelta"
+            name="Variables"
+            restorable="true">
+      </view>
+      <view
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.CallStackViewRelatedDelta"
+            id="org.ntlab.traceDebugger.callStackViewRelatedDelta"
+            name="CallStack"
+            restorable="true">
+      </view>
+      <view
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.TracePointsView"
+            id="org.ntlab.traceDebugger.tracePointsView"
+            name="MarkedExecutionPoints"
+            restorable="true">
+      </view>
+      <view
+            allowMultiple="true"
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.DeltaMarkerView"
+            id="org.ntlab.traceDebugger.deltaMarkerView"
+            name="ExtractedExecutionPoints"
+            restorable="true">
+      </view>
+      <view
+            allowMultiple="true"
+            category="org.ntlab.traceDebugger.category2"
+            class="org.ntlab.traceDebugger.CallTreeView"
+            id="org.ntlab.traceDebugger.callTreeView"
+            name="CurrentExecutionPoint"
             restorable="true">
       </view>
    </extension>
@@ -34,21 +82,70 @@
       <perspective
             class="org.ntlab.traceDebugger.TraceDebuggerPerspective"
             id="org.ntlab.traceDebugger.traceDebuggerPerspective"
-            name="TraceDebugger">
+            name="TraceDebugger (Forward)">
+      </perspective>
+      <perspective
+            class="org.ntlab.traceDebugger.TraceDebuggerPerspectiveRelatedDelta"
+            id="org.ntlab.traceDebugger.traceDebuggerPerspectiveRelatedDelta"
+            name="TraceDebugger (Reverse)">
       </perspective>
    </extension>
    <extension
          point="org.ntlab.traceAnalysisPlatform.additionalClasspaths">
       <classpath
-            class="org.ntlab.traceDebugger.analyzerProvider.ObjectFlowAnalyzerLaunchConfiguration">
+            class="org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzerLaunchConfiguration">
       </classpath>
    </extension>
    <extension
-         id="org.ntlab.traceDebugger.deltaMarker"
-         name="DeltaMarker"
+         id="org.ntlab.traceDebugger.bottomDeltaMarker"
+         name="BottomDeltaMarker"
          point="org.eclipse.core.resources.markers">
       <persistent
-            value="true">
+            value="false">
+      </persistent>
+      <super
+            type="org.eclipse.core.resources.textmarker">
+      </super>
+   </extension>
+   <extension
+         id="org.ntlab.traceDebugger.coordinatorDeltaMarker"
+         name="CoordinatorDeltaMarker"
+         point="org.eclipse.core.resources.markers">
+      <persistent
+            value="false">
+      </persistent>
+      <super
+            type="org.eclipse.core.resources.textmarker">
+      </super>
+   </extension>
+   <extension
+         id="org.ntlab.traceDebugger.srcSideDeltaMarker"
+         name="SrcSideDeltaMarker"
+         point="org.eclipse.core.resources.markers">
+      <persistent
+            value="false">
+      </persistent>
+      <super
+            type="org.eclipse.core.resources.textmarker">
+      </super>
+   </extension>
+   <extension
+         id="org.ntlab.traceDebugger.dstSideDeltaMarker"
+         name="DstSideDeltaMarker"
+         point="org.eclipse.core.resources.markers">
+      <persistent
+            value="false">
+      </persistent>
+      <super
+            type="org.eclipse.core.resources.textmarker">
+      </super>
+   </extension>
+   <extension
+         id="org.ntlab.traceDebugger.currentMarker"
+         name="CurrentMarker"
+         point="org.eclipse.core.resources.markers">
+      <persistent
+            value="false">
       </persistent>
       <super
             type="org.eclipse.core.resources.textmarker">
@@ -58,34 +155,183 @@
          point="org.eclipse.ui.ide.markerImageProviders">
       <imageprovider
             icon="icons/deltaMarker.png"
-            id="DeltaMarker"
-            markertype="org.ntlab.traceDebugger.deltaMarker">
+            id="BottomDeltaMarker"
+            markertype="org.ntlab.traceDebugger.bottomDeltaMarker">
+      </imageprovider>
+      <imageprovider
+            icon="icons/deltaMarker.png"
+            id="CoordinatorDeltaMarker"
+            markertype="org.ntlab.traceDebugger.coordinatorDeltaMarker">
+      </imageprovider>
+      <imageprovider
+            icon="icons/deltaMarker.png"
+            id="SrcSideDeltaMarker"
+            markertype="org.ntlab.traceDebugger.srcSideDeltaMarker">
+      </imageprovider>
+      <imageprovider
+            icon="icons/deltaMarker.png"
+            id="DstSideDeltaMarker"
+            markertype="org.ntlab.traceDebugger.dstSideDeltaMarker">
+      </imageprovider>
+      <imageprovider
+            id="CurrentMarker"
+            markertype="org.ntlab.traceDebugger.currentMarker">
       </imageprovider>
    </extension>
    <extension
          point="org.eclipse.ui.editors.annotationTypes">
       <type
             markerSeverity="0"
-            markerType="org.ntlab.traceDebugger.deltaMarker"
-            name="org.ntlab.traceDebugger.deltaAnotation"
+            markerType="org.ntlab.traceDebugger.bottomDeltaMarker"
+            name="org.ntlab.traceDebugger.bottomDeltaAnnotation"
+            super="org.eclipse.ui.workbench.texteditor.info">
+      </type>
+      <type
+            markerSeverity="0"
+            markerType="org.ntlab.traceDebugger.coordinatorDeltaMarker"
+            name="org.ntlab.traceDebugger.coordinatorDeltaAnnotation"
+            super="org.eclipse.ui.workbench.texteditor.info">
+      </type>
+      <type
+            markerSeverity="0"
+            markerType="org.ntlab.traceDebugger.srcSideDeltaMarker"
+            name="org.ntlab.traceDebugger.srcSideDeltaAnnotation"
+            super="org.eclipse.ui.workbench.texteditor.info">
+      </type>
+      <type
+            markerSeverity="0"
+            markerType="org.ntlab.traceDebugger.dstSideDeltaMarker"
+            name="org.ntlab.traceDebugger.dstSideDeltaAnnotation"
+            super="org.eclipse.ui.workbench.texteditor.info">
+      </type>
+      <type
+            markerSeverity="0"
+            markerType="org.ntlab.traceDebugger.currentMarker"
+            name="org.ntlab.traceDebugger.currentAnnotation"
             super="org.eclipse.ui.workbench.texteditor.info">
       </type>
    </extension>
    <extension
          point="org.eclipse.ui.editors.markerAnnotationSpecification">
       <specification
-            annotationType="org.ntlab.traceDebugger.deltaAnotation"
+            annotationType="org.ntlab.traceDebugger.bottomDeltaAnnotation"
             colorPreferenceKey="clcolor"
-            colorPreferenceValue="255,69,0"
+            colorPreferenceValue="255,204,153"
             highlightPreferenceKey="clhighlight"
+            highlightPreferenceValue="true"
             icon="icons/deltaMarker.png"
             includeOnPreferencePage="true"
-            label="DeltaAnotation"
+            label="BottomDeltaAnnotation"
             overviewRulerPreferenceKey="clruler"
+            overviewRulerPreferenceValue="true"
             textPreferenceKey="cltext"
+            textPreferenceValue="true"
             textStylePreferenceKey="clstyle"
-            verticalRulerPreferenceKey="clvertical">
+            textStylePreferenceValue="BOX"
+            verticalRulerPreferenceKey="clvertical"
+            verticalRulerPreferenceValue="true">
       </specification>
+      <specification
+            annotationType="org.ntlab.traceDebugger.coordinatorDeltaAnnotation"
+            colorPreferenceKey="clcolor2"
+            colorPreferenceValue="255,255,153"
+            highlightPreferenceKey="clhighlight2"
+            highlightPreferenceValue="true"
+            icon="icons/deltaMarker.png"
+            includeOnPreferencePage="true"
+            label="CoordinatorDeltaAnnotation"
+            overviewRulerPreferenceKey="clruler2"
+            overviewRulerPreferenceValue="true"
+            textPreferenceKey="cltext2"
+            textPreferenceValue="true"
+            textStylePreferenceKey="clstyle2"
+            textStylePreferenceValue="BOX"
+            verticalRulerPreferenceKey="clvertical2"
+            verticalRulerPreferenceValue="true">
+      </specification>
+      <specification
+            annotationType="org.ntlab.traceDebugger.srcSideDeltaAnnotation"
+            colorPreferenceKey="clcolor3"
+            colorPreferenceValue="255,204,216"
+            highlightPreferenceKey="clhighlight3"
+            highlightPreferenceValue="true"
+            icon="icons/deltaMarker.png"
+            includeOnPreferencePage="true"
+            label="SrcSideDeltaAnnotation"
+            overviewRulerPreferenceKey="clruler3"
+            overviewRulerPreferenceValue="true"
+            textPreferenceKey="cltext3"
+            textPreferenceValue="true"
+            textStylePreferenceKey="clstyle3"
+            textStylePreferenceValue="BOX"
+            verticalRulerPreferenceKey="clvertical3"
+            verticalRulerPreferenceValue="true">
+      </specification>
+      <specification
+            annotationType="org.ntlab.traceDebugger.dstSideDeltaAnnotation"
+            colorPreferenceKey="clcolor4"
+            colorPreferenceValue="153,255,255"
+            highlightPreferenceKey="clhighlight4"
+            highlightPreferenceValue="true"
+            icon="icons/deltaMarker.png"
+            includeOnPreferencePage="true"
+            label="DstSideDeltaAnnotation"
+            overviewRulerPreferenceKey="clruler4"
+            overviewRulerPreferenceValue="true"
+            textPreferenceKey="cltext4"
+            textPreferenceValue="true"
+            textStylePreferenceKey="clstyle4"
+            textStylePreferenceValue="BOX"
+            verticalRulerPreferenceKey="clvertical4"
+            verticalRulerPreferenceValue="true">
+      </specification>
+      <specification
+            annotationType="org.ntlab.traceDebugger.currentAnnotation"
+            colorPreferenceKey="clcolor5"
+            colorPreferenceValue="198,219,174"
+            highlightPreferenceKey="clhighlight5"
+            highlightPreferenceValue="true"
+            includeOnPreferencePage="true"
+            label="CurrentAnnotation"
+            overviewRulerPreferenceKey="clruler5"
+            overviewRulerPreferenceValue="true"
+            textPreferenceKey="cltext5"
+            textPreferenceValue="true"
+            textStylePreferenceKey="clstyle5"
+            textStylePreferenceValue="BOX"
+            verticalRulerPreferenceKey="clvertical5"
+            verticalRulerPreferenceValue="true">
+      </specification>
+   </extension>
+   <extension
+         point="org.eclipse.ui.ide.markerSupport">
+      <markerContentGenerator
+            id="org.ntlab.traceDebugger.markerContentGenerator"
+            name="DeltaMarkerView">
+         <markerTypeReference
+               id="org.ntlab.traceDebugger.deltaMarker">
+         </markerTypeReference>
+         <markerTypeReference
+               id="org.ntlab.traceDebugger.deltaMarker2">
+         </markerTypeReference>
+         <markerFieldReference
+               id="org.eclipse.ui.ide.descriptionField">
+         </markerFieldReference>
+         <markerFieldReference
+               id="org.eclipse.ui.ide.resourceField"
+               visible="true">
+         </markerFieldReference>
+         <markerFieldReference
+               id="org.eclipse.ui.ide.pathField">
+         </markerFieldReference>
+         <markerFieldReference
+               id="org.eclipse.ui.ide.locationField"
+               visible="true">
+         </markerFieldReference>
+         <markerFieldReference
+               id="org.eclipse.ui.ide.markerType">
+         </markerFieldReference>
+      </markerContentGenerator>
    </extension>
 
 </plugin>

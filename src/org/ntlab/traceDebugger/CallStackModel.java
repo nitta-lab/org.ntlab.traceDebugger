@@ -6,6 +6,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 
 public class CallStackModel {
 	private TracePoint tracePoint;
+	private boolean isHighlighting;
 	
 	public CallStackModel(TracePoint tracePoint) {
 		this.tracePoint = tracePoint;
@@ -37,7 +38,13 @@ public class CallStackModel {
 		String declaringType = Trace.getDeclaringType(signature, isConstructor);
 		declaringType = declaringType.substring(declaringType.lastIndexOf(".") + 1);
 		String methodName = Trace.getMethodName(signature);
-		String args = "(" + signature.split("\\(")[1];
+		String args = "(";
+		String delimiter = "";
+		String[] argArray = signature.split("\\(")[1].split(",");
+		for (String arg : argArray) {
+			args += (delimiter + arg.substring(arg.lastIndexOf(".") + 1));
+			delimiter = ", ";
+		}
 		
 		StringBuilder sb = new StringBuilder();
 		sb.append(objectType);
@@ -47,5 +54,13 @@ public class CallStackModel {
 		sb.append("." + methodName + args);
 		signature = sb.toString();
 		return signature;
+	}
+
+	public boolean isHighlighting() {
+		return isHighlighting;
+	}
+	
+	public void setHighlighting(boolean isHighlighting) {
+		this.isHighlighting = isHighlighting;
 	}	
 }

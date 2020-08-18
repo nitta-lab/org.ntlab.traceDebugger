@@ -11,16 +11,16 @@ public class TraceDebuggerPerspective implements IPerspectiveFactory {
 		// エディタの場所を取得
 		String editorArea = layout.getEditorArea();
 
-		// 左上にコールスタックのビューを配置
-		IFolderLayout topLeft = layout.createFolder("topLeft", IPageLayout.TOP, 0.35f, editorArea);
-		topLeft.addView(CallStackView.ID);
+		// 右にブレークポイントのビューを配置
+		IFolderLayout breakpointViewArea = layout.createFolder("BreakPointViewArea", IPageLayout.RIGHT, 0.5f, editorArea);
+		breakpointViewArea.addView(BreakPointView.ID);
 		
-		// 右上にブレークポイントのビューを配置
-		IFolderLayout topRight = layout.createFolder("topRight", IPageLayout.RIGHT, 0.5f, "topLeft");
-		topRight.addView(BreakPointView.ID);
+		// 左上にコールスタックのビューを配置
+		IFolderLayout callStackViewArea = layout.createFolder("CallStackViewArea", IPageLayout.TOP, 0.25f, editorArea);
+		callStackViewArea.addView(CallStackView.ID);
 		
 		// 右上に変数のビューを配置
-		IFolderLayout topRight2 = layout.createFolder("topRight2", IPageLayout.RIGHT, 0.5f, "topLeft");
-		topRight2.addView(VariableView.ID);		
+		IFolderLayout variableViewArea = layout.createFolder("VariableViewArea", IPageLayout.TOP, 0.25f, "BreakPointViewArea");
+		variableViewArea.addView(VariableView.ID);
 	}
 }

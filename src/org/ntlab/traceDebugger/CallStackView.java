@@ -1,7 +1,9 @@
 package org.ntlab.traceDebugger;
 
-import org.eclipse.jface.action.Action;
-import org.eclipse.jface.action.IAction;
+import java.util.List;
+import java.util.Map;
+
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
@@ -11,19 +13,17 @@ import org.eclipse.jface.viewers.TreeNode;
 import org.eclipse.jface.viewers.TreeNodeContentProvider;
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.IViewPart;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
+import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
+import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
+import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class CallStackView extends ViewPart {
-	private TreeViewer viewer;
-	private IAction refreshAction;
-	private CallStackModels callStackModels = new CallStackModels();
+	protected TreeViewer viewer;
+	protected CallStackModel selectionCallStackModel;
+	protected CallStackModels callStackModels = new CallStackModels();
 	public static final String ID = "org.ntlab.traceDebugger.callStackView";
 	
 	public CallStackView() {
@@ -50,10 +50,10 @@ public class CallStackView extends ViewPart {
 					Object value = ((TreeNode)element).getValue();
 					if (value instanceof CallStackModel) {
 						CallStackModel callStackModel = (CallStackModel)value;
+						selectionCallStackModel = callStackModel;
 						MethodExecution methodExecution = callStackModel.getMethodExecution();
-						TracePoint tp = callStackModel.getTracePoint();
 						JavaEditorOperator.openSrcFileOfMethodExecution(methodExecution, callStackModel.getCallLineNo());
-						((VariableView)getOtherView(VariableView.ID)).updateVariablesByTracePoint(tp, false);
+						additonalActionOnSelectionChanged(callStackModel);
 					}
 				}
 			}
@@ -61,38 +61,44 @@ public class CallStackView extends ViewPart {
 		createActions();
 		createToolBar();
 		createMenuBar();
+		createPopupMenu();
+		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
+		TraceDebuggerPlugin.setActiveView(ID, this);
 		viewer.getControl().setFocus();
 	}
 	
-	private void createActions() {
-		refreshAction = new Action() {
-			@Override
-			public void run() {
-				refresh();
-			}
-		};
-		refreshAction.setText("refresh");
-		refreshAction.setToolTipText("refresh");
-		refreshAction.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_ELCL_SYNCED));		
+	protected void createActions() {
+
 	}
 	
-	private void createToolBar() {
+	protected void createToolBar() {
 		IToolBarManager mgr = getViewSite().getActionBars().getToolBarManager();
-		mgr.add(refreshAction);
 	}
 	
-	private void createMenuBar() {
+	protected void createMenuBar() {
 		IMenuManager mgr = getViewSite().getActionBars().getMenuManager();
-		mgr.add(refreshAction);
+	}
+	
+	protected void createPopupMenu() {
+
+	}
+	
+	protected void additonalActionOnSelectionChanged(CallStackModel selectedCallStackModel) {
+		TracePoint tp = selectedCallStackModel.getTracePoint();
+		TracePoint debuggingTp = DebuggingController.getInstance().getCurrentTp();
+		VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);
+		variableView.updateVariablesByTracePoint(tp, false, debuggingTp);
 	}
 	
 	public void updateByTracePoint(TracePoint tp) {
 		callStackModels.updateByTracePoint(tp);
+		refresh();
+		selectionCallStackModel = null;
 	}
 
 	public void refresh() {
@@ -108,17 +114,30 @@ public class CallStackView extends ViewPart {
 	
 	public void reset() {
 		callStackModels.reset();
-//		viewer.setInput(null);
-//		viewer.expandAll();
 		refresh();
 	}
 	
-	private IViewPart getOtherView(String viewId) {
-		IWorkbenchPage workbenchPage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
-		try {
-			return workbenchPage.showView(viewId);
-		} catch (PartInitException e) {
-			throw new RuntimeException(e);
-		}	
+	public CallStackModel getSelectionCallStackModel() {
+		return selectionCallStackModel;
 	}
+	
+	public boolean isSelectionOnTop() {
+		if (selectionCallStackModel == null) return false;
+		TreeNode[] nodes = callStackModels.getAllCallStacksTree();
+		if (nodes == null || nodes[0] == null) return false;
+		TreeNode[] children = nodes[0].getChildren();
+		Object obj = children[0].getValue();
+		if (!(obj instanceof CallStackModel)) return false;
+		CallStackModel topCallStackModel = (CallStackModel)obj;
+		return topCallStackModel.equals(selectionCallStackModel);
+	}
+	
+	public Map<String, List<CallStackModel>> getCallStackModels() {
+		return callStackModels.getAllCallStacks();
+	}
+	
+	public void highlight(MethodExecution methodExecution) {
+		callStackModels.highlight(methodExecution);
+		viewer.refresh();
+	}	
 }

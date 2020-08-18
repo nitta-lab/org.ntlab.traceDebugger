@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.eclipse.jface.viewers.TreeNode;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.IStatementVisitor;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ThreadInstance;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
@@ -19,6 +20,10 @@ public class CallStackModels {
 
 	public List<CallStackModel> getDebuggingThreadCallStacks() {
 		return debuggingThreadCallStacks;
+	}
+	
+	public Map<String, List<CallStackModel>> getAllCallStacks() {
+		return allCallStacks;
 	}
 
 	public TreeNode[] getAllCallStacksTree() {
@@ -97,6 +102,16 @@ public class CallStackModels {
 			TracePoint resultTp = start[0];
 			allCallStacks.put(threadId, update(resultTp));
 		}
+	}
+
+	public void highlight(MethodExecution methodExecution) {
+		String signature1 = methodExecution.getSignature();
+		for (List<CallStackModel> callStackModels : allCallStacks.values()) {
+			for (CallStackModel callStackModel : callStackModels) {
+				String signature2 = callStackModel.getMethodExecution().getSignature();
+				callStackModel.setHighlighting(signature1.equals(signature2));
+			}
+		}		
 	}
 
 //	public IStatementVisitor tmp(TracePoint tp) {
