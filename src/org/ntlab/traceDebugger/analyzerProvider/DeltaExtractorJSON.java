@@ -121,9 +121,12 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 					if (ownerObjectId.equals(thisObjectId)) {
 						// フィールド参照の場合
 						removeList.add(refObjectId);
-						existsInFields++;					// setした後のgetを検出している可能性がある
 						removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く						
-						aliasList.put(refObjectId, new Alias(Alias.AliasType.FIELD, 0, refObjectId, tracePoint.duplicate()));
+						if (existsInFields == 0) {
+							// 一番近いフィールド参照を優先する
+							aliasList.put(refObjectId, new Alias(Alias.AliasType.FIELD, 0, refObjectId, tracePoint.duplicate()));
+						}
+						existsInFields++;					// setした後のgetを検出している可能性がある
 					} else {
 						// 直接参照の場合
 						boolean isSrcSideChanged = false;
