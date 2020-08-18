@@ -802,7 +802,6 @@ public class DeltaMarkerManager {
 					final MethodInvocation mi = (MethodInvocation)statement;
 					final MethodExecution calledMe = mi.getCalledMethodExecution();
 					final int index = alias.getIndex();
-					calledMe.getArguments().get(alias.getIndex());
 					visitor = new MyASTVisitor() {
 						@Override
 						public boolean visit(org.eclipse.jdt.core.dom.MethodInvocation node) {

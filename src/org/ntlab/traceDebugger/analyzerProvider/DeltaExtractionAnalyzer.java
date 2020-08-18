@@ -46,13 +46,17 @@ public class DeltaExtractionAnalyzer extends AbstractAnalyzer {
 		String dstClassName = variable.getValueClassName();
 		TracePoint before = variable.getBeforeTracePoint();
 		before = before.duplicate();
-		before.stepNext();
 		Reference reference = new Reference(srcId, dstId, srcClassName, dstClassName);
-		reference.setCollection(srcClassName.startsWith("java.util.")); // trueにするとコレクション以外抽出できなくなる
+		DeltaRelatedAliasCollector aliasCollector = new DeltaRelatedAliasCollector(srcId, dstId);
+		if (before.getStatement() instanceof FieldUpdate) {
+			extractedStructure = deltaExtractor.extract(before.duplicate(), aliasCollector);
+		} else {
+			before.stepNext();
+			reference.setCollection(srcClassName.startsWith("java.util.")); // trueにするとコレクション以外抽出できなくなる	
+			extractedStructure = deltaExtractor.extract(reference, before.duplicate(), aliasCollector);
+		}
 		
 		// デルタ抽出
-		DeltaRelatedAliasCollector aliasCollector = new DeltaRelatedAliasCollector(srcId, dstId);
-		extractedStructure = deltaExtractor.extract(reference, before.duplicate(), aliasCollector);
 		MethodExecution creationCallTree = extractedStructure.getCreationCallTree();
 		MethodExecution coordinator = extractedStructure.getCoordinator();
 		TracePoint bottomPoint = findTracePoint(reference, creationCallTree, before.getStatement().getTimeStamp());
