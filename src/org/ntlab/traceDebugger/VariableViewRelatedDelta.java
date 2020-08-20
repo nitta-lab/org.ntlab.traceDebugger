@@ -59,30 +59,11 @@ public class VariableViewRelatedDelta extends VariableView {
 		super.createActions();
 		jumpAction = new Action() {
 			public void run() {
-				TracePoint tp = null;
 				TracePoint before = DebuggingController.getInstance().getCurrentTp();
-				VariableType variableType = selectedVariable.getVariableType();
-				if (variableType.equals(VariableType.USE_VALUE)) {
-					String containerId = selectedVariable.getContainerId();
-					String fieldName = selectedVariable.getFullyQualifiedVariableName();
-					tp = VariableUpdatePointFinder.getInstance().getPoint(containerId, fieldName, before);
-				} else if (variableType.equals(VariableType.USE_RETURN)) {
-					String receiverId = selectedVariable.getContainerId();
-					String valueId = selectedVariable.getValueId();
-					String receiverClassName = selectedVariable.getContainerClassName();
-					VariableUpdatePointFinder finder = VariableUpdatePointFinder.getInstance();
-					if (receiverClassName.contains("Iterator") || receiverClassName.contains("Itr")
-							|| receiverClassName.contains("Collections$UnmodifiableCollection$1")) {
-						tp = finder.getIteratorPoint(receiverId);
-						if (tp == null) return;
-						MethodInvocation mi = ((MethodInvocation)tp.getStatement()); 
-						receiverId = mi.getCalledMethodExecution().getThisObjId();
-					}
-					tp = finder.getDefinitionInvocationPoint(receiverId, valueId, before);
-				}
-				if (tp == null) return;
+				TracePoint jumpPoint = findJumpPoint(selectedVariable, before);
+				if (jumpPoint == null) return;
 				DebuggingController controller = DebuggingController.getInstance();
-				controller.jumpToTheTracePoint(tp, false);
+				controller.jumpToTheTracePoint(jumpPoint, false);
 			}
 		};
 		jumpAction.setText("Jump to Definition");
@@ -121,6 +102,54 @@ public class VariableViewRelatedDelta extends VariableView {
 		deltaActionForThisToAnother.setToolTipText("Extract Delta");
 	}
 	
+	private TracePoint findJumpPoint(Variable variable, TracePoint before) {
+		VariableType variableType = selectedVariable.getVariableType();
+		if (variableType.equals(VariableType.USE_VALUE)) {
+			String containerId = selectedVariable.getContainerId();
+			String fieldName = selectedVariable.getFullyQualifiedVariableName();
+			return VariableUpdatePointFinder.getInstance().getPoint(containerId, fieldName, before);
+		} else if (variableType.equals(VariableType.USE_RETURN)) {
+			return findJumpPointWithReturnValue(variable, before);
+		}
+		return null;
+	}
+	
+	private TracePoint findJumpPointWithReturnValue(Variable variable, TracePoint before) {
+		TracePoint tp = null;
+		String receiverId = selectedVariable.getContainerId();
+		String valueId = selectedVariable.getValueId();
+		String receiverClassName = selectedVariable.getContainerClassName();
+		VariableUpdatePointFinder finder = VariableUpdatePointFinder.getInstance();
+
+		// note: イテレータの場合はそのイテレータの取得元のコレクションのIDを取りにいく
+		if (receiverClassName.contains("Iterator") || receiverClassName.contains("Itr")
+				|| receiverClassName.contains("Collections$UnmodifiableCollection$1")) {
+			tp = finder.getIteratorPoint(receiverId); // イテレータ取得時のポイントを取得
+			if (tp == null) return null;
+			MethodInvocation mi = ((MethodInvocation)tp.getStatement()); 
+			receiverId = mi.getCalledMethodExecution().getThisObjId(); // イテレータの取得元のコレクションのID
+			receiverClassName = mi.getCalledMethodExecution().getThisClassName(); // イテレータの取得元のコレクションのクラス名
+		}
+		
+		// note: ジャンプ先となる オブジェクトの代入ポイントもしくはコレクションへの追加ポイントを取得
+		tp = finder.getDefinitionInvocationPoint(receiverId, valueId, before);
+		
+		// note: ジャンプ先のポイントが見つからなかった場合で、かつコレクションへの追加ポイントを探している場合はコレクションの乗せ換え元で追加していないかを探しに行く
+		if (tp == null && receiverClassName.startsWith("java.util.")) {
+			String afterCollectionId = receiverId;
+			while (true) {
+				tp = finder.getTransferCollectionPoint(afterCollectionId, before);
+				if (tp == null) break; // コレクションの乗せ換え元がそれ以上ない場合
+				MethodInvocation mi = ((MethodInvocation)tp.getStatement()); 
+				String fromCollectionId = mi.getCalledMethodExecution().getArguments().get(0).getId();
+				tp = finder.getDefinitionInvocationPoint(fromCollectionId, valueId, before);
+				if (tp != null) break; // コレクションの乗せ換え元でオブジェクトの追加が見つかった場合
+				afterCollectionId = fromCollectionId;
+			}
+		}
+		return tp;
+	}
+
 	@Override
 	protected void createPopupMenu() {
 		MenuManager menuMgr = new MenuManager("#PopupMenu");
@@ -183,20 +212,6 @@ public class VariableViewRelatedDelta extends VariableView {
 		deltaActionForContainerToComponent.setText("");
 		deltaActionForContainerToComponent.setToolTipText("");
 		return false;
-
-//		String containerId = selectedVariable.getContainerId();
-//		String containerClassName = selectedVariable.getContainerClassName();
-//		if (containerId != null  && containerClassName != null) {
-//			containerClassName = containerClassName.substring(containerClassName.lastIndexOf(".") + 1);
-//			String textForContainerToComponent = String.format("Extract Delta [ %s (id = %s) -> %s (id = %s) ]", containerClassName, containerId, valueClassName, valueId);
-//			deltaActionForContainerToComponent.setText(textForContainerToComponent);
-//			deltaActionForContainerToComponent.setToolTipText(textForContainerToComponent);
-//			return true;
-//		} else {
-//			deltaActionForContainerToComponent.setText("");
-//			deltaActionForContainerToComponent.setToolTipText("");
-//			return false;
-//		}
 	}
 
 	private boolean updateDeltaActionForThisToAnotherTexts(Variable variable) {

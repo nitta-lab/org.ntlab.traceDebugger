@@ -22,6 +22,7 @@ public class VariableUpdatePointFinder {
 	private Map<String, Map<String, List<TracePoint>>> updatePoints = new HashMap<>(); // コンテナIDとフィールド名をキーにした変数更新ポイント
 	private Map<String, Map<String, List<TracePoint>>> definitionInvocationPoints = new HashMap<>(); // レシーバIDと引数IDをキーにしたコレクションへの追加ポイント
 	private Map<String, TracePoint> gettingIteratorPoints = new HashMap<>(); // イテレータのIDをキーにそれを取得したポイント
+	private Map<String, List<TracePoint>> changeOtherCollectionPoints = new HashMap<>(); // 乗せ換え後のコレクションIDをキーにそれを乗せ換えた地点のポイント
 
 	public void setTrace(Trace trace) {
 		this.trace = trace;
@@ -54,12 +55,22 @@ public class VariableUpdatePointFinder {
 					} else if (statement instanceof MethodInvocation) {
 						MethodInvocation mi = (MethodInvocation)statement;
 						MethodExecution calledME = mi.getCalledMethodExecution();
-						String methodName = calledME.getSignature();						
+						String methodName = calledME.getSignature();
+						List<ObjectReference> args = calledME.getArguments();
 						if (methodName.contains(".add(") || methodName.contains(".addElement(")) {
 							registerdefinitionInvocationPoint(start, calledME);							
 						} else if (methodName.contains(".iterator(") || methodName.contains("Iterator(")) {
 							registerIteratorPoint(start, calledME);
-						}
+						} else if (args.size() == 1 && args.get(0).getActualType().startsWith("java.util.")) {
+							ObjectReference returnValue = calledME.getReturnValue();						
+							if (calledME.getThisClassName().startsWith("java.util.") && !(calledME.getThisObjId().equals("0"))) {
+								String toCollectionId = calledME.getThisObjId();
+								registerChangeOtherCollectionPoint(start, toCollectionId);
+							} else if (returnValue != null && returnValue.getActualType().startsWith("java.util.")) {
+								String toCollectionId = returnValue.getId();
+								registerChangeOtherCollectionPoint(start, toCollectionId);
+							}
+						}							
 					}
 				}
 			}
@@ -71,19 +82,6 @@ public class VariableUpdatePointFinder {
 		String fieldName = fu.getFieldName();
 		register(updatePoints, objectId, fieldName, tp);
 	}
-
-//	private void registerdefinitionInvocationPoints(TracePoint tp, MethodInvocation mi) {
-//		MethodExecution calledME = mi.getCalledMethodExecution();
-//		String methodName = calledME.getSignature();
-//		List<ObjectReference> args = calledME.getArguments();
-//		if (methodName.contains(".add(") || methodName.contains(".addElement(")) {
-//			if (args.size() == 1) {
-//				String receiverId = calledME.getThisObjId();
-//				String argId = args.get(0).getId();
-//				register(definitionInvocationPoints, receiverId, argId, tp);
-//			}
-//		}
-//	}
 	
 	private void registerdefinitionInvocationPoint(TracePoint tp, MethodExecution calledME) {
 		List<ObjectReference> args = calledME.getArguments();
@@ -98,6 +96,15 @@ public class VariableUpdatePointFinder {
 		ObjectReference returnIteratorValue = calledME.getReturnValue();
 		String iteratorId = returnIteratorValue.getId();
 		gettingIteratorPoints.put(iteratorId, tp.duplicate());
+	}
+	
+	private void registerChangeOtherCollectionPoint(TracePoint tp, String toCollectionId) {
+		List<TracePoint> tracePoints = changeOtherCollectionPoints.get(toCollectionId);
+		if (tracePoints == null) {
+			tracePoints = new ArrayList<TracePoint>();
+			changeOtherCollectionPoints.put(toCollectionId, tracePoints);
+		}
+		tracePoints.add(tp.duplicate());
 	}
 	
 	private void register(Map<String, Map<String, List<TracePoint>>> map, String key1, String key2, TracePoint tp) {
@@ -139,6 +146,18 @@ public class VariableUpdatePointFinder {
 	
 	public TracePoint getIteratorPoint(String iteratorId) {
 		return gettingIteratorPoints.get(iteratorId);
+	}
+	
+	public TracePoint getTransferCollectionPoint(String toCollectionId, TracePoint before) {
+		List<TracePoint> tracePoints = changeOtherCollectionPoints.get(toCollectionId);
+		long beforeTime = before.getStatement().getTimeStamp();
+		TracePoint tmp = null;
+		for (TracePoint tp : tracePoints) {
+			long time = tp.getStatement().getTimeStamp();
+			if (time >= beforeTime) return tmp;
+			tmp = tp;	
+		}
+		return tmp;
 	}
 	
 	private TracePoint getPoint(Map<String, Map<String, List<TracePoint>>> map, String key1, String key2, TracePoint before) {
