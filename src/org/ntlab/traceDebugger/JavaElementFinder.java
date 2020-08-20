@@ -1,5 +1,6 @@
 package org.ntlab.traceDebugger;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,16 +42,24 @@ public class JavaElementFinder {
 		IProject[] projects = workspace.getRoot().getProjects();
 		String projectName = "";
 		String srcForderName = "/src";
+		String outputClassPath = null;
+		IPath projectOutputLocation = null;
 		boolean hasFoundSrcForderName = false;
 		for (IProject project : projects) {
 			projectName = project.getFullPath().toString();
 			if (!(tmp.contains(projectName + "/"))) continue;
 			IJavaProject javaProject = JavaCore.create(project);
 			try {
+				projectOutputLocation = javaProject.getOutputLocation();		// プロジェクト全体の出力フォルダ
 				for (IClasspathEntry entry : javaProject.getResolvedClasspath(true)) {
 					if (entry.getEntryKind() != IClasspathEntry.CPE_SOURCE) continue;
 					IPath srcForderPath = entry.getPath();
-					srcForderName = srcForderPath.toString();
+					srcForderName = srcForderPath.toString();				
+					IPath outputLocation = entry.getOutputLocation();		// ソース毎の出力フォルダ
+					if (outputLocation != null) {
+						URI path = PathUtility.workspaceRelativePathToAbsoluteURI(outputLocation, workspace);
+						outputClassPath = PathUtility.URIPathToPath(path.getPath());
+					}
 					hasFoundSrcForderName = true;
 					break;
 				}
@@ -59,9 +68,17 @@ public class JavaElementFinder {
 			}
 			if (hasFoundSrcForderName) break;
 		}
+		if (outputClassPath == null && projectOutputLocation != null) {
+			URI path = PathUtility.workspaceRelativePathToAbsoluteURI(projectOutputLocation, workspace);
+			outputClassPath = PathUtility.URIPathToPath(path.getPath());
+		}
 //		tmp = tmp.replace(tmp.substring(0, tmp.lastIndexOf(projectName)), "");
-		tmp = tmp.replace(tmp.substring(0, tmp.indexOf(projectName)), "");
-		tmp = tmp.replace("/bin", srcForderName.substring(srcForderName.lastIndexOf("/")));
+		if (outputClassPath != null && tmp.startsWith(outputClassPath)) {
+			tmp = srcForderName + tmp.substring(outputClassPath.length());			
+		} else {
+			tmp = tmp.replace(tmp.substring(0, tmp.indexOf(projectName)), "");
+			tmp = tmp.replace("/bin", srcForderName.substring(srcForderName.lastIndexOf("/")));
+		}
 		tmp = tmp.replace(".class", ".java");
 		String filePath = tmp;
 		IPath path = new Path(filePath);
