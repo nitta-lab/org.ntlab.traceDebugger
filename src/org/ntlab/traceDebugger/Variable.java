@@ -86,12 +86,12 @@ public class Variable {
 		this.lastUpdatePoint = lastUpdatePoint;
 		this.before = before;
 		this.isReturned = isReturned;
+		this.variableType = variableType;
 		this.deepHierarchy = checkDeepHierarchy();
 		this.alreadyCreatedChildHierarchy = false;
 		this.alreadyCreatedGrandChildHierarchy = false;
 		this.children.clear();
 		this.additionalAttributes.clear();
-		this.variableType = variableType;
 	}
 	
 	public void update(String valueClassName, String valueId, TracePoint lastUpdatePoint, boolean isReturned) {
@@ -152,6 +152,36 @@ public class Variable {
 		return variableName + ": " + valueClassName + "(" + "id = " + valueId + ")";
 	}
 	
+//	/**
+//	 * そのフィールドが参照型オブジェクトか配列かを判定して判定結果を返す.<br>
+//	 * (変数ビューに表示させるデータを再帰的に求めるために, 呼び出し元で次にどのメソッドを呼ぶかを判断するのに利用)
+//	 * 
+//	 * @param objData
+//	 * @return FIELD: 参照型オブジェクトの場合, ARRAY: 配列の場合, NONE: それ以外の場合
+//	 */
+//	private DeepHierarchy checkDeepHierarchy() {
+//		// note: フィールドのIDやTypeがない場合や、Type(=ActualType)が"---"の場合は何もしない
+//		if (this.getValueId() == null || this.getValueId().isEmpty() 
+//				|| this.getValueClassName() == null || this.getValueClassName().isEmpty()) {
+//			return DeepHierarchy.NONE;
+//		}
+//		final String NULL_ACTUAL_TYPE = "---"; // フィールドに対して明示的にnullを入れた場合のActualTypeの取得文字列
+//		if (this.getValueClassName().equals(NULL_ACTUAL_TYPE)) return DeepHierarchy.NONE;
+//
+//		final String ARRAY_SIGNATURE_HEAD = "["; // 配列のシグネチャの先頭は、配列の次元数だけ [ が連なる
+//		if (this.getValueClassName().startsWith(ARRAY_SIGNATURE_HEAD)) {
+//			// note: フィールドのTypeが配列型(　[ で始まる　)場合 (その配列が持つ各要素についてさらなるデータ取得処理を呼び出す)
+//			return DeepHierarchy.ARRAY;
+//		} else {
+//			String[] primitives = {"byte", "short", "int", "long", "float", "double", "char", "boolean"};
+//			if (!Arrays.asList(primitives).contains(this.getValueClassName())) {
+//				// note: フィールドのTypeが参照型(=オブジェクト)の場合 (そのオブジェクトが持っているフィールドについてさらなるデータ取得処理を呼び出す)
+//				return DeepHierarchy.FIELD;
+//			}
+//		}
+//		return DeepHierarchy.NONE;
+//	}
+	
 	/**
 	 * そのフィールドが参照型オブジェクトか配列かを判定して判定結果を返す.<br>
 	 * (変数ビューに表示させるデータを再帰的に求めるために, 呼び出し元で次にどのメソッドを呼ぶかを判断するのに利用)
@@ -160,22 +190,24 @@ public class Variable {
 	 * @return FIELD: 参照型オブジェクトの場合, ARRAY: 配列の場合, NONE: それ以外の場合
 	 */
 	private DeepHierarchy checkDeepHierarchy() {
-		// フィールドのIDやTypeがない場合や、Type(=ActualType)が"---"の場合は何もしない
-		if (this.getValueId() == null || this.getValueId().isEmpty() 
-				|| this.getValueClassName() == null || this.getValueClassName().isEmpty()) {
+		// note: フィールドのIDやTypeがない場合や、Type(=ActualType)が"---"の場合は何もしない
+		String id = (variableType.isContainerSide()) ? containerId : valueId;
+		String className = (variableType.isContainerSide()) ? containerClassName : valueClassName;
+		if (id == null || id.isEmpty() || className == null || className.isEmpty()) {
 			return DeepHierarchy.NONE;
-		}
+		}		
+		
 		final String NULL_ACTUAL_TYPE = "---"; // フィールドに対して明示的にnullを入れた場合のActualTypeの取得文字列
 		if (this.getValueClassName().equals(NULL_ACTUAL_TYPE)) return DeepHierarchy.NONE;
 
 		final String ARRAY_SIGNATURE_HEAD = "["; // 配列のシグネチャの先頭は、配列の次元数だけ [ が連なる
 		if (this.getValueClassName().startsWith(ARRAY_SIGNATURE_HEAD)) {
-			// フィールドのTypeが配列型(　[ で始まる　)場合 (その配列が持つ各要素についてさらなるデータ取得処理を呼び出す)
+			// note: フィールドのTypeが配列型(　[ で始まる　)場合 (その配列が持つ各要素についてさらなるデータ取得処理を呼び出す)
 			return DeepHierarchy.ARRAY;
 		} else {
 			String[] primitives = {"byte", "short", "int", "long", "float", "double", "char", "boolean"};
 			if (!Arrays.asList(primitives).contains(this.getValueClassName())) {
-				// フィールドのTypeが参照型(=オブジェクト)の場合 (そのオブジェクトが持っているフィールドについてさらなるデータ取得処理を呼び出す)
+				// note: フィールドのTypeが参照型(=オブジェクト)の場合 (そのオブジェクトが持っているフィールドについてさらなるデータ取得処理を呼び出す)
 				return DeepHierarchy.FIELD;
 			}
 		}
@@ -270,15 +302,19 @@ public class Variable {
 //				FieldUpdate fieldUpdate = trace.getFieldUpdate(id, fullyQualifiedFieldName, before, isReturned);
 				
 //				TracePoint updateTracePoint = trace.getFieldUpdateTracePoint(valueId, fullyQualifiedFieldName, before, isReturned);
-				TracePoint updateTracePoint = VariableUpdatePointFinder.getInstance().getPoint(valueId, fullyQualifiedFieldName, before);
+				String nextContainerId = (variableType.isContainerSide()) ? containerId : valueId;
+				String nextClassName = (variableType.isContainerSide()) ? containerClassName : valueClassName;
+//				TracePoint updateTracePoint = VariableUpdatePointFinder.getInstance().getPoint(valueId, fullyQualifiedFieldName, before);
+				TracePoint updateTracePoint = VariableUpdatePointFinder.getInstance().getPoint(nextContainerId, fullyQualifiedFieldName, before);
 				
 //				if (updateTracePoint == null) continue;
 				if (updateTracePoint != null) {
 					FieldUpdate fieldUpdate = (FieldUpdate)updateTracePoint.getStatement();
 					// フィールドのIDとTypeを取得(String)
-					String fieldObjId = (fieldUpdate != null) ? fieldUpdate.getValueObjId()     : "---";
-					String fieldType  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : NULL_VALUE;
-					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, fieldType, fieldObjId, updateTracePoint, before, isReturned, VariableType.USE_VALUE);
+					String nextValueId = (fieldUpdate != null) ? fieldUpdate.getValueObjId() : "---";
+					String nextValueClassName  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : NULL_VALUE;
+//					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, fieldType, fieldObjId, updateTracePoint, before, isReturned, VariableType.USE_VALUE);
+					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, nextClassName, nextContainerId, nextValueClassName, nextValueId, updateTracePoint, before, isReturned, VariableType.USE_VALUE);
 					this.addChild(fieldData);
 				} else {
 					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, NULL_VALUE, "---", updateTracePoint, before, isReturned, VariableType.USE_VALUE);
