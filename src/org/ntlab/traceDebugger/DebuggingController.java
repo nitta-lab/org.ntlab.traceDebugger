@@ -37,7 +37,6 @@ public class DebuggingController {
 	private static final DebuggingController theInstance = new DebuggingController();
 	private TracePoint debuggingTp;
 	private TraceBreakPoint selectedTraceBreakPoint;
-//	private TraceBreakPoints traceBreakPoints;
 	private IMarker currentLineMarker;
 	private LoadingTraceFileStatus loadingTraceFileStatus = LoadingTraceFileStatus.NOT_YET;
 	private boolean isRunning = false;
@@ -115,6 +114,7 @@ public class DebuggingController {
 					@Override
 					public void run() {
 						breakpointView.updateTraceBreakPoints(traceBreakPoints);
+						breakpointView.updateImagesForBreakPoint(true);
 					}
 				});
 				monitor.done();
@@ -194,7 +194,7 @@ public class DebuggingController {
 			return false;
 		}
 		refresh(null, debuggingTp, false);
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImages(true);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImagesForDebug(true);
 		isRunning = true;
 		return true;
 	}
@@ -210,7 +210,7 @@ public class DebuggingController {
 		}
 		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
 		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImages(false);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImagesForDebug(false);
 		isRunning = false;
 	}
 

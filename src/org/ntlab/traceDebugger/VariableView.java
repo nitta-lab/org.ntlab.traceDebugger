@@ -39,13 +39,13 @@ public class VariableView extends ViewPart {
 		tree.setLinesVisible(true);
 
 		String[] treeColumnTexts = {"Name", "Value"};
-		int[] treeColumnWidth = {100, 200};
+		int[] treeColumnWidth = {200, 300};
 		TreeColumn[] treeColumns = new TreeColumn[treeColumnTexts.length];
 		for (int i = 0; i < treeColumns.length; i++) {
 			treeColumns[i] = new TreeColumn(tree, SWT.NULL);
 			treeColumns[i].setText(treeColumnTexts[i]);
 			treeColumns[i].setWidth(treeColumnWidth[i]);
-		}		
+		}
 		viewer.setContentProvider(new MyTreeNodeContentProvider());
 		viewer.setLabelProvider(new VariableLabelProvider());
 		viewer.addSelectionChangedListener(new ISelectionChangedListener() {

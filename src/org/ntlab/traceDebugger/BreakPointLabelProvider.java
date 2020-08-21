@@ -1,10 +1,10 @@
 package org.ntlab.traceDebugger;
 
+import org.eclipse.debug.ui.DebugUITools;
+import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 
 public class BreakPointLabelProvider  extends LabelProvider implements ITableLabelProvider {
 
@@ -27,12 +27,14 @@ public class BreakPointLabelProvider  extends LabelProvider implements ITableLab
 	
 	@Override
 	public Image getColumnImage(Object element, int columnIndex) {
-		if (columnIndex == 0) return null;
-		return getImage(element);
-	}
-	
-	@Override
-	public Image getImage(Object element) {
-		return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
+		if (columnIndex == 0 && element instanceof TraceBreakPoint) {
+			TraceBreakPoint tbp = (TraceBreakPoint)element;
+			if (tbp.isAvailable()) {
+				return DebugUITools.getImage(IDebugUIConstants.IMG_OBJS_BREAKPOINT);
+			} else {
+				return DebugUITools.getImage(IDebugUIConstants.IMG_OBJS_BREAKPOINT_DISABLED);
+			}
+		}
+		return null;
 	}	
 }

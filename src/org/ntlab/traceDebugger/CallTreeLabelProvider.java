@@ -1,5 +1,7 @@
 package org.ntlab.traceDebugger;
 
+import org.eclipse.debug.ui.DebugUITools;
+import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.jface.viewers.IColorProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TreeNode;
@@ -25,7 +27,10 @@ public class CallTreeLabelProvider extends LabelProvider implements IColorProvid
 	@Override
 	public Image getImage(Object element) {
 		if (element instanceof TreeNode) {
-			return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
+			Object value = ((TreeNode)element).getValue();
+			if (value instanceof CallTreeModel) {
+				return DebugUITools.getImage(IDebugUIConstants.IMG_OBJS_STACKFRAME);
+			}
 		}
 		return null;
 	}

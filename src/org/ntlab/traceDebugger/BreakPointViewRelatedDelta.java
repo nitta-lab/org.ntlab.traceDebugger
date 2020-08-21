@@ -17,10 +17,10 @@ public class BreakPointViewRelatedDelta extends BreakPointView {
 	public static final String ID = "org.ntlab.traceDebugger.breakPointViewRelatedDelta";
 	public static final String STEP_BACK_INTO_ELCL = "StepBackInto_ELCL";
 	public static final String STEP_BACK_INTO_DLCL = "StepBackInto_DLCL";
-	public static final String STEP_BACK_OVER_ELCL = "StepOverInto_ELCL";
-	public static final String STEP_BACK_OVER_DLCL = "StepOverInto_DLCL";
-	public static final String STEP_BACK_RETURN_ELCL = "StepReturnInto_ELCL";
-	public static final String STEP_BACK_RETURN_DLCL = "StepReturnInto_DLCL";
+	public static final String STEP_BACK_OVER_ELCL = "StepBackOver_ELCL";
+	public static final String STEP_BACK_OVER_DLCL = "StepBackOver_DLCL";
+	public static final String STEP_BACK_RETURN_ELCL = "StepBackReturn_ELCL";
+	public static final String STEP_BACK_RETURN_DLCL = "StepBackReturn_DLCL";
 	public static final String BACK_RESUME_ELCL = "BackResume_ELCL";
 	public static final String BACK_RESUME_DLCL = "BackResume_DLCL";
 
@@ -130,8 +130,8 @@ public class BreakPointViewRelatedDelta extends BreakPointView {
 	}
 	
 	@Override
-	public void updateImages(boolean isRunning) {
-		super.updateImages(isRunning);
+	public void updateImagesForDebug(boolean isRunning) {
+		super.updateImagesForDebug(isRunning);
 		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();
 		if (isRunning) {
 			ImageDescriptor stepBackIntoImage = registry.getDescriptor(STEP_BACK_INTO_ELCL);

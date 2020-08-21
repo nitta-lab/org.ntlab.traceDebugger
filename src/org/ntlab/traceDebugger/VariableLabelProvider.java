@@ -1,5 +1,6 @@
 package org.ntlab.traceDebugger;
 
+import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.viewers.ITableColorProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.LabelProvider;
@@ -8,9 +9,15 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
+import org.ntlab.traceDebugger.Variable.VariableType;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class VariableLabelProvider extends LabelProvider implements ITableLabelProvider, ITableColorProvider {
+	public static final String SPECIAL_VARIABLE = "SpecialVariable";
+	public static final String THIS_VARIABLE = "ThisVariable";
+	public static final String FIELD_VARIABLE = "FieldVariable";
+	public static final String ARG_VARIABLE = "ArgVariable";
+
 	@Override
 	public String getColumnText(Object element, int columnIndex) {
 		if (element instanceof TreeNode) {
@@ -65,7 +72,27 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 	
 	@Override
 	public Image getColumnImage(Object element, int columnIndex) {
-		return getImage(element);
+		if (columnIndex != 0) return null;
+		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();
+		if (element instanceof TreeNode) {
+			Object value = ((TreeNode)element).getValue();
+			if (value instanceof String) {
+				return registry.getDescriptor(SPECIAL_VARIABLE).createImage();
+			} else if (value instanceof Variable) {
+				Variable variable = (Variable)value;
+				VariableType variableType = variable.getVariableType();
+				if (variable.getVariableName().equals("this")) {
+					return registry.getDescriptor(THIS_VARIABLE).createImage();
+				} else if (variableType == VariableType.PARAMETER){
+					return registry.getDescriptor(ARG_VARIABLE).createImage();
+				} else if (variableType.isContainerSide()) {
+					return registry.getDescriptor(THIS_VARIABLE).createImage();
+				} else {
+					return registry.getDescriptor(FIELD_VARIABLE).createImage();
+				}				
+			}
+		}
+		return null;
 	}
 	
 	@Override
