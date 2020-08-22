@@ -45,7 +45,7 @@ public class Variable {
 	public enum VariableType {
 		USE_VALUE, USE_CONTAINER, USE_RECEIVER, USE_RETURN,
 		DEF_VALUE, DEF_CONTAINER, DEF_RECEIVER, DEF_ARG, 
-		PARAMETER;
+		THIS, PARAMETER;
 		public boolean isContainerSide() {
 			return this.equals(USE_CONTAINER) || this.equals(DEF_CONTAINER) 
 					|| this.equals(USE_RECEIVER) || this.equals(DEF_RECEIVER);

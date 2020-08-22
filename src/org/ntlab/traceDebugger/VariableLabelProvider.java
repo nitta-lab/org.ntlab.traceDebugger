@@ -80,8 +80,8 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 				return registry.getDescriptor(SPECIAL_VARIABLE).createImage();
 			} else if (value instanceof Variable) {
 				Variable variable = (Variable)value;
-				VariableType variableType = variable.getVariableType();
-				if (variable.getVariableName().equals("this")) {
+				VariableType variableType = variable.getVariableType();				
+				if (variableType == VariableType.THIS) {
 					return registry.getDescriptor(THIS_VARIABLE).createImage();
 				} else if (variableType == VariableType.PARAMETER){
 					return registry.getDescriptor(ARG_VARIABLE).createImage();

@@ -75,7 +75,8 @@ public class Variables {
 		String thisObjId = methodExecution.getThisObjId();
 		String thisClassName = methodExecution.getThisClassName();
 		if (before == null) before = tp;
-		Variable variable = new Variable("this", null, null, thisClassName, thisObjId, before, isReturned);
+//		Variable variable = new Variable("this", null, null, thisClassName, thisObjId, before, isReturned);
+		Variable variable = new Variable("this", null, null, thisClassName, thisObjId, before, isReturned, VariableType.THIS);
 		roots.add(variable);
 		variable.createNextHierarchyState();
 	}
