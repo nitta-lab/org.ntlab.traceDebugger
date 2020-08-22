@@ -104,6 +104,8 @@ public class TraceBreakPoints {
 				} else {
 					signature = type + "." + methodName;
 				}
+				signature = signature.replace("$", "."); // 内部クラスの $ はメソッドシグニチャ上ではドットになる
+				signature = signature.replaceAll("<.*>", ""); // 各引数のジェネリクスの情報はトレース上に記録されていないので一致させるために消す
 				addTraceBreakPoint(signature, lineNo, available);
 			} catch (CoreException e) {
 				e.printStackTrace();

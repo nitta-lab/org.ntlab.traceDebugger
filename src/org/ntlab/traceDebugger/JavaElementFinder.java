@@ -178,6 +178,7 @@ public class JavaElementFinder {
 
 	private static boolean checkMethodSignature(IType type, IMethod method, String methodSignature) {
 		String fqcn = type.getFullyQualifiedName();
+		fqcn = fqcn.replace("$", ".");
 		try {
 			StringBuilder jdtMethodSignature = new StringBuilder();
 			jdtMethodSignature.append((method.isConstructor()) ? (fqcn + "(") : (fqcn + "." + method.getElementName() + "("));
