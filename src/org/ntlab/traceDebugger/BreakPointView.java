@@ -41,7 +41,6 @@ public class BreakPointView extends ViewPart {
 	protected IAction fileOpenAction;
 	protected IAction addTraceBreakPointAction;
 	protected IAction removeTraceBreakPointAction;
-	protected IAction changeAvailableAction;
 	protected IAction debugAction;
 	protected IAction terminateAction;
 	protected IAction stepIntoAction;
@@ -155,8 +154,8 @@ public class BreakPointView extends ViewPart {
 				debuggingController.addTraceBreakPointAction();
 			}
 		};
-		addTraceBreakPointAction.setText("Add new trace breakpoint");
-		addTraceBreakPointAction.setToolTipText("Add new trace breakpoint");
+		addTraceBreakPointAction.setText("Add a New Trace Breakpoint");
+		addTraceBreakPointAction.setToolTipText("Add a New Trace Breakpoint");
 		
 		removeTraceBreakPointAction = new Action() {
 			@Override
@@ -164,17 +163,8 @@ public class BreakPointView extends ViewPart {
 				debuggingController.removeTraceBreakPointAction();
 			}
 		};
-		removeTraceBreakPointAction.setText("Remove selected trace breakpoint");
-		removeTraceBreakPointAction.setToolTipText("Remove selected trace breakpoint");
-		
-		changeAvailableAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.changeAvailableAction();
-			}
-		};
-		changeAvailableAction.setText("Change available of selected trace breakpoint");
-		changeAvailableAction.setToolTipText("Change available of selected trace breakpoint");
+		removeTraceBreakPointAction.setText("Remove a Trace Breakpoint");
+		removeTraceBreakPointAction.setToolTipText("Remove a Trace Breakpoint");
 		
 		importBreakpointAction = new Action() {
 			@Override
@@ -299,7 +289,6 @@ public class BreakPointView extends ViewPart {
 			public void menuAboutToShow(IMenuManager manager) {
 				manager.add(addTraceBreakPointAction);
 				manager.add(removeTraceBreakPointAction);
-				manager.add(changeAvailableAction);
 				manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 			}
 		});

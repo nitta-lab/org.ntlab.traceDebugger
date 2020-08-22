@@ -171,14 +171,6 @@ public class DebuggingController {
 		return true;
 	}
 	
-	public boolean changeAvailableAction() {
-		if (selectedTraceBreakPoint == null) return false;
-		selectedTraceBreakPoint.changeAvailable();
-		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
-		return true;
-	}
-	
 	public boolean debugAction() {
 		if (loadingTraceFileStatus != LoadingTraceFileStatus.DONE) {
 			MessageDialog.openInformation(null, "Error", "Trace file was not found");
