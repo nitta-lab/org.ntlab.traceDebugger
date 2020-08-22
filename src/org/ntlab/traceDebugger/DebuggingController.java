@@ -257,13 +257,14 @@ public class DebuggingController {
 			} while (debuggingTp.stepFull());			
 		} else {
 			debuggingTp = goalTp;
+			while (!debuggingTp.stepOver()); // 呼び出し元での次のステートメントまで進める
 		}
 
 		if (!debuggingTp.isValid()) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
-		}		
+		}
 		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;
 	}
@@ -277,7 +278,12 @@ public class DebuggingController {
 		}
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
-		while (debuggingTp.stepOver());
+		
+		// note: 呼び出し元に戻るまで進み続ける
+		while (debuggingTp.stepOver()) {
+			previousTp = debuggingTp.duplicate();
+		}
+		while (!debuggingTp.stepOver()); // 呼び出し元での次のステートメントまで進める
 		if (!debuggingTp.isValid()) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
@@ -311,14 +317,14 @@ public class DebuggingController {
 			} while (debuggingTp.stepFull());			
 		} else {
 			debuggingTp = startTp;
-			startTp.stepOver();
+			while (!debuggingTp.stepOver()); // 呼び出し元での次のステートメントまで進める
 		}
 
 		if (!debuggingTp.isValid()) {
 			terminateAction();
 			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
 			return false;
-		}		
+		}
 		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;	
 	}
