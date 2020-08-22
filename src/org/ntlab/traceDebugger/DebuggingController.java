@@ -185,6 +185,7 @@ public class DebuggingController {
 			return false;
 		}
 		if (isRunning) {
+			MessageDialog.openInformation(null, "Error", "This Debugger is running");			
 			return false;
 		}
 		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();

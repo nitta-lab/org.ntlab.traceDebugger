@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import org.eclipse.debug.internal.ui.IInternalDebugUIConstants;
 import org.eclipse.debug.ui.DebugUITools;
-import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuListener;
@@ -24,8 +23,6 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Menu;
@@ -57,6 +54,8 @@ public class BreakPointView extends ViewPart {
 	protected TraceBreakPoints traceBreakPoints;
 	protected DebuggingController debuggingController = DebuggingController.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.breakPointView";
+	public static final String DEBUG_ELCL = "Debug_elcl";
+	public static final String DEBUG_DLCL = "Debug_dlcl";
 	public static final String IMPORT_BREAKPOINT_ELCL = "ImportBreakPoint_ELCL";
 	public static final String IMPORT_BREAKPOINT_DLCL = "ImportBreakPoint_DLCL";
 	public static final String STEP_NEXT_ELCL = "StepNext_ELCL";
@@ -196,9 +195,9 @@ public class BreakPointView extends ViewPart {
 		};
 		debugAction.setText("Debug");
 		debugAction.setToolTipText("Debug");
-		ImageDescriptor debugImage = DebugUITools.getImageDescriptor(IDebugUIConstants.IMG_ACT_DEBUG);
-		debugAction.setImageDescriptor(debugImage);
-		
+		ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_DLCL);
+		debugAction.setImageDescriptor(debugIcon);
+
 		terminateAction = new Action() {
 			@Override
 			public void run() {
@@ -316,8 +315,8 @@ public class BreakPointView extends ViewPart {
 	public void reset() {
 		viewer.setInput(new ArrayList<TraceBreakPoint>());
 		viewer.refresh();
-		updateImagesForBreakPoint(false);
 		updateImagesForDebug(false);
+		updateImagesForBreakPoint(false);
 	}
 	
 	public void updateTraceBreakPoints(TraceBreakPoints traceBreakPoints) {
@@ -336,11 +335,15 @@ public class BreakPointView extends ViewPart {
 	}
 	
 	public void updateImagesForBreakPoint(boolean hasLoadedTraceFile) {
-		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();
+		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();		
 		if (hasLoadedTraceFile) {
+			ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_ELCL);
+			debugAction.setImageDescriptor(debugIcon);
 			ImageDescriptor importBreakpointIcon = registry.getDescriptor(IMPORT_BREAKPOINT_ELCL);
 			importBreakpointAction.setImageDescriptor(importBreakpointIcon);
 		} else {
+			ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_DLCL);
+			debugAction.setImageDescriptor(debugIcon);
 			ImageDescriptor importBreakpointIcon = registry.getDescriptor(IMPORT_BREAKPOINT_DLCL);
 			importBreakpointAction.setImageDescriptor(importBreakpointIcon);
 		}
@@ -349,6 +352,8 @@ public class BreakPointView extends ViewPart {
 	public void updateImagesForDebug(boolean isRunning) {
 		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();
 		if (isRunning) {
+			ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_DLCL);
+			debugAction.setImageDescriptor(debugIcon);			
 			ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_TERMINATE);
 			terminateAction.setImageDescriptor(terminateImage);
 			ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_STEP_INTO);
@@ -362,6 +367,8 @@ public class BreakPointView extends ViewPart {
 			ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_RESUME);
 			resumeAction.setImageDescriptor(image);
 		} else {
+			ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_ELCL);
+			debugAction.setImageDescriptor(debugIcon);
 			ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_TERMINATE);
 			terminateAction.setImageDescriptor(terminateImage);
 			ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_INTO);

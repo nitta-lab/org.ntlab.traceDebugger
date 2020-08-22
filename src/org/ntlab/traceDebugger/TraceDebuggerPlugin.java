@@ -113,7 +113,9 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 	
 	@Override
 	protected void initializeImageRegistry(ImageRegistry reg) {
-		// ブレークポイントビューに関するアイコン
+		// note: ブレークポイントビューに関するアイコン
+		reg.put(BreakPointView.DEBUG_ELCL, getImageDescriptor("/icons/debug/debug_elcl.png"));
+		reg.put(BreakPointView.DEBUG_DLCL, getImageDescriptor("/icons/debug/debug_dlcl.png"));
 		reg.put(BreakPointView.IMPORT_BREAKPOINT_ELCL, getImageDescriptor("/icons/debug/import_brkpts_elcl.png"));
 		reg.put(BreakPointView.IMPORT_BREAKPOINT_DLCL, getImageDescriptor("/icons/debug/import_brkpts_dlcl.png"));
 		reg.put(BreakPointViewRelatedDelta.STEP_NEXT_ELCL, getImageDescriptor("/icons/debug/stepnext_elcl.png"));
@@ -127,7 +129,7 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 		reg.put(BreakPointViewRelatedDelta.BACK_RESUME_ELCL, getImageDescriptor("/icons/debug/backresume_elcl.png"));		
 		reg.put(BreakPointViewRelatedDelta.BACK_RESUME_DLCL, getImageDescriptor("/icons/debug/backresume_dlcl.png"));
 		
-		// 変数ビューに関するアイコン
+		// note: 変数ビューに関するアイコン
 		reg.put(VariableLabelProvider.SPECIAL_VARIABLE, getImageDescriptor("/icons/variable/specialvariable.png"));
 		reg.put(VariableLabelProvider.THIS_VARIABLE, getImageDescriptor("/icons/variable/thisvariable.png"));
 		reg.put(VariableLabelProvider.FIELD_VARIABLE, getImageDescriptor("/icons/variable/fieldvariable.png"));
