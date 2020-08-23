@@ -34,6 +34,7 @@ public class VariableUpdatePointFinder {
 	}
 
 	private void init() {
+		reset();
 		registerUpdatePoints();
 		System.out.println(updatePoints);
 		System.out.println(definitionInvocationPoints);
@@ -173,5 +174,12 @@ public class VariableUpdatePointFinder {
 			tmp = tp;
 		}
 		return tmp;		
-	}	
+	}
+	
+	private void reset() {
+		updatePoints.clear();
+		definitionInvocationPoints.clear();
+		gettingIteratorPoints.clear();
+		changeOtherCollectionPoints.clear();
+	}
 }
