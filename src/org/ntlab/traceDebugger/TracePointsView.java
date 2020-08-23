@@ -44,7 +44,7 @@ public class TracePointsView extends ViewPart {
 		// TODO Auto-generated method stub
 		System.out.println("TracePointsView#createPartControl(Composite)‚ªŒÄ‚Î‚ê‚½‚æ!");
 		shell = parent.getShell();
-		viewer = new TableViewer(parent, SWT.FULL_SELECTION);
+		viewer = new TableViewer(parent, SWT.BORDER | SWT.FULL_SELECTION);
 		Table table = viewer.getTable();
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);

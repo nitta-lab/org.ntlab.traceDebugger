@@ -27,13 +27,14 @@ public class TracePointsLabelProvider extends LabelProvider implements ITableLab
 	
 	@Override
 	public Image getColumnImage(Object element, int columnIndex) {
-		return getImage(element);
+//		return getImage(element);
+		return null;
 	}
 	
-	@Override
-	public Image getImage(Object element) {
-		return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
-	}	
+//	@Override
+//	public Image getImage(Object element) {
+//		return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
+//	}	
 	
 	private String getReadableSignature(MethodExecution methodExecution) {
 		String signature = methodExecution.getSignature();
