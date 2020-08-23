@@ -7,6 +7,7 @@ import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TreeNode;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
 import org.ntlab.traceDebugger.Variable.VariableType;
@@ -17,6 +18,10 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 	public static final String THIS_VARIABLE = "ThisVariable";
 	public static final String FIELD_VARIABLE = "FieldVariable";
 	public static final String ARG_VARIABLE = "ArgVariable";
+	private Image specialVariableImage = TraceDebuggerPlugin.getDefault().getImageRegistry().getDescriptor(SPECIAL_VARIABLE).createImage();
+	private Image thisVariableImage = TraceDebuggerPlugin.getDefault().getImageRegistry().getDescriptor(THIS_VARIABLE).createImage();
+	private Image fieldVariableImage = TraceDebuggerPlugin.getDefault().getImageRegistry().getDescriptor(FIELD_VARIABLE).createImage();
+	private Image argVariableImage = TraceDebuggerPlugin.getDefault().getImageRegistry().getDescriptor(ARG_VARIABLE).createImage();
 
 	@Override
 	public String getColumnText(Object element, int columnIndex) {
@@ -74,32 +79,27 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 	
 	@Override
 	public Image getColumnImage(Object element, int columnIndex) {
-		if (columnIndex != 0) return null;
-		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();
-		if (element instanceof TreeNode) {
-			Object value = ((TreeNode)element).getValue();
-			if (value instanceof String) {
-				return registry.getDescriptor(SPECIAL_VARIABLE).createImage();
-			} else if (value instanceof Variable) {
-				Variable variable = (Variable)value;
-				VariableType variableType = variable.getVariableType();				
-				if (variableType == VariableType.THIS) {
-					return registry.getDescriptor(THIS_VARIABLE).createImage();
-				} else if (variableType == VariableType.PARAMETER){
-					return registry.getDescriptor(ARG_VARIABLE).createImage();
-				} else if (variableType.isContainerSide()) {
-					return registry.getDescriptor(THIS_VARIABLE).createImage();
-				} else {
-					return registry.getDescriptor(FIELD_VARIABLE).createImage();
-				}				
-			}
+		if (columnIndex == 0) {
+			if (element instanceof TreeNode) {
+				Object value = ((TreeNode)element).getValue();
+				if (value instanceof String) {
+					return specialVariableImage;
+				} else if (value instanceof Variable) {
+					Variable variable = (Variable)value;
+					VariableType variableType = variable.getVariableType();				
+					if (variableType == VariableType.THIS) {
+						return thisVariableImage;
+					} else if (variableType == VariableType.PARAMETER){
+						return argVariableImage;
+					} else if (variableType.isContainerSide()) {
+						return thisVariableImage;
+					} else {
+						return fieldVariableImage;
+					}				
+				}
+			}			
 		}
 		return null;
-	}
-	
-	@Override
-	public Image getImage(Object element) {
-		return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
 	}
 
 	@Override

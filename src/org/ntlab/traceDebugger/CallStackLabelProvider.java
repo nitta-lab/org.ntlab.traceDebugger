@@ -9,7 +9,9 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 
 public class CallStackLabelProvider extends LabelProvider implements IColorProvider {
-	
+	private Image threadSuspendImage = DebugUITools.getImage(IDebugUIConstants.IMG_OBJS_THREAD_SUSPENDED);
+	private Image callStackModelImage = DebugUITools.getImage(IDebugUIConstants.IMG_OBJS_STACKFRAME);
+
 	@Override
 	public String getText(Object element) {
 		if (element instanceof TreeNode) {
@@ -36,9 +38,9 @@ public class CallStackLabelProvider extends LabelProvider implements IColorProvi
 		if (element instanceof TreeNode) {
 			Object value = ((TreeNode)element).getValue();
 			if (value instanceof String) {
-				return DebugUITools.getImage(IDebugUIConstants.IMG_OBJS_THREAD_SUSPENDED);
+				return threadSuspendImage;
 			} else if (value instanceof CallStackModel) {
-				return DebugUITools.getImage(IDebugUIConstants.IMG_OBJS_STACKFRAME);	
+				return callStackModelImage;
 			}
 		}
 		return null;
