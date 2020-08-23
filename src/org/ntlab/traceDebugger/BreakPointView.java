@@ -76,7 +76,8 @@ public class BreakPointView extends ViewPart {
 		table.setLinesVisible(true);
 
 		// テーブルのカラムを作成
-		String[] tableColumnTexts = {"", "Line", "Signature"};
+		String[] tableColumnTexts = TraceDebuggerPlugin.isJapanese() ? new String[]{"", "行", "メソッド"} 
+																		: new String[]{"", "Line", "Signature"};
 		int[] tableColumnWidth = {50, 80, 500};
 		TableColumn[] tableColumns = new TableColumn[tableColumnTexts.length];
 		for (int i = 0; i < tableColumns.length; i++) {
@@ -126,6 +127,11 @@ public class BreakPointView extends ViewPart {
 		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
+	@Override
+	public String getTitle() {
+		return TraceDebuggerPlugin.isJapanese() ? "ブレークポイント" : "Breakpoints";
+	}
+	
 	public Viewer getViewer() {
 		return viewer;
 	}
@@ -140,7 +146,11 @@ public class BreakPointView extends ViewPart {
 	protected void createActions() {
 		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();
 		ImageDescriptor fileOpenIcon = PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_OBJ_FOLDER);
-		fileOpenAction = new Action("Open Trace File...", fileOpenIcon) {
+		boolean isJapanese = TraceDebuggerPlugin.isJapanese();
+		String msg;
+		
+		msg = (isJapanese) ? "トレースファイルを開く" : "Open Trace File..."; 
+		fileOpenAction = new Action(msg, fileOpenIcon) {
 			@Override
 			public void run() {
 				// トレース出力先参照ウィザード
@@ -154,8 +164,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.addTraceBreakPointAction();
 			}
 		};
-		addTraceBreakPointAction.setText("Add a New Trace Breakpoint");
-		addTraceBreakPointAction.setToolTipText("Add a New Trace Breakpoint");
+		msg = (isJapanese) ? "ブレークポイントを追加する" : "Add a New Breakpoint";
+		addTraceBreakPointAction.setText(msg);
+		addTraceBreakPointAction.setToolTipText(msg);
 		
 		removeTraceBreakPointAction = new Action() {
 			@Override
@@ -163,8 +174,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.removeTraceBreakPointAction();
 			}
 		};
-		removeTraceBreakPointAction.setText("Remove a Trace Breakpoint");
-		removeTraceBreakPointAction.setToolTipText("Remove a Trace Breakpoint");
+		msg = (isJapanese) ? "ブレークポイントを削除する" : "Remove a Breakpoint";
+		removeTraceBreakPointAction.setText(msg);
+		removeTraceBreakPointAction.setToolTipText(msg);
 		
 		importBreakpointAction = new Action() {
 			@Override
@@ -172,8 +184,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.importBreakpointAction();
 			}
 		};
-		importBreakpointAction.setText("Import Breakpoints");
-		importBreakpointAction.setToolTipText("Copy Breakpoints from Eclipse");
+		msg = (isJapanese) ? "ブレークポイントを Eclipse から取り入れる" : "Import Breakpoints from Eclipse";
+		importBreakpointAction.setText(msg);
+		importBreakpointAction.setToolTipText(msg);
 		ImageDescriptor importBreakpointIcon = registry.getDescriptor(IMPORT_BREAKPOINT_DLCL);
 		importBreakpointAction.setImageDescriptor(importBreakpointIcon);
 		
@@ -183,8 +196,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.debugAction();
 			}
 		};
-		debugAction.setText("Debug");
-		debugAction.setToolTipText("Debug");
+		msg = (isJapanese) ? "デバッグ" : "Debug";
+		debugAction.setText(msg);
+		debugAction.setToolTipText(msg);
 		ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_DLCL);
 		debugAction.setImageDescriptor(debugIcon);
 
@@ -194,8 +208,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.terminateAction();
 			}
 		};
-		terminateAction.setText("Terminate");
-		terminateAction.setToolTipText("Terminate");
+		msg = (isJapanese) ? "終了" : "Terminate";
+		terminateAction.setText(msg);
+		terminateAction.setToolTipText(msg);
 		ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_TERMINATE);
 		terminateAction.setImageDescriptor(terminateImage);
 
@@ -205,8 +220,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.stepIntoAction();
 			}
 		};
-		stepIntoAction.setText("Step Into");
-		stepIntoAction.setToolTipText("Step Into");
+		msg = (isJapanese) ? "ステップイン" : "Step Into";
+		stepIntoAction.setText(msg);
+		stepIntoAction.setToolTipText(msg);
 		ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_INTO);
 		stepIntoAction.setImageDescriptor(stepIntoImage);
 		
@@ -216,8 +232,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.stepOverAction();
 			}
 		};
-		stepOverAction.setText("Step Over");
-		stepOverAction.setToolTipText("Step Over");
+		msg = (isJapanese) ? "ステップオーバー" : "Step Over";
+		stepOverAction.setText(msg);
+		stepOverAction.setToolTipText(msg);
 		ImageDescriptor stepOverImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_OVER);
 		stepOverAction.setImageDescriptor(stepOverImage);
 
@@ -227,8 +244,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.stepReturnAction();
 			}
 		};
-		stepReturnAction.setText("Step Return");
-		stepReturnAction.setToolTipText("Step Return");
+		msg = (isJapanese) ? "ステップリターン" : "Step Return";
+		stepReturnAction.setText(msg);
+		stepReturnAction.setToolTipText(msg);
 		ImageDescriptor stepReturnImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_RETURN);
 		stepReturnAction.setImageDescriptor(stepReturnImage);
 
@@ -238,8 +256,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.stepNextAction();
 			}
 		};
-		stepNextAction.setText("Step Next");
-		stepNextAction.setToolTipText("Step Next");
+		msg = (isJapanese) ? "ステップネクスト" : "Step Next";
+		stepNextAction.setText(msg);
+		stepNextAction.setToolTipText(msg);
 		ImageDescriptor stepNextIcon = registry.getDescriptor(STEP_NEXT_DLCL);
 		stepNextAction.setImageDescriptor(stepNextIcon);
 		
@@ -249,8 +268,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.resumeAction();
 			}
 		};
-		resumeAction.setText("Resume");
-		resumeAction.setToolTipText("Resume");
+		msg = (isJapanese) ? "再開" : "Resume";
+		resumeAction.setText(msg);
+		resumeAction.setToolTipText(msg);
 		ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_RESUME);
 		resumeAction.setImageDescriptor(image);
 	}

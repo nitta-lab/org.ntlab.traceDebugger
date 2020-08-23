@@ -12,7 +12,7 @@
             class="org.ntlab.traceDebugger.BreakPointView"
             icon="icons/view/breakpoint_view.png"
             id="org.ntlab.traceDebugger.breakPointView"
-            name="Breakpoints"
+            name="ブレークポイント"
             restorable="true">
       </view>
       <view
@@ -20,7 +20,7 @@
             class="org.ntlab.traceDebugger.VariableView"
             icon="icons/view/variable_view.png"
             id="org.ntlab.traceDebugger.variableView"
-            name="Variables"
+            name="変数"
             restorable="true">
       </view>
       <view
@@ -28,7 +28,7 @@
             class="org.ntlab.traceDebugger.CallStackView"
             icon="icons/view/callstack_view.png"
             id="org.ntlab.traceDebugger.callStackView"
-            name="CallStack"
+            name="呼び出しスタック"
             restorable="true">
       </view>
       <category
@@ -40,7 +40,7 @@
             class="org.ntlab.traceDebugger.BreakPointViewRelatedDelta"
             icon="icons/view/breakpoint_view.png"
             id="org.ntlab.traceDebugger.breakPointViewRelatedDelta"
-            name="Breakpoints"
+            name="ブレークポイント"
             restorable="true">
       </view>
       <view
@@ -48,7 +48,7 @@
             class="org.ntlab.traceDebugger.VariableViewRelatedDelta"
             icon="icons/view/variable_view.png"
             id="org.ntlab.traceDebugger.variableViewRelatedDelta"
-            name="Variables"
+            name="変数"
             restorable="true">
       </view>
       <view
@@ -56,7 +56,7 @@
             class="org.ntlab.traceDebugger.CallStackViewRelatedDelta"
             icon="icons/view/callstack_view.png"
             id="org.ntlab.traceDebugger.callStackViewRelatedDelta"
-            name="CallStack"
+            name="呼び出しスタック"
             restorable="true">
       </view>
       <view
@@ -64,7 +64,7 @@
             class="org.ntlab.traceDebugger.TracePointsView"
             icon="icons/view/tracepoints_view.png"
             id="org.ntlab.traceDebugger.tracePointsView"
-            name="MarkedExecutionPoints"
+            name="実行時点の登録"
             restorable="true">
       </view>
       <view
@@ -73,7 +73,7 @@
             class="org.ntlab.traceDebugger.DeltaMarkerView"
             icon="icons/view/deltamarker_view.png"
             id="org.ntlab.traceDebugger.deltaMarkerView"
-            name="ExtractedExecutionPoints"
+            name="オブジェクトの接近過程"
             restorable="true">
       </view>
       <view
@@ -82,7 +82,7 @@
             class="org.ntlab.traceDebugger.CallTreeView"
             icon="icons/view/calltree_view.png"
             id="org.ntlab.traceDebugger.callTreeView"
-            name="CurrentExecutionPoint"
+            name="現在の実行時点"
             restorable="true">
       </view>
    </extension>

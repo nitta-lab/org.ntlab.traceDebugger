@@ -1,17 +1,12 @@
 package org.ntlab.traceDebugger;
 
-import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.ui.DebugUITools;
 import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.jface.viewers.IColorProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TreeNode;
-import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 
 public class CallStackLabelProvider extends LabelProvider implements IColorProvider {
 	
@@ -21,13 +16,14 @@ public class CallStackLabelProvider extends LabelProvider implements IColorProvi
 			Object value = ((TreeNode)element).getValue();
 			if (value instanceof String) {
 				String threadId = (String)value;
-				return "ThreadID: " + threadId;
+				String msg = TraceDebuggerPlugin.isJapanese() ? "スレッドID: " : "Thread ID: ";
+				return msg + threadId;
 			}
 			if (value instanceof CallStackModel) {
 				CallStackModel callStackModel = (CallStackModel)value;
 				StringBuilder text = new StringBuilder();
 				text.append(callStackModel.getCallStackSignature());
-				text.append(" line: ");
+				text.append(TraceDebuggerPlugin.isJapanese() ? " 行: " : " line: ");
 				text.append(callStackModel.getCallLineNo());
 				return text.toString();
 			}

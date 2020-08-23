@@ -38,7 +38,7 @@ public class VariableView extends ViewPart {
 		tree.setHeaderVisible(true);
 		tree.setLinesVisible(true);
 
-		String[] treeColumnTexts = {"Name", "Value"};
+		String[] treeColumnTexts = (TraceDebuggerPlugin.isJapanese()) ? new String[]{"–¼‘O", "’l"} 																		: new String[]{"Name", "Value"};
 		int[] treeColumnWidth = {200, 300};
 		TreeColumn[] treeColumns = new TreeColumn[treeColumnTexts.length];
 		for (int i = 0; i < treeColumns.length; i++) {
@@ -98,6 +98,11 @@ public class VariableView extends ViewPart {
 		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
+	@Override
+	public String getTitle() {
+		return TraceDebuggerPlugin.isJapanese() ? "•Ï”" : "Variables";
+	}
+	
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub

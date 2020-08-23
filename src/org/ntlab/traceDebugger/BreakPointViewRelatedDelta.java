@@ -47,15 +47,19 @@ public class BreakPointViewRelatedDelta extends BreakPointView {
 	@Override
 	protected void createActions() {
 		super.createActions();
-		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();		
+		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();
+		boolean isJapanese = TraceDebuggerPlugin.isJapanese();
+		String msg;
+		
 		backResumeAction = new Action() {
 			@Override
 			public void run() {
 				debuggingController.backResumeAction();
 			}
 		};
-		backResumeAction.setText("Back Resume");
-		backResumeAction.setToolTipText("Back Resume");
+		msg = (isJapanese) ? "逆向きに再開" : "Back Resume";
+		backResumeAction.setText(msg);
+		backResumeAction.setToolTipText(msg);
 		ImageDescriptor backResumeIcon = registry.getDescriptor(BACK_RESUME_DLCL);
 		backResumeAction.setImageDescriptor(backResumeIcon);
 		
@@ -65,8 +69,9 @@ public class BreakPointViewRelatedDelta extends BreakPointView {
 				debuggingController.stepBackIntoAction();
 			}
 		};
-		stepBackIntoAction.setText("Step Back Into");
-		stepBackIntoAction.setToolTipText("Step Back Into");
+		msg = (isJapanese) ? "ステップバックイン" : "Step Back Into";
+		stepBackIntoAction.setText(msg);
+		stepBackIntoAction.setToolTipText(msg);
 		ImageDescriptor stepBackIntoIcon = registry.getDescriptor(STEP_BACK_INTO_DLCL);
 		stepBackIntoAction.setImageDescriptor(stepBackIntoIcon);
 		
@@ -76,8 +81,9 @@ public class BreakPointViewRelatedDelta extends BreakPointView {
 				debuggingController.stepBackOverAction();
 			}
 		};
-		stepBackOverAction.setText("Step Back Over");
-		stepBackOverAction.setToolTipText("Step Back Over");
+		msg = (isJapanese) ? "ステップバックオーバー" : "Step Back Over";
+		stepBackOverAction.setText(msg);
+		stepBackOverAction.setToolTipText(msg);
 		ImageDescriptor stepBackOverIcon = registry.getDescriptor(STEP_BACK_OVER_DLCL);
 		stepBackOverAction.setImageDescriptor(stepBackOverIcon);
 
@@ -87,8 +93,9 @@ public class BreakPointViewRelatedDelta extends BreakPointView {
 				debuggingController.stepBackReturnAction();
 			}
 		};
-		stepBackReturnAction.setText("Step Back Return");
-		stepBackReturnAction.setToolTipText("Step Back Return");
+		msg = (isJapanese) ? "ステップバックリターン" : "Step Back Return";
+		stepBackReturnAction.setText(msg);
+		stepBackReturnAction.setToolTipText(msg);
 		ImageDescriptor stepBackReturnIcon = registry.getDescriptor(STEP_BACK_RETURN_DLCL);
 		stepBackReturnAction.setImageDescriptor(stepBackReturnIcon);		
 	}

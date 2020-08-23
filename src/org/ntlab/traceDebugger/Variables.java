@@ -75,7 +75,6 @@ public class Variables {
 		String thisObjId = methodExecution.getThisObjId();
 		String thisClassName = methodExecution.getThisClassName();
 		if (before == null) before = tp;
-//		Variable variable = new Variable("this", null, null, thisClassName, thisObjId, before, isReturned);
 		Variable variable = new Variable("this", null, null, thisClassName, thisObjId, before, isReturned, VariableType.THIS);
 		roots.add(variable);
 		variable.createNextHierarchyState();
@@ -226,7 +225,8 @@ public class Variables {
 				Variable value = new Variable(Variable.VALUE_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_VALUE);
 				specialVariablesOfUseSide.add(container);
 				specialVariablesOfUseSide.add(value);
-				parentNodeNameOfUseSide = "after field get of:" + fa.getFieldName();
+				parentNodeNameOfUseSide = TraceDebuggerPlugin.isJapanese() ? "フィールド参照後:" : "after field get of:";
+				parentNodeNameOfUseSide += fa.getFieldName();
 			} else if (fromStatement instanceof MethodInvocation) {
 				MethodInvocation mi = (MethodInvocation)fromStatement;
 				MethodExecution calledME = mi.getCalledMethodExecution();
@@ -241,9 +241,11 @@ public class Variables {
 					specialVariablesOfUseSide.add(receiver);
 					specialVariablesOfUseSide.add(returned);
 					if (calledME.isConstructor()) {
-						parentNodeNameOfUseSide = "after invocation of Constructor:" + calledME.getSignature();
+						parentNodeNameOfUseSide = TraceDebuggerPlugin.isJapanese() ? "呼び出し後 コンストラクタ:" : "after invocation of Constructor:";
+						parentNodeNameOfUseSide += calledME.getSignature();
 					} else {
-						parentNodeNameOfUseSide = "after invocation of:" + calledME.getSignature();	
+						parentNodeNameOfUseSide = TraceDebuggerPlugin.isJapanese() ? "呼び出し後:" : "after invocation of:";
+						parentNodeNameOfUseSide += calledME.getSignature();
 					}
 				}
 			}			
@@ -262,7 +264,8 @@ public class Variables {
 				Variable value = new Variable(Variable.VALUE_VARIABLE_NAME, containerClassName, containerObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_VALUE);
 				specialVariablesDefSide.add(container);
 				specialVariablesDefSide.add(value);
-				parentNodeNameOfDefSide = "before field set of:" + fu.getFieldName();
+				parentNodeNameOfDefSide = TraceDebuggerPlugin.isJapanese() ? "フィールド代入前:" : "before field set of:";
+				parentNodeNameOfDefSide += fu.getFieldName();
 			} else if (toStatement instanceof MethodInvocation) {
 				MethodInvocation mi = (MethodInvocation)toStatement;
 				MethodExecution calledME = mi.getCalledMethodExecution();
@@ -284,9 +287,11 @@ public class Variables {
 					specialVariablesDefSide.add(arg);
 				}
 				if (calledME.isConstructor()) {
-					parentNodeNameOfDefSide = "before invocation of Constructor:" + calledME.getSignature();
+					parentNodeNameOfDefSide = TraceDebuggerPlugin.isJapanese() ? "呼び出し前 コンストラクタ:" : "before invocation of Constructor:";
+					parentNodeNameOfDefSide += calledME.getSignature();
 				} else {
-					parentNodeNameOfDefSide = "before invocation of:" + calledME.getSignature();	
+					parentNodeNameOfDefSide = TraceDebuggerPlugin.isJapanese() ? "呼び出し前:" : "before invocation of:";
+					parentNodeNameOfDefSide += calledME.getSignature();
 				}
 			} 
 		}

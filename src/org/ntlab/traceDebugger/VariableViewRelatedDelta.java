@@ -66,8 +66,6 @@ public class VariableViewRelatedDelta extends VariableView {
 				controller.jumpToTheTracePoint(jumpPoint, false);
 			}
 		};
-		jumpAction.setText("Jump to Definition");
-		jumpAction.setToolTipText("Jump to Definition");
 
 		deltaActionForContainerToComponent = new Action() {
 			@Override
@@ -76,8 +74,6 @@ public class VariableViewRelatedDelta extends VariableView {
 				newDeltaMarkerView.extractDeltaForContainerToComponent(selectedVariable);
 			}
 		};
-		deltaActionForContainerToComponent.setText("Extract Delta");
-		deltaActionForContainerToComponent.setToolTipText("Extract Delta");
 
 		deltaActionForThisToAnother = new Action() {
 			@Override
@@ -98,8 +94,6 @@ public class VariableViewRelatedDelta extends VariableView {
 				newDeltaMarkerView.extractDeltaForThisToAnother(thisId, thisClassName, anotherId, anotherClassName, before);
 			}
 		};
-		deltaActionForThisToAnother.setText("Extract Delta");
-		deltaActionForThisToAnother.setToolTipText("Extract Delta");
 	}
 	
 	private TracePoint findJumpPoint(Variable variable, TracePoint before) {
@@ -161,15 +155,17 @@ public class VariableViewRelatedDelta extends VariableView {
 				VariableType variableType = selectedVariable.getVariableType();
 				if (variableType.equals(VariableType.USE_VALUE)) {
 					manager.add(jumpAction);
-					jumpAction.setText("Jump to Definition");
-					jumpAction.setToolTipText("Jump to Definition");
+					String msg = TraceDebuggerPlugin.isJapanese() ? "値の代入時点に飛ぶ" : "Back to Value Stored Moment";
+					jumpAction.setText(msg);
+					jumpAction.setToolTipText(msg);
 				} else if (variableType.equals(VariableType.USE_RETURN)) {
 					manager.add(jumpAction);
 					if (updateDeltaActionForThisToAnotherTexts(selectedVariable)) {
 						manager.add(deltaActionForThisToAnother);
 					}
-					jumpAction.setText("Jump to Addition");
-					jumpAction.setToolTipText("Jump to Addition");
+					String msg = TraceDebuggerPlugin.isJapanese() ? "オブジェクトの追加時点に飛ぶ" : "Back to Object Added Moment";
+					jumpAction.setText(msg);
+					jumpAction.setToolTipText(msg);
 				} else if (variableType.isDef()) {
 					if (updateDeltaActionForContainerToComponentTexts(selectedVariable)) {
 						manager.add(deltaActionForContainerToComponent);
@@ -203,7 +199,8 @@ public class VariableViewRelatedDelta extends VariableView {
 			String containerClassName = selectedVariable.getContainerClassName();
 			if (containerId != null  && containerClassName != null) {
 				containerClassName = containerClassName.substring(containerClassName.lastIndexOf(".") + 1);
-				String textForContainerToComponent = String.format("Extract Delta [ %s (id = %s) -> %s (id = %s) ]", containerClassName, containerId, valueClassName, valueId);
+				String msg = TraceDebuggerPlugin.isJapanese() ? "オブジェクトの接近過程抽出" : "Extract Process to Relate";
+				String textForContainerToComponent = String.format("%s [ %s (id = %s) -> %s (id = %s) ]", msg, containerClassName, containerId, valueClassName, valueId);
 				deltaActionForContainerToComponent.setText(textForContainerToComponent);
 				deltaActionForContainerToComponent.setToolTipText(textForContainerToComponent);
 				return true;
@@ -230,8 +227,9 @@ public class VariableViewRelatedDelta extends VariableView {
 		String thisId = before.getMethodExecution().getThisObjId();
 		String thisClassName = before.getMethodExecution().getThisClassName();
 		if (thisId != null && thisClassName != null) {			
-			thisClassName = thisClassName.substring(thisClassName.lastIndexOf(".") + 1);			
-			String textForThisToAnother = String.format("Extract Delta [ %s (id = %s) -> %s (id = %s) ]", thisClassName, thisId, anotherClassName, anotherId);
+			thisClassName = thisClassName.substring(thisClassName.lastIndexOf(".") + 1);
+			String msg = TraceDebuggerPlugin.isJapanese() ? "オブジェクトの接近過程抽出" : "Extract Process to Relate";
+			String textForThisToAnother = String.format("%s [ %s (id = %s) -> %s (id = %s) ]", msg, thisClassName, thisId, anotherClassName, anotherId);
 			deltaActionForThisToAnother.setText(textForThisToAnother);
 			deltaActionForThisToAnother.setToolTipText(textForThisToAnother);
 			return true;

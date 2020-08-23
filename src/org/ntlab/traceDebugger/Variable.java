@@ -36,11 +36,11 @@ public class Variable {
 	private boolean alreadyCreatedGrandChildHierarchy = false;
 	private Map<String, Object> additionalAttributes = new HashMap<>();
 	public static final String NULL_VALUE = "null";
-	public static final String RETURN_VARIABLE_NAME = "return";
-	public static final String ARG_VARIABLE_NAME = "arg";
-	public static final String RECEIVER_VARIABLE_NAME = "receiver";
-	public static final String VALUE_VARIABLE_NAME = "value";
-	public static final String CONTAINER_VARIABLE_NAME = "container";
+	public static final String RETURN_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "戻り値" : "return";
+	public static final String ARG_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "引数" : "arg";
+	public static final String RECEIVER_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "レシーバ" : "receiver";
+	public static final String VALUE_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "コンポーネント" : "value";
+	public static final String CONTAINER_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "コンテナ" : "container";
 
 	public enum VariableType {
 		USE_VALUE, USE_CONTAINER, USE_RECEIVER, USE_RETURN,

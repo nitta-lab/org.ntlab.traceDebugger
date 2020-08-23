@@ -34,6 +34,8 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 	// The shared instance
 	private static TraceDebuggerPlugin plugin;
 	
+	private static boolean isJapanese = true;
+	
 	/**
 	 * The constructor
 	 */
@@ -138,5 +140,9 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 	
 	public static ImageDescriptor getImageDescriptor(String path) {
 		return imageDescriptorFromPlugin(PLUGIN_ID, path);
+	}
+	
+	public static boolean isJapanese() {
+		return isJapanese;
 	}
 }

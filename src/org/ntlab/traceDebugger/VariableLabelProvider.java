@@ -24,16 +24,18 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 			Object value = ((TreeNode)element).getValue();
 			if (value instanceof String) {
 				String name = (String)value;
+				String constructorMsg = TraceDebuggerPlugin.isJapanese() ? "コンストラクタ" : "Constructor";
 				switch (columnIndex) {
-				case 0:
-					if (name.contains("Constructor")) {
-						return name.substring(0, name.indexOf("Constructor"));
+				case 0: {
+					if (name.contains(constructorMsg)) {
+						return name.substring(0, name.indexOf(constructorMsg));
 					}
 					return name.substring(0, name.indexOf(":"));
+				}
 				case 1:
 					String valueName = name.substring(name.indexOf(":") + 1);
 					valueName = valueName.substring(valueName.lastIndexOf(" ") + 1);
-					boolean isConstructor = name.contains("Constructor");
+					boolean isConstructor = name.contains(constructorMsg);
 					return getReadableName(valueName, isConstructor);
 				}
 			}

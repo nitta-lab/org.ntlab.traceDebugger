@@ -38,6 +38,7 @@ import org.ntlab.traceAnalysisPlatform.tracer.trace.Statement;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.JavaEditorOperator;
 import org.ntlab.traceDebugger.JavaElementFinder;
+import org.ntlab.traceDebugger.TraceDebuggerPlugin;
 
 public class DeltaMarkerManager {
 	private Map<String, List<IMarker>> markerIdToMarkers = new HashMap<>();
@@ -73,7 +74,7 @@ public class DeltaMarkerManager {
 	public TreeNode[] getMarkerTreeNodes() {
 		TreeNode[] roots = new TreeNode[] {
 				new TreeNode(""),
-				new TreeNode("Related Aliases"),
+				new TreeNode(TraceDebuggerPlugin.isJapanese() ? "接近過程" : "Approach"),
 				new TreeNode("")
 		};
 		List<IMarker> markers;
@@ -147,13 +148,15 @@ public class DeltaMarkerManager {
 	}
 
 	public void createMarkerAndOpenJavaFileForAll() {
-		markAndOpenJavaFileForCoordinator(coordinator, "Coordinator", DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
+		String msg = TraceDebuggerPlugin.isJapanese() ? "開始時点" : "InitialPoint";
+		markAndOpenJavaFileForCoordinator(coordinator, msg, DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
 		List<Alias> dstSideAliases = new ArrayList<>(aliasCollector.getDstSideRelatedAliases());
 		List<Alias> srcSideAliases = new ArrayList<>(aliasCollector.getSrcSideRelatedAliases());
 		List<List<Alias>> relatedAliasesList = new ArrayList<>();
 		relatedAliasesList.add(dstSideAliases);
 		relatedAliasesList.add(srcSideAliases);
-		String[] messagesTemplates = {"GetterSide%03d", "SetterSide%03d"};
+		String[] messagesTemplates = TraceDebuggerPlugin.isJapanese() ? new String[]{"参照先側%03d", "参照元側%03d"}
+																		: new String[]{"ReferredSide%03d", "ReferringSide%03d"};
 		String[] markerIDList = {DST_SIDE_DELTA_MARKER, SRC_SIDE_DELTA_MARKER};
 		for (int i = 0; i < relatedAliasesList.size(); i++) {
 			List<Alias> relatedAliases = relatedAliasesList.get(i);
@@ -164,7 +167,8 @@ public class DeltaMarkerManager {
 				markAndOpenJavaFileForAlias(alias, message, markerIDList[i]);
 			}
 		}
-		markAndOpenJavaFileForCreationPoint(relatedPoint, relatedPointReference, "RelatedPoint", DeltaMarkerManager.BOTTOM_DELTA_MARKER);
+		msg = TraceDebuggerPlugin.isJapanese() ? "参照時点" : "RelatedPoint";
+		markAndOpenJavaFileForCreationPoint(relatedPoint, relatedPointReference, msg, DeltaMarkerManager.BOTTOM_DELTA_MARKER);
 	}
 	
 	private void markAndOpenJavaFileForAlias(Alias alias, String message, String markerId) {
