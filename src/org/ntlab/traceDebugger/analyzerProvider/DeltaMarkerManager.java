@@ -386,7 +386,7 @@ public class DeltaMarkerManager {
 						}
 						@Override
 						public boolean visit(org.eclipse.jdt.core.dom.SimpleName node) {
-							// note: メソッド呼び出しのレシーバがフィールドの場合はフィールドアクセスのノードだと来ないが代わりにこれで通る
+							// note: メソッド呼び出しのレシーバがthisの場合
 							int lineNo = cUnit.getLineNumber(node.getStartPosition());
 							if (lineNo != alias.getLineNo()) return true;
 							if (!(node.getParent() instanceof org.eclipse.jdt.core.dom.MethodInvocation)) return true;
@@ -396,7 +396,9 @@ public class DeltaMarkerManager {
 							if (!(name1.equals(name2))) return true;
 							int start = node.getStartPosition();
 							int end = start;
-							if (source.startsWith("this.", start)) {
+							int index = node.toString().indexOf("this.");
+							if (index != -1) {
+								start += index;
 								end = start + "this".length();
 							}
 							attributes.put(IMarker.CHAR_START, start);
@@ -411,12 +413,15 @@ public class DeltaMarkerManager {
 							if (lineNo != alias.getLineNo()) return true;
 							String name1 = node.toString();
 							name1 = name1.substring(name1.indexOf("("));
+							name1 = name1.replaceAll("<.*>", "");
 							String name2 = fa.getFieldName();
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
 							if (!(name1.contains(name2))) return true;
 							int start = node.getStartPosition();
 							int end = start;
-							if (source.startsWith("this.", start)) {
+							int index = node.toString().indexOf("this");
+							if (index != -1) {
+								start += index;
 								end = start + "this".length();
 							}
 							attributes.put(IMarker.CHAR_START, start);
@@ -428,13 +433,11 @@ public class DeltaMarkerManager {
 						public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
 							int lineNo = cUnit.getLineNumber(node.getStartPosition());
 							if (lineNo != alias.getLineNo()) return true;
-							Expression expression = node.getExpression();
 							int start = node.getStartPosition();
-							if (expression != null) {
-								start = node.getExpression().getStartPosition();
-							}
 							int end = start;
-							if (source.startsWith("this.", start)) {
+							int index = node.toString().indexOf("this");
+							if (index != -1) {
+								start += index;
 								end = start + "this".length();
 							}
 							attributes.put(IMarker.CHAR_START, start);
@@ -496,6 +499,7 @@ public class DeltaMarkerManager {
 							if (lineNo != alias.getLineNo()) return true;
 							String name1 = node.toString();
 							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
+							name1 = name1.replaceAll("<.*>", "");
 							String name2 = calledMe.getCallerSideSignature();
 							name2 = name2.substring(0, name2.indexOf("(") + 1);
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
@@ -550,6 +554,7 @@ public class DeltaMarkerManager {
 							if (lineNo != alias.getLineNo()) return true;
 							String name1 = node.toString();
 							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
+							name1 = name1.replaceAll("<.*>", "");
 							String name2 = calledMe.getCallerSideSignature();
 							name2 = name2.substring(name2.lastIndexOf(".") + 1, name2.indexOf("(") + 1);
 							if (!(name1.equals(name2))) return true;
@@ -575,6 +580,7 @@ public class DeltaMarkerManager {
 							if (lineNo != alias.getLineNo()) return true;
 							String name1 = node.toString();
 							name1 = name1.substring("new ".length(), name1.indexOf("(") + 1);
+							name1 = name1.replaceAll("<.*>", "");
 							String name2 = calledMe.getCallerSideSignature();
 							name2 = name2.substring(0, name2.indexOf("(") + 1);
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
@@ -657,6 +663,7 @@ public class DeltaMarkerManager {
 							if (lineNo != alias.getLineNo()) return true;
 							String name1 = node.toString();
 							name1 = name1.substring(name1.indexOf("("));
+							name1 = name1.replaceAll("<.*>", "");
 							String name2 = fa.getFieldName();
 							name2 = name2.substring(name2.lastIndexOf(".") + 1);
 							if (!(name1.contains(name2))) return true;
@@ -672,13 +679,10 @@ public class DeltaMarkerManager {
 						public boolean visit(org.eclipse.jdt.core.dom.ReturnStatement node) {
 							int lineNo = cUnit.getLineNumber(node.getStartPosition());
 							if (lineNo != alias.getLineNo()) return true;
-							Expression expression = node.getExpression();
 							String fieldName = fa.getFieldName();
 							fieldName = fieldName.substring(fieldName.lastIndexOf(".") + 1);
 							int start = node.getStartPosition();
-							if (expression != null) {
-								start = expression.getStartPosition();
-							}
+							start += node.toString().indexOf(fieldName);
 							int end = start + fieldName.length();
 							attributes.put(IMarker.CHAR_START, start);
 							attributes.put(IMarker.CHAR_END, end);
