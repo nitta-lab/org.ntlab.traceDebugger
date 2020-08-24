@@ -1,32 +1,46 @@
 package org.ntlab.traceDebugger;
 
+import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.viewers.ITableColorProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TreeNode;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.PlatformUI;
+import org.ntlab.traceDebugger.Variable.VariableType;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class VariableLabelProvider extends LabelProvider implements ITableLabelProvider, ITableColorProvider {
+	public static final String SPECIAL_VARIABLE = "SpecialVariable";
+	public static final String THIS_VARIABLE = "ThisVariable";
+	public static final String FIELD_VARIABLE = "FieldVariable";
+	public static final String ARG_VARIABLE = "ArgVariable";
+	private Image specialVariableImage = TraceDebuggerPlugin.getDefault().getImageRegistry().getDescriptor(SPECIAL_VARIABLE).createImage();
+	private Image thisVariableImage = TraceDebuggerPlugin.getDefault().getImageRegistry().getDescriptor(THIS_VARIABLE).createImage();
+	private Image fieldVariableImage = TraceDebuggerPlugin.getDefault().getImageRegistry().getDescriptor(FIELD_VARIABLE).createImage();
+	private Image argVariableImage = TraceDebuggerPlugin.getDefault().getImageRegistry().getDescriptor(ARG_VARIABLE).createImage();
+
 	@Override
 	public String getColumnText(Object element, int columnIndex) {
 		if (element instanceof TreeNode) {
 			Object value = ((TreeNode)element).getValue();
 			if (value instanceof String) {
 				String name = (String)value;
+				String constructorMsg = TraceDebuggerPlugin.isJapanese() ? "コンストラクタ" : "Constructor";
 				switch (columnIndex) {
-				case 0:
-					if (name.contains("Constructor")) {
-						return name.substring(0, name.indexOf("Constructor"));
+				case 0: {
+					if (name.contains(constructorMsg)) {
+						return name.substring(0, name.indexOf(constructorMsg));
 					}
 					return name.substring(0, name.indexOf(":"));
+				}
 				case 1:
 					String valueName = name.substring(name.indexOf(":") + 1);
 					valueName = valueName.substring(valueName.lastIndexOf(" ") + 1);
-					boolean isConstructor = name.contains("Constructor");
+					boolean isConstructor = name.contains(constructorMsg);
 					return getReadableName(valueName, isConstructor);
 				}
 			}
@@ -65,12 +79,27 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 	
 	@Override
 	public Image getColumnImage(Object element, int columnIndex) {
-		return getImage(element);
-	}
-	
-	@Override
-	public Image getImage(Object element) {
-		return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
+		if (columnIndex == 0) {
+			if (element instanceof TreeNode) {
+				Object value = ((TreeNode)element).getValue();
+				if (value instanceof String) {
+					return specialVariableImage;
+				} else if (value instanceof Variable) {
+					Variable variable = (Variable)value;
+					VariableType variableType = variable.getVariableType();				
+					if (variableType == VariableType.THIS) {
+						return thisVariableImage;
+					} else if (variableType == VariableType.PARAMETER){
+						return argVariableImage;
+					} else if (variableType.isContainerSide()) {
+						return thisVariableImage;
+					} else {
+						return fieldVariableImage;
+					}				
+				}
+			}			
+		}
+		return null;
 	}
 
 	@Override

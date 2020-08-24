@@ -3,7 +3,6 @@ package org.ntlab.traceDebugger;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
@@ -16,9 +15,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
-import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
-import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
-import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class CallStackView extends ViewPart {
 	protected TreeViewer viewer;
@@ -63,6 +59,11 @@ public class CallStackView extends ViewPart {
 		createMenuBar();
 		createPopupMenu();
 		TraceDebuggerPlugin.setActiveView(ID, this);
+	}
+	
+	@Override
+	public String getTitle() {
+		return TraceDebuggerPlugin.isJapanese() ? "呼び出しスタック" : "CallStack";
 	}
 
 	@Override

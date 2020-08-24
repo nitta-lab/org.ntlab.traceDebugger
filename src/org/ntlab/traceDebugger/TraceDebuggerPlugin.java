@@ -34,6 +34,8 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 	// The shared instance
 	private static TraceDebuggerPlugin plugin;
 	
+	private static boolean isJapanese = true;
+	
 	/**
 	 * The constructor
 	 */
@@ -113,6 +115,13 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 	
 	@Override
 	protected void initializeImageRegistry(ImageRegistry reg) {
+		// note: ブレークポイントビューに関するアイコン
+		reg.put(BreakPointView.DEBUG_ELCL, getImageDescriptor("/icons/debug/debug_elcl.png"));
+		reg.put(BreakPointView.DEBUG_DLCL, getImageDescriptor("/icons/debug/debug_dlcl.png"));
+		reg.put(BreakPointView.IMPORT_BREAKPOINT_ELCL, getImageDescriptor("/icons/debug/import_brkpts_elcl.png"));
+		reg.put(BreakPointView.IMPORT_BREAKPOINT_DLCL, getImageDescriptor("/icons/debug/import_brkpts_dlcl.png"));
+		reg.put(BreakPointViewRelatedDelta.STEP_NEXT_ELCL, getImageDescriptor("/icons/debug/stepnext_elcl.png"));
+		reg.put(BreakPointViewRelatedDelta.STEP_NEXT_DLCL, getImageDescriptor("/icons/debug/stepnext_dlcl.png"));
 		reg.put(BreakPointViewRelatedDelta.STEP_BACK_INTO_ELCL, getImageDescriptor("/icons/debug/stepbackinto_elcl.png"));
 		reg.put(BreakPointViewRelatedDelta.STEP_BACK_INTO_DLCL, getImageDescriptor("/icons/debug/stepbackinto_dlcl.png"));
 		reg.put(BreakPointViewRelatedDelta.STEP_BACK_OVER_ELCL, getImageDescriptor("/icons/debug/stepbackover_elcl.png"));
@@ -120,10 +129,20 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 		reg.put(BreakPointViewRelatedDelta.STEP_BACK_RETURN_ELCL, getImageDescriptor("/icons/debug/stepbackreturn_elcl.png"));
 		reg.put(BreakPointViewRelatedDelta.STEP_BACK_RETURN_DLCL, getImageDescriptor("/icons/debug/stepbackreturn_dlcl.png"));
 		reg.put(BreakPointViewRelatedDelta.BACK_RESUME_ELCL, getImageDescriptor("/icons/debug/backresume_elcl.png"));		
-		reg.put(BreakPointViewRelatedDelta.BACK_RESUME_DLCL, getImageDescriptor("/icons/debug/backresume_dlcl.png"));			
+		reg.put(BreakPointViewRelatedDelta.BACK_RESUME_DLCL, getImageDescriptor("/icons/debug/backresume_dlcl.png"));
+		
+		// note: 変数ビューに関するアイコン
+		reg.put(VariableLabelProvider.SPECIAL_VARIABLE, getImageDescriptor("/icons/variable/specialvariable.png"));
+		reg.put(VariableLabelProvider.THIS_VARIABLE, getImageDescriptor("/icons/variable/thisvariable.png"));
+		reg.put(VariableLabelProvider.FIELD_VARIABLE, getImageDescriptor("/icons/variable/fieldvariable.png"));
+		reg.put(VariableLabelProvider.ARG_VARIABLE, getImageDescriptor("/icons/variable/localvariable.png"));
 	}
 	
 	public static ImageDescriptor getImageDescriptor(String path) {
 		return imageDescriptorFromPlugin(PLUGIN_ID, path);
+	}
+	
+	public static boolean isJapanese() {
+		return isJapanese;
 	}
 }

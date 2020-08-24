@@ -79,7 +79,8 @@ public class CallStackViewRelatedDelta extends CallStackView {
 					String calleeId = callee.getThisObjId();
 					String calleeClassName = callee.getThisClassName();
 					calleeClassName = calleeClassName.substring(calleeClassName.lastIndexOf(".") + 1);
-					String text = String.format("Extract Delta (%s: %s → %s: %s)", callerId, callerClassName, calleeId, calleeClassName);
+					String msg = TraceDebuggerPlugin.isJapanese() ? "オブジェクトの接近過程抽出" : "Extract Process to Relate";
+					String text = String.format("%s (%s: %s → %s: %s)", msg, callerId, callerClassName, calleeId, calleeClassName);
 					deltaAction.setText(text);
 					deltaAction.setToolTipText(text);
 					manager.add(deltaAction);

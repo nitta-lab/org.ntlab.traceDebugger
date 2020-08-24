@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import org.eclipse.debug.internal.ui.IInternalDebugUIConstants;
 import org.eclipse.debug.ui.DebugUITools;
-import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.action.IMenuListener;
@@ -13,6 +12,7 @@ import org.eclipse.jface.action.IToolBarManager;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.resource.ImageDescriptor;
+import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.viewers.ArrayContentProvider;
 import org.eclipse.jface.viewers.CheckboxTableViewer;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
@@ -23,8 +23,6 @@ import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Menu;
@@ -43,7 +41,6 @@ public class BreakPointView extends ViewPart {
 	protected IAction fileOpenAction;
 	protected IAction addTraceBreakPointAction;
 	protected IAction removeTraceBreakPointAction;
-	protected IAction changeAvailableAction;
 	protected IAction debugAction;
 	protected IAction terminateAction;
 	protected IAction stepIntoAction;
@@ -56,6 +53,12 @@ public class BreakPointView extends ViewPart {
 	protected TraceBreakPoints traceBreakPoints;
 	protected DebuggingController debuggingController = DebuggingController.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.breakPointView";
+	public static final String DEBUG_ELCL = "Debug_elcl";
+	public static final String DEBUG_DLCL = "Debug_dlcl";
+	public static final String IMPORT_BREAKPOINT_ELCL = "ImportBreakPoint_ELCL";
+	public static final String IMPORT_BREAKPOINT_DLCL = "ImportBreakPoint_DLCL";
+	public static final String STEP_NEXT_ELCL = "StepNext_ELCL";
+	public static final String STEP_NEXT_DLCL = "StepNext_DLCL";
 
 	public BreakPointView() {
 		// TODO Auto-generated constructor stub
@@ -73,8 +76,9 @@ public class BreakPointView extends ViewPart {
 		table.setLinesVisible(true);
 
 		// テーブルのカラムを作成
-		String[] tableColumnTexts = {"", "Line", "Signature"};
-		int[] tableColumnWidth = {30, 80, 500};
+		String[] tableColumnTexts = TraceDebuggerPlugin.isJapanese() ? new String[]{"", "行", "メソッド"} 
+																		: new String[]{"", "Line", "Signature"};
+		int[] tableColumnWidth = {50, 80, 500};
 		TableColumn[] tableColumns = new TableColumn[tableColumnTexts.length];
 		for (int i = 0; i < tableColumns.length; i++) {
 			tableColumns[i] = new TableColumn(table, SWT.NULL);
@@ -111,6 +115,7 @@ public class BreakPointView extends ViewPart {
 				if (data instanceof TraceBreakPoint) {
 					TraceBreakPoint tbp = (TraceBreakPoint)data;
 					tbp.setAvailable(checked);
+					viewer.refresh();
 				}
 			}
 		});
@@ -122,6 +127,11 @@ public class BreakPointView extends ViewPart {
 		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
+	@Override
+	public String getTitle() {
+		return TraceDebuggerPlugin.isJapanese() ? "ブレークポイント" : "Breakpoints";
+	}
+	
 	public Viewer getViewer() {
 		return viewer;
 	}
@@ -133,9 +143,14 @@ public class BreakPointView extends ViewPart {
 		viewer.getControl().setFocus();
 	}
 	
-	protected void createActions() {				
+	protected void createActions() {
+		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();
 		ImageDescriptor fileOpenIcon = PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_OBJ_FOLDER);
-		fileOpenAction = new Action("Open Trace File...", fileOpenIcon) {
+		boolean isJapanese = TraceDebuggerPlugin.isJapanese();
+		String msg;
+		
+		msg = (isJapanese) ? "トレースファイルを開く" : "Open Trace File..."; 
+		fileOpenAction = new Action(msg, fileOpenIcon) {
 			@Override
 			public void run() {
 				// トレース出力先参照ウィザード
@@ -149,8 +164,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.addTraceBreakPointAction();
 			}
 		};
-		addTraceBreakPointAction.setText("Add new trace breakpoint");
-		addTraceBreakPointAction.setToolTipText("Add new trace breakpoint");
+		msg = (isJapanese) ? "ブレークポイントを追加する" : "Add a New Breakpoint";
+		addTraceBreakPointAction.setText(msg);
+		addTraceBreakPointAction.setToolTipText(msg);
 		
 		removeTraceBreakPointAction = new Action() {
 			@Override
@@ -158,17 +174,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.removeTraceBreakPointAction();
 			}
 		};
-		removeTraceBreakPointAction.setText("Remove selected trace breakpoint");
-		removeTraceBreakPointAction.setToolTipText("Remove selected trace breakpoint");
-		
-		changeAvailableAction = new Action() {
-			@Override
-			public void run() {
-				debuggingController.changeAvailableAction();
-			}
-		};
-		changeAvailableAction.setText("Change available of selected trace breakpoint");
-		changeAvailableAction.setToolTipText("Change available of selected trace breakpoint");
+		msg = (isJapanese) ? "ブレークポイントを削除する" : "Remove a Breakpoint";
+		removeTraceBreakPointAction.setText(msg);
+		removeTraceBreakPointAction.setToolTipText(msg);
 		
 		importBreakpointAction = new Action() {
 			@Override
@@ -176,8 +184,11 @@ public class BreakPointView extends ViewPart {
 				debuggingController.importBreakpointAction();
 			}
 		};
-		importBreakpointAction.setText("Import Breakpoints");
-		importBreakpointAction.setToolTipText("Copy Breakpoints from Eclipse");
+		msg = (isJapanese) ? "ブレークポイントを Eclipse から取り入れる" : "Import Breakpoints from Eclipse";
+		importBreakpointAction.setText(msg);
+		importBreakpointAction.setToolTipText(msg);
+		ImageDescriptor importBreakpointIcon = registry.getDescriptor(IMPORT_BREAKPOINT_DLCL);
+		importBreakpointAction.setImageDescriptor(importBreakpointIcon);
 		
 		debugAction = new Action() {
 			@Override
@@ -185,19 +196,21 @@ public class BreakPointView extends ViewPart {
 				debuggingController.debugAction();
 			}
 		};
-		debugAction.setText("Debug");
-		debugAction.setToolTipText("Debug");
-		ImageDescriptor debugImage = DebugUITools.getImageDescriptor(IDebugUIConstants.IMG_ACT_DEBUG);
-		debugAction.setImageDescriptor(debugImage);
-		
+		msg = (isJapanese) ? "デバッグ" : "Debug";
+		debugAction.setText(msg);
+		debugAction.setToolTipText(msg);
+		ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_DLCL);
+		debugAction.setImageDescriptor(debugIcon);
+
 		terminateAction = new Action() {
 			@Override
 			public void run() {
 				debuggingController.terminateAction();
 			}
 		};
-		terminateAction.setText("Terminate");
-		terminateAction.setToolTipText("Terminate");
+		msg = (isJapanese) ? "終了" : "Terminate";
+		terminateAction.setText(msg);
+		terminateAction.setToolTipText(msg);
 		ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_TERMINATE);
 		terminateAction.setImageDescriptor(terminateImage);
 
@@ -207,8 +220,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.stepIntoAction();
 			}
 		};
-		stepIntoAction.setText("Step Into");
-		stepIntoAction.setToolTipText("Step Into");
+		msg = (isJapanese) ? "ステップイン" : "Step Into";
+		stepIntoAction.setText(msg);
+		stepIntoAction.setToolTipText(msg);
 		ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_INTO);
 		stepIntoAction.setImageDescriptor(stepIntoImage);
 		
@@ -218,8 +232,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.stepOverAction();
 			}
 		};
-		stepOverAction.setText("Step Over");
-		stepOverAction.setToolTipText("Step Over");
+		msg = (isJapanese) ? "ステップオーバー" : "Step Over";
+		stepOverAction.setText(msg);
+		stepOverAction.setToolTipText(msg);
 		ImageDescriptor stepOverImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_OVER);
 		stepOverAction.setImageDescriptor(stepOverImage);
 
@@ -229,8 +244,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.stepReturnAction();
 			}
 		};
-		stepReturnAction.setText("Step Return");
-		stepReturnAction.setToolTipText("Step Return");
+		msg = (isJapanese) ? "ステップリターン" : "Step Return";
+		stepReturnAction.setText(msg);
+		stepReturnAction.setToolTipText(msg);
 		ImageDescriptor stepReturnImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_RETURN);
 		stepReturnAction.setImageDescriptor(stepReturnImage);
 
@@ -240,8 +256,11 @@ public class BreakPointView extends ViewPart {
 				debuggingController.stepNextAction();
 			}
 		};
-		stepNextAction.setText("Step Next");
-		stepNextAction.setToolTipText("Step Next");		
+		msg = (isJapanese) ? "ステップネクスト" : "Step Next";
+		stepNextAction.setText(msg);
+		stepNextAction.setToolTipText(msg);
+		ImageDescriptor stepNextIcon = registry.getDescriptor(STEP_NEXT_DLCL);
+		stepNextAction.setImageDescriptor(stepNextIcon);
 		
 		resumeAction = new Action() {
 			@Override
@@ -249,8 +268,9 @@ public class BreakPointView extends ViewPart {
 				debuggingController.resumeAction();
 			}
 		};
-		resumeAction.setText("Resume");
-		resumeAction.setToolTipText("Resume");
+		msg = (isJapanese) ? "再開" : "Resume";
+		resumeAction.setText(msg);
+		resumeAction.setToolTipText(msg);
 		ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_RESUME);
 		resumeAction.setImageDescriptor(image);
 	}
@@ -289,7 +309,6 @@ public class BreakPointView extends ViewPart {
 			public void menuAboutToShow(IMenuManager manager) {
 				manager.add(addTraceBreakPointAction);
 				manager.add(removeTraceBreakPointAction);
-				manager.add(changeAvailableAction);
 				manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 			}
 		});
@@ -301,21 +320,17 @@ public class BreakPointView extends ViewPart {
 	public TraceBreakPoints getTraceBreakPoints() {
 		return traceBreakPoints;
 	}
-	
-//	public void setTraceBreakPoints(TraceBreakPoints traceBreakPoints) {
-//		this.traceBreakPoints = traceBreakPoints;
-//	}
 
 	public void reset() {
 		viewer.setInput(new ArrayList<TraceBreakPoint>());
 		viewer.refresh();
+		updateImagesForDebug(false);
+		updateImagesForBreakPoint(false);
 	}
 	
 	public void updateTraceBreakPoints(TraceBreakPoints traceBreakPoints) {
 		this.traceBreakPoints = traceBreakPoints;
 		viewer.setInput(traceBreakPoints.getAllTraceBreakPoints());
-//		viewer.refresh();
-		
 		final Table table = viewer.getTable();
 		for (TableItem item : table.getItems()) {
 			Object data = item.getData();
@@ -328,8 +343,26 @@ public class BreakPointView extends ViewPart {
 		viewer.refresh();
 	}
 	
-	public void updateImages(boolean isRunning) {
+	public void updateImagesForBreakPoint(boolean hasLoadedTraceFile) {
+		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();		
+		if (hasLoadedTraceFile) {
+			ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_ELCL);
+			debugAction.setImageDescriptor(debugIcon);
+			ImageDescriptor importBreakpointIcon = registry.getDescriptor(IMPORT_BREAKPOINT_ELCL);
+			importBreakpointAction.setImageDescriptor(importBreakpointIcon);
+		} else {
+			ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_DLCL);
+			debugAction.setImageDescriptor(debugIcon);
+			ImageDescriptor importBreakpointIcon = registry.getDescriptor(IMPORT_BREAKPOINT_DLCL);
+			importBreakpointAction.setImageDescriptor(importBreakpointIcon);
+		}
+	}
+	
+	public void updateImagesForDebug(boolean isRunning) {
+		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();
 		if (isRunning) {
+			ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_DLCL);
+			debugAction.setImageDescriptor(debugIcon);			
 			ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_TERMINATE);
 			terminateAction.setImageDescriptor(terminateImage);
 			ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_STEP_INTO);
@@ -338,9 +371,13 @@ public class BreakPointView extends ViewPart {
 			stepOverAction.setImageDescriptor(stepOverImage);
 			ImageDescriptor stepReturnImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_STEP_RETURN);
 			stepReturnAction.setImageDescriptor(stepReturnImage);
+			ImageDescriptor stepNextIcon = registry.getDescriptor(STEP_NEXT_ELCL);
+			stepNextAction.setImageDescriptor(stepNextIcon);
 			ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_ELCL_RESUME);
 			resumeAction.setImageDescriptor(image);
 		} else {
+			ImageDescriptor debugIcon = registry.getDescriptor(DEBUG_ELCL);
+			debugAction.setImageDescriptor(debugIcon);
 			ImageDescriptor terminateImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_TERMINATE);
 			terminateAction.setImageDescriptor(terminateImage);
 			ImageDescriptor stepIntoImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_INTO);
@@ -349,6 +386,8 @@ public class BreakPointView extends ViewPart {
 			stepOverAction.setImageDescriptor(stepOverImage);
 			ImageDescriptor stepReturnImage = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_STEP_RETURN);
 			stepReturnAction.setImageDescriptor(stepReturnImage);
+			ImageDescriptor stepNextIcon = registry.getDescriptor(STEP_NEXT_DLCL);
+			stepNextAction.setImageDescriptor(stepNextIcon);
 			ImageDescriptor image = DebugUITools.getImageDescriptor(IInternalDebugUIConstants.IMG_DLCL_RESUME);
 			resumeAction.setImageDescriptor(image);
 		}

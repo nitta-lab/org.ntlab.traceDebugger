@@ -46,7 +46,8 @@ public class DeltaMarkerView extends ViewPart {
 		tree.setLinesVisible(true);
 
 		// テーブルのカラムを作成
-		String[] tableColumnTexts = {"Description", "Object ID", "Type", "Alias", "Source", "Line"};
+		String[] tableColumnTexts = TraceDebuggerPlugin.isJapanese() ? new String[]{"実行時点", "id", "型", "出現形式", "ソース", "行"} 
+																		: new String[]{"ExecutionPoint", "id", "Type", "Occurrence", "Source", "Line"};
 		int[] tableColumnWidth = {120, 100, 120, 120, 100, 80};
 		TreeColumn[] tableColumns = new TreeColumn[tableColumnTexts.length];
 		for (int i = 0; i < tableColumns.length; i++) {
@@ -79,6 +80,11 @@ public class DeltaMarkerView extends ViewPart {
 		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 	
+	@Override
+	public String getTitle() {
+		return TraceDebuggerPlugin.isJapanese() ? "オブジェクトの接近過程" : "Process to Relate";
+	}
+	
 	private void createActions() {
 		// TODO Auto-generated method stub
 	}
@@ -102,7 +108,6 @@ public class DeltaMarkerView extends ViewPart {
 		if (!doNotUpdateCallTreeView) {
 			CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 			callTreeView.update(deltaMarkerManager);
-//			updateOtherViewsByMarker(selectionMarker);
 		}
 		doNotUpdateCallTreeView = false;
 		viewer.getControl().setFocus();
@@ -201,35 +206,5 @@ public class DeltaMarkerView extends ViewPart {
 		callTreeView.highlight(bottomME);
 		TracePointsView tracePointsView = (TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID);
 		tracePointsView.addTracePoint(creationPoint);		
-	}
-	
-//	public void extractDelta(Variable variable, boolean isContainerToComponent) {
-//		AbstractAnalyzer analyzer = TraceDebuggerPlugin.getAnalyzer();
-//		if (analyzer instanceof DeltaExtractionAnalyzer) {
-//			DeltaExtractionAnalyzer deltaAnalyzer = (DeltaExtractionAnalyzer)analyzer;
-//			if (isContainerToComponent) {
-//				deltaMarkerManager = deltaAnalyzer.extractDeltaForContainerToComponent(variable);	
-//			} else {
-//				deltaMarkerManager = deltaAnalyzer.extractDeltaForThisToAnother(variable);
-//			}
-//			deltaMarkerManager.createMarkerAndOpenJavaFileForAll(); // デルタ抽出の結果を元にソースコードを反転表示する
-//			update();
-//			
-//			TracePoint coordinatorPoint = getCoordinatorPoint();
-//			TracePoint creationPoint = getCreationPoint();
-//			MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();
-//			MethodExecution bottomME = creationPoint.getMethodExecution();			
-//			DebuggingController controller = DebuggingController.getInstance();
-//			controller.jumpToTheTracePoint(creationPoint, false);
-//			VariableViewRelatedDelta variableView = (VariableViewRelatedDelta)(TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID));
-//			variableView.markAndExpandVariablesByDeltaMarkers(deltaMarkerManager.getMarkers());
-//			CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
-//			callStackView.highlight(coordinatorME);
-//			CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
-//			callTreeView.update(deltaMarkerManager);
-//			callTreeView.highlight(bottomME);
-//			TracePointsView tracePointsView = (TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID);
-//			tracePointsView.addTracePoint(creationPoint);
-//		}
-//	}
+	}	
 }

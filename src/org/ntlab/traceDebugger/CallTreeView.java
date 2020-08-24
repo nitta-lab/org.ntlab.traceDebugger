@@ -15,8 +15,6 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
-import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
-import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class CallTreeView extends ViewPart {
@@ -72,6 +70,11 @@ public class CallTreeView extends ViewPart {
 		createToolBar();
 		createMenuBar();
 		TraceDebuggerPlugin.setActiveView(ID, this);
+	}
+	
+	@Override
+	public String getTitle() {
+		return TraceDebuggerPlugin.isJapanese() ? "åªç›ÇÃé¿çséûì_" : "CurrentExecutionPoint";
 	}
 
 	@Override

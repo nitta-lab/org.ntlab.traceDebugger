@@ -1,8 +1,5 @@
 package org.ntlab.traceDebugger;
 
-import java.util.List;
-import java.util.Map;
-
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
@@ -26,9 +23,6 @@ import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.ui.part.ViewPart;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
-import org.ntlab.traceDebugger.analyzerProvider.AbstractAnalyzer;
-import org.ntlab.traceDebugger.analyzerProvider.DeltaExtractionAnalyzer;
-import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class TracePointsView extends ViewPart {
 	private TableViewer viewer;
@@ -50,13 +44,14 @@ public class TracePointsView extends ViewPart {
 		// TODO Auto-generated method stub
 		System.out.println("TracePointsView#createPartControl(Composite)が呼ばれたよ!");
 		shell = parent.getShell();
-		viewer = new TableViewer(parent, SWT.FULL_SELECTION);
+		viewer = new TableViewer(parent, SWT.BORDER | SWT.FULL_SELECTION);
 		Table table = viewer.getTable();
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
 
 		// テーブルのカラムを作成
-		String[] tableColumnTexts = {"Line", "Signature"};
+		String[] tableColumnTexts = TraceDebuggerPlugin.isJapanese() ? new String[]{"行", "メソッド"} 
+																		: new String[]{"Line", "Signature"};
 		int[] tableColumnWidth = {80, 1000};
 		TableColumn[] tableColumns = new TableColumn[tableColumnTexts.length];
 		for (int i = 0; i < tableColumns.length; i++) {
@@ -99,6 +94,11 @@ public class TracePointsView extends ViewPart {
 		createPopupMenu();
 		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
+	
+	@Override
+	public String getTitle() {
+		return TraceDebuggerPlugin.isJapanese() ? "実行時点の登録" : "MarkedExecutionPoints";
+	}
 
 	@Override
 	public void setFocus() {
@@ -107,7 +107,10 @@ public class TracePointsView extends ViewPart {
 		viewer.getControl().setFocus();
 	}
 	
-	private void createActions() {		
+	private void createActions() {
+		boolean isJapanese = TraceDebuggerPlugin.isJapanese();
+		String msg;
+
 		addAction = new Action() {
 			@Override
 			public void run() {
@@ -116,8 +119,9 @@ public class TracePointsView extends ViewPart {
 				addTracePoint(currentTp);
 			}
 		};
-		addAction.setText("Add");
-		addAction.setToolTipText("Add");
+		msg = (isJapanese) ? "追加" : "Add";
+		addAction.setText(msg);
+		addAction.setToolTipText(msg);
 		
 		removeAction = new Action() {
 			@Override
@@ -128,8 +132,9 @@ public class TracePointsView extends ViewPart {
 				}
 			}
 		};
-		removeAction.setText("Remove");
-		removeAction.setToolTipText("Remove");
+		msg = (isJapanese) ? "削除" : "Remove";
+		removeAction.setText(msg);
+		removeAction.setToolTipText(msg);
 		
 		jumpAction = new Action() {
 			@Override
@@ -139,8 +144,9 @@ public class TracePointsView extends ViewPart {
 				}
 			}
 		};
-		jumpAction.setText("Jump");
-		jumpAction.setToolTipText("Jump");
+		msg = (isJapanese) ? "ジャンプ" : "Jump";
+		jumpAction.setText(msg);
+		jumpAction.setToolTipText(msg);
 	}
 	
 	private void createToolBar() {

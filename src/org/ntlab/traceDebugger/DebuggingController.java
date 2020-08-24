@@ -37,7 +37,6 @@ public class DebuggingController {
 	private static final DebuggingController theInstance = new DebuggingController();
 	private TracePoint debuggingTp;
 	private TraceBreakPoint selectedTraceBreakPoint;
-//	private TraceBreakPoints traceBreakPoints;
 	private IMarker currentLineMarker;
 	private LoadingTraceFileStatus loadingTraceFileStatus = LoadingTraceFileStatus.NOT_YET;
 	private boolean isRunning = false;
@@ -73,15 +72,23 @@ public class DebuggingController {
 	
 	public boolean fileOpenAction(Shell shell) {
 		if (loadingTraceFileStatus == LoadingTraceFileStatus.PROGRESS) {
-			MessageDialog.openInformation(null, "Loading", "This debugger is loading the trace.");
+			if (TraceDebuggerPlugin.isJapanese()) {
+				MessageDialog.openInformation(null, "読み込み中", "トレースファイルを読み込み中です");
+			} else {
+				MessageDialog.openInformation(null, "Loading", "This debugger is loading the trace.");	
+			}
 			return false;
 		}
 		if (isRunning) {
-			MessageDialog.openInformation(null, "Running", "This debugger is running on the trace.");
+			if (TraceDebuggerPlugin.isJapanese()) {
+				MessageDialog.openInformation(null, "実行中", "トレース上で実行中です");
+			} else {
+				MessageDialog.openInformation(null, "Running", "This debugger is running on the trace.");	
+			}
 			return false;
 		}
 		FileDialog fileDialog = new FileDialog(shell, SWT.OPEN);
-		fileDialog.setText("Open Trace File");
+		fileDialog.setText(TraceDebuggerPlugin.isJapanese() ? "トレースファイルを開く" : "Open Trace File");
 		fileDialog.setFilterExtensions(new String[]{"*.*"});
 		String path = fileDialog.open();
 		if (path == null) return false;
@@ -97,10 +104,11 @@ public class DebuggingController {
 	}
 	
 	private void loadTraceFileOnOtherThread(final String filePath) {
-		Job job = new Job("Loading Trace File") {
+		final String msg = TraceDebuggerPlugin.isJapanese() ? "トレースファイルを読み込み中" : "Loading Trace File";
+		Job job = new Job(msg) {
 			@Override
-			protected IStatus run(IProgressMonitor monitor) {							
-				monitor.beginTask("Loading Trace File" + " (" + filePath + ")", IProgressMonitor.UNKNOWN);
+			protected IStatus run(IProgressMonitor monitor) {
+				monitor.beginTask(msg + " (" + filePath + ")", IProgressMonitor.UNKNOWN);
 				loadingTraceFileStatus = LoadingTraceFileStatus.PROGRESS;
 				TraceDebuggerPlugin.setAnalyzer(null);
 				TraceJSON trace = new TraceJSON(filePath);
@@ -115,6 +123,7 @@ public class DebuggingController {
 					@Override
 					public void run() {
 						breakpointView.updateTraceBreakPoints(traceBreakPoints);
+						breakpointView.updateImagesForBreakPoint(true);
 					}
 				});
 				monitor.done();
@@ -133,19 +142,29 @@ public class DebuggingController {
 	
 	public boolean addTraceBreakPointAction() {
 		if (loadingTraceFileStatus != LoadingTraceFileStatus.DONE) {
-			MessageDialog.openInformation(null, "Error", "Trace file was not found");
+			if (TraceDebuggerPlugin.isJapanese()) {
+				MessageDialog.openInformation(null, "エラー", "トレースが見つかりませんでした");
+			} else {
+				MessageDialog.openInformation(null, "Error", "Trace was not found");	
+			}
 			return false;
 		}
-		InputDialog inputDialog = new InputDialog(null, "method signature dialog", "Input method signature", "", null);
+		InputDialog inputDialog = TraceDebuggerPlugin.isJapanese() ? new InputDialog(null, "メソッドダイアログ", "メソッドシグニチャを入力", "", null)
+																	: new InputDialog(null, "method signature dialog", "Input method signature", "", null);
 		if (inputDialog.open() != InputDialog.OK) return false;
 		String methodSignature = inputDialog.getValue();
-		inputDialog = new InputDialog(null, "line No dialog", "Input line no", "", null);
+		inputDialog = TraceDebuggerPlugin.isJapanese() ? new InputDialog(null, "行数ダイアログ", "行数を入力", "", null)
+														: new InputDialog(null, "line Number dialog", "Input line number", "", null);
 		if (inputDialog.open() != InputDialog.OK) return false;
 		int lineNo = Integer.parseInt(inputDialog.getValue());
 		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		boolean isSuccess = traceBreakPoints.addTraceBreakPoint(methodSignature, lineNo);
 		if (!isSuccess) {
-			MessageDialog.openInformation(null, "Error", "This trace point does not exist in the trace.");
+			if (TraceDebuggerPlugin.isJapanese()) {
+				MessageDialog.openInformation(null, "エラー", "トレース中に入力したポイントが存在しません");
+			} else {
+				MessageDialog.openInformation(null, "Error", "This point does not exist in the trace.");	
+			}
 			return false;
 		}
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
@@ -154,7 +173,11 @@ public class DebuggingController {
 
 	public boolean importBreakpointAction() {
 		if (loadingTraceFileStatus != LoadingTraceFileStatus.DONE) {
-			MessageDialog.openInformation(null, "Error", "Trace file was not found");
+			if (TraceDebuggerPlugin.isJapanese()) {
+				MessageDialog.openInformation(null, "エラー", "トレースが見つかりません");
+			} else {
+				MessageDialog.openInformation(null, "Error", "Trace was not found");	
+			}
 			return false;
 		}
 		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
@@ -171,30 +194,35 @@ public class DebuggingController {
 		return true;
 	}
 	
-	public boolean changeAvailableAction() {
-		if (selectedTraceBreakPoint == null) return false;
-		selectedTraceBreakPoint.changeAvailable();
-		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
-		return true;
-	}
-	
 	public boolean debugAction() {
 		if (loadingTraceFileStatus != LoadingTraceFileStatus.DONE) {
-			MessageDialog.openInformation(null, "Error", "Trace file was not found");
+			if (TraceDebuggerPlugin.isJapanese()) {
+				MessageDialog.openInformation(null, "エラー", "トレースが見つかりません");
+			} else {
+				MessageDialog.openInformation(null, "Error", "Trace was not found");				
+			}
 			return false;
 		}
 		if (isRunning) {
+			if (TraceDebuggerPlugin.isJapanese()) {
+				MessageDialog.openInformation(null, "エラー", "トレース上で実行中です");
+			} else {
+				MessageDialog.openInformation(null, "Error", "This Debugger is running on the trace.");	
+			}
 			return false;
 		}
 		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		debuggingTp = traceBreakPoints.getFirstTracePoint();
 		if (debuggingTp == null) {
-			MessageDialog.openInformation(null, "Error", "An available breakpoint was not found");
+			if (TraceDebuggerPlugin.isJapanese()) {
+				MessageDialog.openInformation(null, "エラー", "利用可能なブレークポイントが見つかりません");
+			} else {
+				MessageDialog.openInformation(null, "Error", "An available breakpoint was not found");	
+			}
 			return false;
 		}
 		refresh(null, debuggingTp, false);
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImages(true);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImagesForDebug(true);
 		isRunning = true;
 		return true;
 	}
@@ -210,7 +238,7 @@ public class DebuggingController {
 		}
 		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
 		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImages(false);
+		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImagesForDebug(false);
 		isRunning = false;
 	}
 
@@ -224,11 +252,7 @@ public class DebuggingController {
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		debuggingTp.stepFull();
-		if (!debuggingTp.isValid()) {
-			terminateAction();
-			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
-			return false;
-		}
+		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(null, debuggingTp, false);
 		return true;
 	}
@@ -264,13 +288,10 @@ public class DebuggingController {
 			} while (debuggingTp.stepFull());			
 		} else {
 			debuggingTp = goalTp;
+			while (!debuggingTp.stepOver()); // 呼び出し元での次のステートメントまで進める
 		}
 
-		if (!debuggingTp.isValid()) {
-			terminateAction();
-			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
-			return false;
-		}		
+		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;
 	}
@@ -284,12 +305,14 @@ public class DebuggingController {
 		}
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
-		while (debuggingTp.stepOver());
-		if (!debuggingTp.isValid()) {
-			terminateAction();
-			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
-			return false;
+		
+		// note: 呼び出し元に戻るまで進み続ける
+		while (debuggingTp.stepOver()) {
+			previousTp = debuggingTp.duplicate();
 		}
+		while (!debuggingTp.stepOver()); // 呼び出し元での次のステートメントまで進める
+		
+		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(previousTp, debuggingTp, true);
 		return true;
 	}
@@ -318,14 +341,10 @@ public class DebuggingController {
 			} while (debuggingTp.stepFull());			
 		} else {
 			debuggingTp = startTp;
-			startTp.stepOver();
+			while (!debuggingTp.stepOver()); // 呼び出し元での次のステートメントまで進める
 		}
 
-		if (!debuggingTp.isValid()) {
-			terminateAction();
-			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
-			return false;
-		}		
+		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(previousTp, debuggingTp, isReturned, true);
 		return true;	
 	}
@@ -337,11 +356,7 @@ public class DebuggingController {
 		TracePoint previousTp = debuggingTp;
 		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		debuggingTp = traceBreakPoints.getNextTracePoint(currentTime);
-		if (debuggingTp == null) {
-			terminateAction();
-			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
-			return false;
-		}
+		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(null, debuggingTp, false);
 		return true;
 	}
@@ -356,11 +371,7 @@ public class DebuggingController {
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		debuggingTp.stepBackFull();
-		if (!debuggingTp.isValid()) {
-			terminateAction();
-			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
-			return false;
-		}
+		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(null, debuggingTp, true);
 		return true;
 	}
@@ -379,11 +390,7 @@ public class DebuggingController {
 		while (!(isReturned = !debuggingTp.stepBackOver())) {
 			if (currentLineNo != debuggingTp.getStatement().getLineNo()) break;
 		}
-		if (!debuggingTp.isValid()) {
-			terminateAction();
-			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
-			return false;
-		}
+		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(null, debuggingTp, !isReturned);
 		return true;
 	}
@@ -398,11 +405,7 @@ public class DebuggingController {
 		TracePoint previousTp = debuggingTp;
 		debuggingTp = debuggingTp.duplicate();
 		while (debuggingTp.stepBackOver());
-		if (!debuggingTp.isValid()) {
-			terminateAction();
-			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
-			return false;
-		}
+		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(null, debuggingTp, false);
 		return true;
 	}
@@ -414,13 +417,22 @@ public class DebuggingController {
 		long currentTime = debuggingTp.getStatement().getTimeStamp();
 		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		debuggingTp = traceBreakPoints.getPreviousTracePoint(currentTime);
-		if (debuggingTp == null) {
-			terminateAction();
-			MessageDialog.openInformation(null, "Terminate", "This trace is terminated");
-			return false;
-		}
+		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(null, debuggingTp, false);
 		return true;
+	}
+	
+	private boolean debugExecutionIsTerminated(TracePoint tp) {
+		if (tp == null || !(tp.isValid())) {
+			terminateAction();
+			if (TraceDebuggerPlugin.isJapanese()) {
+				MessageDialog.openInformation(null, "終了", "トレース上での実行は終了しました");
+			} else {
+				MessageDialog.openInformation(null, "Terminate", "This execution is terminated");	
+			}
+			return true;
+		}
+		return false;
 	}
 
 	/**

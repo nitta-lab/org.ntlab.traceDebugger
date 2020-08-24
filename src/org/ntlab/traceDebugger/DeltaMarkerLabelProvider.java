@@ -9,6 +9,7 @@ import org.eclipse.jface.viewers.TreeNode;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
+import org.ntlab.traceDebugger.analyzerProvider.Alias.AliasType;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
 public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLabelProvider, ITableColorProvider {
@@ -44,24 +45,9 @@ public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLab
 						return simpleObjectTypeName.toString();
 					case 3:
 						Object obj = marker.getAttribute(DeltaMarkerManager.DELTA_MARKER_ATR_ALIAS_TYPE);
-						if (obj == null) return null;
-						// note: スネークケースをパスカルケース(ただし単語間を空白で区切る)に変える
-						String aliasType = obj.toString();
-						aliasType = aliasType.toLowerCase().replace("_", " ");
-						StringBuilder sb = new StringBuilder();
-						for (int index = -1;;) {
-							sb.append(aliasType.substring(index + 1, index + 2).toUpperCase());
-							int nextIndex = aliasType.indexOf(" ", index + 1);
-							if (nextIndex == -1) {
-								sb.append(aliasType.substring(index + 2));
-								break;
-							} else {
-								sb.append(aliasType.substring(index + 2, nextIndex + 1));
-								index = nextIndex;
-							}
-						}
-						aliasType = sb.toString();
-						return aliasType;
+						if (!(obj instanceof AliasType)) return null;
+						AliasType aliasType = (AliasType)obj;
+						return getAliasTypeName(aliasType);
 					case 4:
 						String resource = marker.getResource().toString();
 						return resource.substring(resource.lastIndexOf("/") + 1);
@@ -76,14 +62,57 @@ public class DeltaMarkerLabelProvider extends LabelProvider implements ITableLab
 		return "テスト用テキスト";
 	}
 	
+	private String getAliasTypeName(AliasType aliasType) {
+		String msg = aliasType.toString();
+		switch (aliasType) {
+		case METHOD_INVOCATION:
+		case CONSTRACTOR_INVOCATION:
+			return TraceDebuggerPlugin.isJapanese() ? "呼び出し式" : "Invocation";
+		case RECEIVER:
+			return TraceDebuggerPlugin.isJapanese() ? "レシーバ" : convertFromSnakeToPascal(msg);
+		case ACTUAL_ARGUMENT:
+			return TraceDebuggerPlugin.isJapanese() ? "実引数" : convertFromSnakeToPascal(msg);
+		case FORMAL_PARAMETER:
+			return TraceDebuggerPlugin.isJapanese() ? "仮引数" : convertFromSnakeToPascal(msg);
+		case RETURN_VALUE:
+			return TraceDebuggerPlugin.isJapanese() ? "戻り値" : convertFromSnakeToPascal(msg);
+		case THIS:
+			return TraceDebuggerPlugin.isJapanese() ? "thisの参照" : convertFromSnakeToPascal(msg);
+		case CONTAINER:
+			return TraceDebuggerPlugin.isJapanese() ? "コンテナの参照" : convertFromSnakeToPascal(msg);
+		case FIELD:
+			return TraceDebuggerPlugin.isJapanese() ? "フィールド参照" : convertFromSnakeToPascal(msg);
+		case ARRAY:
+			return TraceDebuggerPlugin.isJapanese() ? "配列参照" : convertFromSnakeToPascal(msg);
+		case ARRAY_ELEMENT:
+			return TraceDebuggerPlugin.isJapanese() ? "配列要素参照" : convertFromSnakeToPascal(msg);
+		case ARRAY_CREATE:
+			return TraceDebuggerPlugin.isJapanese() ? "配列生成式" : convertFromSnakeToPascal(msg);
+		default:
+			return "";
+		}
+	}
+
+	private String convertFromSnakeToPascal(String str) {
+		// note: スネークケースをパスカルケース(ただし単語間を空白で区切る)に変える
+		String base = str.toLowerCase().replace("_", " ");
+		StringBuilder sb = new StringBuilder();
+		for (int index = -1;;) {
+			sb.append(base.substring(index + 1, index + 2).toUpperCase());
+			int nextIndex = base.indexOf(" ", index + 1);
+			if (nextIndex == -1) {
+				sb.append(base.substring(index + 2));
+				break;
+			} else {
+				sb.append(base.substring(index + 2, nextIndex + 1));
+				index = nextIndex;
+			}
+		}
+		return sb.toString();		
+	}
+	
 	@Override
 	public Image getColumnImage(Object element, int columnIndex) {
-//		if (element instanceof TreeNode) {
-//			Object value = ((TreeNode)element).getValue(); 
-//			if (value instanceof String && columnIndex == 0) {
-//				return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);	
-//			}
-//		}
 		return null;
 	}
 
