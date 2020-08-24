@@ -91,12 +91,12 @@
       <perspective
             class="org.ntlab.traceDebugger.TraceDebuggerPerspective"
             id="org.ntlab.traceDebugger.traceDebuggerPerspective"
-            name="TraceDebugger (Forward)">
+            name="トレースデバッガ (順方向)">
       </perspective>
       <perspective
             class="org.ntlab.traceDebugger.TraceDebuggerPerspectiveRelatedDelta"
             id="org.ntlab.traceDebugger.traceDebuggerPerspectiveRelatedDelta"
-            name="TraceDebugger (Reverse)">
+            name="トレースデバッガ (逆方向)">
       </perspective>
    </extension>
    <extension
