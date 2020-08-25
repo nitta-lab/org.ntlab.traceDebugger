@@ -1,5 +1,7 @@
 package org.ntlab.traceDebugger;
 
+import java.util.List;
+
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
@@ -197,9 +199,7 @@ public class TracePointsView extends ViewPart {
 	protected void jumpToTheTracePoint(TracePoint tp) {
 		DebuggingController debuggingController = DebuggingController.getInstance();
 		debuggingController.jumpToTheTracePoint(tp, false);
-		MethodExecution currentME = tp.getMethodExecution();
-		int lineNo = tp.getStatement().getLineNo();
-		IMarker marker = DebuggingController.getInstance().createCurrentLineMarker(currentME, lineNo);
-		JavaEditorOperator.markAndOpenJavaFile(marker);
-	}	
+		List<IMarker> markers = DebuggingController.getInstance().createCurrentLineMarkers(tp);
+		if (!(markers.isEmpty())) JavaEditorOperator.markAndOpenJavaFile(markers.get(0));
+	}
 }
