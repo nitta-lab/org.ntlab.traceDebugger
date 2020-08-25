@@ -182,8 +182,10 @@ public class TracePointsView extends ViewPart {
 	}
 	
 	public void addTracePoint(TracePoint tp) {
-		tracePoints.add(tp);
-		update();
+		if (!(tracePoints.contains(tp))) {
+			tracePoints.add(tp);
+			update();			
+		}
 	}
 
 	public void reset() {
