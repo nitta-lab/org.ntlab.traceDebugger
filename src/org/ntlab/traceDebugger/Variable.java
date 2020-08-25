@@ -39,8 +39,8 @@ public class Variable {
 	public static final String RETURN_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "戻り値" : "return";
 	public static final String ARG_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "引数" : "arg";
 	public static final String RECEIVER_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "レシーバ" : "receiver";
-	public static final String VALUE_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "コンポーネント" : "value";
-	public static final String CONTAINER_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "コンテナ" : "container";
+	public static final String VALUE_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "参照先" : "referred";
+	public static final String CONTAINER_VARIABLE_NAME = TraceDebuggerPlugin.isJapanese() ? "参照元" : "referring";
 
 	public enum VariableType {
 		USE_VALUE, USE_CONTAINER, USE_RECEIVER, USE_RETURN,

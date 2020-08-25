@@ -295,12 +295,12 @@ public class Variables {
 				}
 			} 
 		}
-		if (parentNodeNameOfUseSide != null) {
-			setSpecialVariableNodes(parentNodeNameOfUseSide, specialVariablesOfUseSide);
-		}	
 		if (parentNodeNameOfDefSide != null) {
 			setSpecialVariableNodes(parentNodeNameOfDefSide, specialVariablesDefSide);
-		}		
+		}
+		if (parentNodeNameOfUseSide != null) {
+			setSpecialVariableNodes(parentNodeNameOfUseSide, specialVariablesOfUseSide);
+		}
 	}
 	
 	private void setSpecialVariableNodes(String parentNodeName, List<Variable> specialVariables) {
