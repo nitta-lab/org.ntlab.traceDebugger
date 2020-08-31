@@ -98,7 +98,8 @@ public class DebuggingController {
 		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
 		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).reset();
-		((TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID)).reset();
+		TracePointsView tracePointsView = (TracePointsView)TraceDebuggerPlugin.getActiveView(TracePointsView.ID);
+		if (tracePointsView != null) tracePointsView.reset();
 		CallTreeView callTreeView = (CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID);
 		if (callTreeView != null) callTreeView.reset();
 		loadTraceFileOnOtherThread(path);
