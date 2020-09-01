@@ -16,6 +16,10 @@ public class TracePoints {
 		return tracePoints.toArray(new TracePoint[tracePoints.size()]);
 	}
 	
+	public boolean contains(TracePoint tp) {
+		return tracePoints.contains(tp);
+	}
+	
 	public void add(TracePoint tp) {
 		tracePoints.add(tp);
 	}

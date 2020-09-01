@@ -19,8 +19,8 @@ public class DeltaRelatedAliasCollector implements IAliasCollector {
 	
 	@Override
 	public void addAlias(Alias alias) {
-		relatedAliases.add(alias);
 		if (alias == null) return;
+		relatedAliases.add(alias);
 		String objId = alias.getObjectId();
 		String srcOrDst = "";
 		if (srcSideIdList.contains(objId) && !(dstSideIdList.contains(objId))) {

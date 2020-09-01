@@ -183,6 +183,7 @@
             markertype="org.ntlab.traceDebugger.dstSideDeltaMarker">
       </imageprovider>
       <imageprovider
+            icon="icons/currentMarker.png"
             id="CurrentMarker"
             markertype="org.ntlab.traceDebugger.currentMarker">
       </imageprovider>
@@ -300,6 +301,7 @@
             colorPreferenceValue="198,219,174"
             highlightPreferenceKey="clhighlight5"
             highlightPreferenceValue="true"
+            icon="icons/currentMarker.png"
             includeOnPreferencePage="true"
             label="CurrentAnnotation"
             overviewRulerPreferenceKey="clruler5"

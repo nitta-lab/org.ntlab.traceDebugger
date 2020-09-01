@@ -2,6 +2,7 @@ package org.ntlab.traceDebugger.analyzerProvider;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +43,7 @@ import org.ntlab.traceDebugger.TraceDebuggerPlugin;
 
 public class DeltaMarkerManager {
 	private Map<String, List<IMarker>> markerIdToMarkers = new HashMap<>();
-	private List<IMarker> markersByOrder = new ArrayList<>();
+	private List<IMarker> orderedMarkers = new ArrayList<>();
 	private MethodExecution coordinator;
 	private TracePoint relatedPoint;
 	private Reference relatedPointReference;
@@ -68,7 +69,7 @@ public class DeltaMarkerManager {
 	}
 	
 	public List<IMarker> getMarkersByOrder() {
-		return markersByOrder;
+		return orderedMarkers;
 	}
 	
 	public TreeNode[] getMarkerTreeNodes() {
@@ -104,7 +105,7 @@ public class DeltaMarkerManager {
 	public IMarker getCoordinatorDeltaMarker() {
 		List<IMarker> markers = markerIdToMarkers.get(COORDINATOR_DELTA_MARKER);
 		if (markers == null || markers.isEmpty()) return null;
-		return markers.get(0);		
+		return markers.get(0);
 	}
 	
 	public IMarker getBottomDeltaMarker() {
@@ -169,6 +170,31 @@ public class DeltaMarkerManager {
 		}
 		msg = TraceDebuggerPlugin.isJapanese() ? "éQè∆éûì_" : "RelatedPoint";
 		markAndOpenJavaFileForCreationPoint(relatedPoint, relatedPointReference, msg, DeltaMarkerManager.BOTTOM_DELTA_MARKER);
+		createMarkerListOrdered();
+	}
+	
+	private void createMarkerListOrdered() {
+		orderedMarkers.clear();
+		IMarker coordinatorMarker = getCoordinatorDeltaMarker();
+		if (coordinatorMarker != null) orderedMarkers.add(coordinatorMarker);
+		List<IMarker> aliasMarkers = new ArrayList<>();
+		List<IMarker> srcSideMarkers = markerIdToMarkers.get(SRC_SIDE_DELTA_MARKER);
+		if (srcSideMarkers != null) aliasMarkers.addAll(srcSideMarkers);
+		List<IMarker> dstSideMarkers = markerIdToMarkers.get(DST_SIDE_DELTA_MARKER);
+		if (dstSideMarkers != null) aliasMarkers.addAll(dstSideMarkers);
+		Collections.sort(aliasMarkers, new Comparator<IMarker>() {
+			@Override
+			public int compare(IMarker o1, IMarker o2) {
+				TracePoint tp1 = DeltaMarkerManager.getTracePoint(o1);
+				TracePoint tp2 = DeltaMarkerManager.getTracePoint(o2);
+				long time1 = tp1.getMethodExecution().getEntryTime();
+				long time2 = tp2.getMethodExecution().getEntryTime();
+				return (time1 < time2) ? -1 : 1;
+			}
+		});
+		orderedMarkers.addAll(aliasMarkers);
+		IMarker bottomMarker = getBottomDeltaMarker();
+		if (bottomMarker != null) orderedMarkers.add(bottomMarker);
 	}
 	
 	private void markAndOpenJavaFileForAlias(Alias alias, String message, String markerId) {
@@ -271,7 +297,7 @@ public class DeltaMarkerManager {
 			markerIdToMarkers.put(markerId, markerList);
 		}
 		markerList.add(marker);
-		markersByOrder.add(marker);
+//		orderedMarkers.add(marker);
 	}
 
 	private void setAttributesForAlias(final Map<String, Object> attributes, Alias alias, IFile file, String markerId) {
@@ -997,6 +1023,6 @@ public class DeltaMarkerManager {
 			deleteMarkers(markerList);
 		}
 		markerIdToMarkers.clear();
-		markersByOrder.clear();
+		orderedMarkers.clear();
 	}
 }
