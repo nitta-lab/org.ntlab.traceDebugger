@@ -113,6 +113,14 @@ public class CallStackModels {
 			}
 		}		
 	}
+	
+	public void removeHighlight() {
+		for (List<CallStackModel> callStackModels : allCallStacks.values()) {
+			for (CallStackModel callStackModel : callStackModels) {
+				callStackModel.setHighlighting(false);
+			}
+		}		
+	}
 
 //	public IStatementVisitor tmp(TracePoint tp) {
 ////		return new CallStackVisitor(tp);

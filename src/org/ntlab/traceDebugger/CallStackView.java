@@ -140,5 +140,10 @@ public class CallStackView extends ViewPart {
 	public void highlight(MethodExecution methodExecution) {
 		callStackModels.highlight(methodExecution);
 		viewer.refresh();
-	}	
+	}
+	
+	public void removeHighlight() {
+		callStackModels.removeHighlight();
+		viewer.refresh();
+	}
 }

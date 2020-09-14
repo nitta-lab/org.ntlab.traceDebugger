@@ -301,5 +301,21 @@ public class VariableViewRelatedDelta extends VariableView {
 		for (TreeNode child : children) {
 			collectNodes(child, expandedNodes);
 		}
-	}	
+	}
+	
+	public void removeDeltaMarkers(Map<String, List<IMarker>> markers) {
+		List<IMarker> srcSideDeltaMarkers = markers.get(DeltaMarkerManager.SRC_SIDE_DELTA_MARKER);
+		List<IMarker> dstSideDeltaMarkers = markers.get(DeltaMarkerManager.DST_SIDE_DELTA_MARKER);
+		List<IMarker> coordinatorMarker = markers.get(DeltaMarkerManager.COORDINATOR_DELTA_MARKER);
+		if (srcSideDeltaMarkers != null) {
+			markVariables("", srcSideDeltaMarkers);	
+		}
+		if (dstSideDeltaMarkers != null) {
+			markVariables("", dstSideDeltaMarkers);	
+		}
+		if (coordinatorMarker != null) {
+			markVariables("", coordinatorMarker);	
+		}
+		viewer.refresh();
+	}
 }
