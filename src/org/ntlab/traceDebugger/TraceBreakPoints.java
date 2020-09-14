@@ -60,6 +60,7 @@ public class TraceBreakPoints {
 			innerMap = new HashMap<>();
 			traceBreakPoints.put(methodSignature, innerMap);
 		}
+		if (innerMap.containsKey(lineNo)) return false;
 		try {
 			TraceBreakPoint tbp = TraceBreakPoint.createNewTraceBreakPoint(methodSignature, lineNo, isAvailable, inputSignature);
 			innerMap.put(lineNo, tbp);

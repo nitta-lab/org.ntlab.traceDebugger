@@ -129,9 +129,13 @@ public class DeltaMarkerView extends ViewPart {
 	
 	@Override
 	public void dispose() {
-		deltaMarkerManager.clearAllMarkers();
 		CallTreeView callTreeView = ((CallTreeView)TraceDebuggerPlugin.getActiveView(CallTreeView.ID));
 		callTreeView.reset();
+		VariableViewRelatedDelta variableView = ((VariableViewRelatedDelta)TraceDebuggerPlugin.getActiveView(VariableViewRelatedDelta.ID));
+		variableView.removeDeltaMarkers(deltaMarkerManager.getMarkers());
+		CallStackViewRelatedDelta callStackView = ((CallStackViewRelatedDelta)TraceDebuggerPlugin.getActiveView(CallStackViewRelatedDelta.ID));
+		callStackView.removeHighlight();
+		deltaMarkerManager.clearAllMarkers();
 		super.dispose();
 	}
 

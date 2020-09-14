@@ -156,21 +156,41 @@ public class DeltaMarkerManager {
 		List<List<Alias>> relatedAliasesList = new ArrayList<>();
 		relatedAliasesList.add(dstSideAliases);
 		relatedAliasesList.add(srcSideAliases);
-		String[] messagesTemplates = TraceDebuggerPlugin.isJapanese() ? new String[]{"参照先側%03d", "参照元側%03d"}
-																		: new String[]{"ReferredSide%03d", "ReferringSide%03d"};
+//		String[] messagesTemplates = TraceDebuggerPlugin.isJapanese() ? new String[]{"参照先側%03d", "参照元側%03d"}
+//																		: new String[]{"ReferredSide%03d", "ReferringSide%03d"};
 		String[] markerIDList = {DST_SIDE_DELTA_MARKER, SRC_SIDE_DELTA_MARKER};
 		for (int i = 0; i < relatedAliasesList.size(); i++) {
 			List<Alias> relatedAliases = relatedAliasesList.get(i);
 			Collections.reverse(relatedAliases);
-			int cnt = 1;
+//			int cnt = 1;
 			for (Alias alias : relatedAliases) {
-				String message = String.format(messagesTemplates[i], cnt++);
-				markAndOpenJavaFileForAlias(alias, message, markerIDList[i]);
+//				String message = String.format(messagesTemplates[i], cnt++);
+				markAndOpenJavaFileForAlias(alias, "", markerIDList[i]);
 			}
 		}
 		msg = TraceDebuggerPlugin.isJapanese() ? "参照時点" : "RelatedPoint";
 		markAndOpenJavaFileForCreationPoint(relatedPoint, relatedPointReference, msg, DeltaMarkerManager.BOTTOM_DELTA_MARKER);
+		
+		List<IMarker> srcSideMarkers = markerIdToMarkers.get(SRC_SIDE_DELTA_MARKER);
+		if (srcSideMarkers != null) setDescriptionForAliases(srcSideMarkers, true);
+		List<IMarker> dstSideMarkers = markerIdToMarkers.get(DST_SIDE_DELTA_MARKER);
+		if (dstSideMarkers != null) setDescriptionForAliases(dstSideMarkers, false);
 		createMarkerListOrdered();
+	}
+	
+	private void setDescriptionForAliases(List<IMarker> markers, boolean isSrcSide) {
+		String[] messagesTemplates = TraceDebuggerPlugin.isJapanese() ? new String[]{"参照先側%03d", "参照元側%03d"}
+																		: new String[]{"ReferredSide%03d", "ReferringSide%03d"};
+		String messageTemplate = (isSrcSide) ? messagesTemplates[1] : messagesTemplates[0];
+		int cnt = 1;
+		for (IMarker marker : markers) {
+			try {
+				String message = String.format(messageTemplate, cnt++);
+				marker.setAttribute(IMarker.MESSAGE, message);
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	private void createMarkerListOrdered() {
@@ -232,7 +252,8 @@ public class DeltaMarkerManager {
 			Map<String, Object> attributes = new HashMap<>();
 			setAttributesForAlias(attributes, alias, file, markerId);
 			if (!(attributes.containsKey(IMarker.LINE_NUMBER))) {
-				attributes.put(IMarker.LINE_NUMBER, alias.getLineNo() + " (no marker)");
+//				attributes.put(IMarker.LINE_NUMBER, alias.getLineNo() + " (no marker)");
+				attributes.put(IMarker.LINE_NUMBER, alias.getLineNo());
 			}
 			attributes.put(IMarker.MESSAGE, message);
 			attributes.put(IMarker.TRANSIENT, true);
