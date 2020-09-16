@@ -46,6 +46,7 @@ public class BreakPointViewRelatedDelta extends BreakPointView {
 	
 	@Override
 	public void dispose() {
+		super.dispose();
 		TraceDebuggerPlugin.removeView(ID, this);
 	}
 	

@@ -56,6 +56,7 @@ public class VariableViewRelatedDelta extends VariableView {
 	
 	@Override
 	public void dispose() {
+		super.dispose();
 		TraceDebuggerPlugin.removeView(ID, this);
 	}
 
