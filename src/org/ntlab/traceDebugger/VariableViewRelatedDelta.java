@@ -53,6 +53,11 @@ public class VariableViewRelatedDelta extends VariableView {
 		TraceDebuggerPlugin.setActiveView(ID, this);
 		viewer.getControl().setFocus();
 	}
+	
+	@Override
+	public void dispose() {
+		TraceDebuggerPlugin.removeView(ID, this);
+	}
 
 	@Override
 	protected void createActions() {

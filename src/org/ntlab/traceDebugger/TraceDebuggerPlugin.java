@@ -113,6 +113,14 @@ public class TraceDebuggerPlugin extends AbstractUIPlugin {
 		}
 	}
 	
+	public static void removeView(String viewId, IViewPart view) {
+		viewIdToActiveView.remove(viewId, view);
+		Set<IViewPart> views = viewIdToAllViews.get(viewId);
+		if (views != null) {
+			views.remove(view);
+		}
+	}
+	
 	@Override
 	protected void initializeImageRegistry(ImageRegistry reg) {
 		// note: ブレークポイントビューに関するアイコン

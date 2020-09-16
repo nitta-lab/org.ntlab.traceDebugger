@@ -45,6 +45,11 @@ public class BreakPointViewRelatedDelta extends BreakPointView {
 	}
 	
 	@Override
+	public void dispose() {
+		TraceDebuggerPlugin.removeView(ID, this);
+	}
+	
+	@Override
 	protected void createActions() {
 		super.createActions();
 		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();

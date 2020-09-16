@@ -136,6 +136,7 @@ public class DeltaMarkerView extends ViewPart {
 		CallStackViewRelatedDelta callStackView = ((CallStackViewRelatedDelta)TraceDebuggerPlugin.getActiveView(CallStackViewRelatedDelta.ID));
 		callStackView.removeHighlight();
 		deltaMarkerManager.clearAllMarkers();
+		TraceDebuggerPlugin.removeView(ID, this);
 		super.dispose();
 	}
 

@@ -143,6 +143,11 @@ public class BreakPointView extends ViewPart {
 		viewer.getControl().setFocus();
 	}
 	
+	@Override
+	public void dispose() {
+		TraceDebuggerPlugin.removeView(ID, this);
+	}
+	
 	protected void createActions() {
 		ImageRegistry registry = TraceDebuggerPlugin.getDefault().getImageRegistry();
 		ImageDescriptor fileOpenIcon = PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(ISharedImages.IMG_OBJ_FOLDER);

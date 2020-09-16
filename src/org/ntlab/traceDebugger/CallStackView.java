@@ -73,6 +73,11 @@ public class CallStackView extends ViewPart {
 		viewer.getControl().setFocus();
 	}
 	
+	@Override
+	public void dispose() {
+		TraceDebuggerPlugin.removeView(ID, this);
+	}
+	
 	protected void createActions() {
 
 	}
