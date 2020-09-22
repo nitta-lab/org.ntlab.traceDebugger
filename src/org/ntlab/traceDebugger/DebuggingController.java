@@ -39,6 +39,7 @@ public class DebuggingController {
 	private static final DebuggingController theInstance = new DebuggingController();
 	private TracePoint debuggingTp;
 	private TraceBreakPoint selectedTraceBreakPoint;
+	private TraceBreakPoints traceBreakPoints;
 	private List<IMarker> currentLineMarkers = new ArrayList<>();
 	private LoadingTraceFileStatus loadingTraceFileStatus = LoadingTraceFileStatus.NOT_YET;
 	private boolean isRunning = false;
@@ -66,6 +67,10 @@ public class DebuggingController {
 	
 	public TracePoint getCurrentTp() {
 		return debuggingTp.duplicate();
+	}
+	
+	public boolean hasLoadedTraceFileStatus() {
+		return (loadingTraceFileStatus == LoadingTraceFileStatus.DONE);
 	}
 	
 	public boolean isRunning() {
@@ -117,7 +122,8 @@ public class DebuggingController {
 				TraceJSON trace = new TraceJSON(filePath);
 				TraceDebuggerPlugin.setAnalyzer(new DeltaExtractionAnalyzer(trace));
 				VariableUpdatePointFinder.getInstance().setTrace(trace);
-				final TraceBreakPoints traceBreakPoints = new TraceBreakPoints(trace);
+//				final TraceBreakPoints traceBreakPoints = new TraceBreakPoints(trace);
+				traceBreakPoints = new TraceBreakPoints(trace);
 
 				// GUIの操作はGUIのイベントディスパッチを行っているスレッドからしか操作できないのでそうする
 				final BreakPointView breakpointView = (BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID);
@@ -160,7 +166,7 @@ public class DebuggingController {
 														: new InputDialog(null, "line Number dialog", "Input line number", "", null);
 		if (inputDialog.open() != InputDialog.OK) return false;
 		int lineNo = Integer.parseInt(inputDialog.getValue());
-		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
+//		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		boolean isSuccess = traceBreakPoints.addTraceBreakPoint(methodSignature, lineNo);
 		if (!isSuccess) {
 			if (TraceDebuggerPlugin.isJapanese()) {
@@ -183,7 +189,7 @@ public class DebuggingController {
 			}
 			return false;
 		}
-		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
+//		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		traceBreakPoints.importBreakpointFromEclipse();
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
 		return true;
@@ -191,7 +197,7 @@ public class DebuggingController {
 	
 	public boolean removeTraceBreakPointAction() {
 		if (selectedTraceBreakPoint == null) return false;
-		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
+//		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		traceBreakPoints.removeTraceBreakPoint(selectedTraceBreakPoint);
 		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateTraceBreakPoints(traceBreakPoints);
 		return true;
@@ -214,7 +220,7 @@ public class DebuggingController {
 			}
 			return false;
 		}
-		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
+//		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		debuggingTp = traceBreakPoints.getFirstTracePoint();
 		if (debuggingTp == null) {
 			if (TraceDebuggerPlugin.isJapanese()) {
@@ -255,10 +261,13 @@ public class DebuggingController {
 					e.printStackTrace();
 				}				
 			}
-		}		
-		((CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID)).reset();
-		((VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID)).reset();
-		((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).updateImagesForDebug(false);
+		}
+		CallStackView callStackView = (CallStackView)TraceDebuggerPlugin.getActiveView(CallStackView.ID);
+		if (callStackView != null) callStackView.reset();
+		VariableView variableView = (VariableView)TraceDebuggerPlugin.getActiveView(VariableView.ID);
+		if (variableView != null) variableView.reset();
+		BreakPointView breakPointView = (BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID);
+		if (breakPointView != null) breakPointView.updateImagesForDebug(false);		
 		isRunning = false;
 	}
 
@@ -374,7 +383,7 @@ public class DebuggingController {
 		if (debuggingTp == null) return false;
 		long currentTime = debuggingTp.getStatement().getTimeStamp();
 		TracePoint previousTp = debuggingTp;
-		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
+//		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		debuggingTp = traceBreakPoints.getNextTracePoint(currentTime);
 		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(null, debuggingTp, false);
@@ -435,7 +444,7 @@ public class DebuggingController {
 		if (debuggingTp == null) return false;		
 		TracePoint previousTp = debuggingTp;
 		long currentTime = debuggingTp.getStatement().getTimeStamp();
-		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
+//		TraceBreakPoints traceBreakPoints = ((BreakPointView)TraceDebuggerPlugin.getActiveView(BreakPointView.ID)).getTraceBreakPoints();
 		debuggingTp = traceBreakPoints.getPreviousTracePoint(currentTime);
 		if (debugExecutionIsTerminated(debuggingTp)) return false;
 		refresh(null, debuggingTp, false);
@@ -558,5 +567,10 @@ public class DebuggingController {
 			return callStackModel.getTracePoint();
 		}
 		return null;
+	}
+	
+	public void resetExcludingForLoadingStatusOfTheTrace() {
+		terminateAction();
+		selectedTraceBreakPoint = null;
 	}
 }

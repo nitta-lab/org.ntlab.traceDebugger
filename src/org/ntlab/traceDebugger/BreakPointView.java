@@ -50,7 +50,7 @@ public class BreakPointView extends ViewPart {
 	protected IAction resumeAction;
 	protected IAction importBreakpointAction;
 	protected Shell shell;
-	protected TraceBreakPoints traceBreakPoints;
+//	protected TraceBreakPoints traceBreakPoints;
 	protected DebuggingController debuggingController = DebuggingController.getInstance();
 	public static final String ID = "org.ntlab.traceDebugger.breakPointView";
 	public static final String DEBUG_ELCL = "Debug_elcl";
@@ -124,6 +124,7 @@ public class BreakPointView extends ViewPart {
 		createToolBar();
 		createMenuBar();
 		createPopupMenu();
+		updateImagesForBreakPoint(DebuggingController.getInstance().hasLoadedTraceFileStatus());
 		TraceDebuggerPlugin.setActiveView(ID, this);
 	}
 
@@ -141,6 +142,12 @@ public class BreakPointView extends ViewPart {
 		// TODO Auto-generated method stub
 		TraceDebuggerPlugin.setActiveView(ID, this);
 		viewer.getControl().setFocus();
+	}
+	
+	@Override
+	public void dispose() {
+		DebuggingController.getInstance().resetExcludingForLoadingStatusOfTheTrace();
+		TraceDebuggerPlugin.removeView(ID, this);
 	}
 	
 	protected void createActions() {
@@ -317,9 +324,9 @@ public class BreakPointView extends ViewPart {
 		getSite().registerContextMenu(menuMgr, viewer);
 	}
 	
-	public TraceBreakPoints getTraceBreakPoints() {
-		return traceBreakPoints;
-	}
+//	public TraceBreakPoints getTraceBreakPoints() {
+//		return traceBreakPoints;
+//	}
 
 	public void reset() {
 		viewer.setInput(new ArrayList<TraceBreakPoint>());
@@ -329,7 +336,7 @@ public class BreakPointView extends ViewPart {
 	}
 	
 	public void updateTraceBreakPoints(TraceBreakPoints traceBreakPoints) {
-		this.traceBreakPoints = traceBreakPoints;
+//		this.traceBreakPoints = traceBreakPoints;
 		viewer.setInput(traceBreakPoints.getAllTraceBreakPoints());
 		final Table table = viewer.getTable();
 		for (TableItem item : table.getItems()) {

@@ -84,6 +84,11 @@ public class CallTreeView extends ViewPart {
 		viewer.getControl().setFocus();
 	}
 	
+	@Override
+	public void dispose() {
+		TraceDebuggerPlugin.removeView(ID, this);
+	}
+	
 	private void createActions() {
 		
 	}

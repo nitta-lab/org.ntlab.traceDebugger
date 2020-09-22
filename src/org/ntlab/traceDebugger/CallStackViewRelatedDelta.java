@@ -43,6 +43,12 @@ public class CallStackViewRelatedDelta extends CallStackView {
 	}
 	
 	@Override
+	public void dispose() {
+		super.dispose();
+		TraceDebuggerPlugin.removeView(ID, this);
+	}
+	
+	@Override
 	protected void createActions() {
 		deltaAction = new Action() {
 			@Override

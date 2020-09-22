@@ -109,6 +109,11 @@ public class TracePointsView extends ViewPart {
 		viewer.getControl().setFocus();
 	}
 	
+	@Override
+	public void dispose() {
+		TraceDebuggerPlugin.removeView(ID, this);
+	}
+	
 	private void createActions() {
 		boolean isJapanese = TraceDebuggerPlugin.isJapanese();
 		String msg;
