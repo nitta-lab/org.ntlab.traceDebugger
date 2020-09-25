@@ -1,0 +1,15 @@
+package org.ntlab.traceDebugger.analyzerProvider;
+
+import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
+
+public class DeltaAlias extends Alias {
+	boolean bSrcSide = false;
+
+	public DeltaAlias(AliasType aliasType, int index, String objectId, TracePoint occurrencePoint, boolean isSrcSide) {
+		super(aliasType, index, objectId, occurrencePoint);
+	}
+
+	public boolean isSrcSide() {
+		return bSrcSide;
+	}
+}

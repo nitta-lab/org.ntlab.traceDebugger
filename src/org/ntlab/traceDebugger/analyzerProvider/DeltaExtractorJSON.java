@@ -3,6 +3,7 @@ package org.ntlab.traceDebugger.analyzerProvider;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -57,7 +58,8 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 		ObjectReference thisObj = new ObjectReference(thisObjectId, methodExecution.getThisClassName(), 
 				Trace.getDeclaringType(methodExecution.getSignature(), methodExecution.isConstructor()), Trace.getDeclaringType(methodExecution.getCallerSideSignature(), methodExecution.isConstructor()));
 		
-		HashMap<String, Alias>  aliasList = new HashMap<>();
+		HashMap<String, DeltaAlias>  srcAliasList = new HashMap<>();
+		HashMap<String, DeltaAlias>  dstAliasList = new HashMap<>();
 				
 		if (childMethodExecution == null) {
 			// 探索開始時は一旦削除し、呼び出し元の探索を続ける際に復活させる
@@ -120,11 +122,15 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 										
 					if (ownerObjectId.equals(thisObjectId)) {
 						// フィールド参照の場合
-						if (!removeList.contains(refObjectId)) {
+						if (Collections.frequency(objList, refObjectId) > Collections.frequency(removeList, refObjectId)) {
 							// 一番近いフィールド参照を優先する
 							removeList.add(refObjectId);
 							removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
-							aliasList.put(refObjectId, new Alias(Alias.AliasType.FIELD, 0, refObjectId, tracePoint.duplicate()));
+							if (refObjectId.equals(srcObject.getId())) {
+								srcAliasList.put(refObjectId, new DeltaAlias(Alias.AliasType.FIELD, 0, refObjectId, tracePoint.duplicate(), true));
+							} else if (refObjectId.equals(dstObject.getId())) {
+								dstAliasList.put(refObjectId, new DeltaAlias(Alias.AliasType.FIELD, 0, refObjectId, tracePoint.duplicate(), false));
+							}
 							existsInFields++;					// setした後のgetを検出している可能性がある
 						}
 					} else {
@@ -181,7 +187,11 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 					removeList.add(arrayObjectId);
 					existsInFields++;
 					removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
-					aliasList.put(arrayObjectId, new Alias(Alias.AliasType.ARRAY_CREATE, 0, arrayObjectId, tracePoint.duplicate()));
+					if (arrayObjectId.equals(srcObject.getId())) {
+						srcAliasList.put(arrayObjectId, new DeltaAlias(Alias.AliasType.ARRAY_CREATE, 0, arrayObjectId, tracePoint.duplicate(), true));
+					} else if (arrayObjectId.equals(dstObject.getId())) {
+						dstAliasList.put(arrayObjectId, new DeltaAlias(Alias.AliasType.ARRAY_CREATE, 0, arrayObjectId, tracePoint.duplicate(), false));
+					}
 				}
 			} else if (statement instanceof MethodInvocation) {
 				MethodExecution prevChildMethodExecution = ((MethodInvocation)statement).getCalledMethodExecution();
@@ -204,10 +214,19 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 								removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
 								((DeltaAugmentationInfo)prevChildMethodExecution.getAugmentation()).setTraceObjectId(Integer.parseInt(newObjId));		// 追跡対象
 								((DeltaAugmentationInfo)prevChildMethodExecution.getAugmentation()).setSetterSide(false);	// getter呼び出しと同様
-								aliasList.put(newObjId, new Alias(Alias.AliasType.CONSTRACTOR_INVOCATION, 0, newObjId, tracePoint.duplicate()));
+								if (newObjId.equals(srcObject.getId())) {
+									srcAliasList.put(newObjId, new DeltaAlias(Alias.AliasType.CONSTRACTOR_INVOCATION, 0, newObjId, tracePoint.duplicate(), true));
+								} else if (newObjId.equals(dstObject.getId())) {
+									dstAliasList.put(newObjId, new DeltaAlias(Alias.AliasType.CONSTRACTOR_INVOCATION, 0, newObjId, tracePoint.duplicate(), false));
+								}
 								continue;
 							}
 							String retObj = objList.get(retIndex);
+							if (retObj.equals(srcObject.getId())) {
+								isSrcSide = true;
+							} else if (retObj.equals(dstObject.getId())) {
+								isSrcSide = false;
+							}
 							aliasCollector.addAlias(new Alias(Alias.AliasType.METHOD_INVOCATION, 0, retObj, tracePoint.duplicate()));
 							if (removeList.contains(retObj)) {
 								// 一度getで検出してフィールドに依存していると判断したが本当の由来が戻り値だったことが判明したので、フィールドへの依存をキャンセルする
@@ -227,7 +246,11 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 									removeList.add(thisObjectId);		// 後で一旦、thisObject を取り除く
 									isTrackingThis = true;				// 呼び出し元探索前に復活
 								}
-								aliasCollector.addAlias(new Alias(Alias.AliasType.RECEIVER, 0, objList.get(retIndex), tracePoint.duplicate()));
+								if (isSrcSide) {
+									aliasCollector.addAlias(new DeltaAlias(Alias.AliasType.RECEIVER, 0, objList.get(retIndex), tracePoint.duplicate(), true));
+								} else {
+									aliasCollector.addAlias(new DeltaAlias(Alias.AliasType.RECEIVER, 0, objList.get(retIndex), tracePoint.duplicate(), false));
+								}
 							}
 							if (isLost) {
 								checkList.add(objList.get(retIndex));
@@ -259,22 +282,27 @@ public class DeltaExtractorJSON extends DeltaExtractor {
 				objList.remove(removeId);		// 追跡対象から外す
 				if (!removeId.equals(thisObjectId)) {
 					// フィールド（this から removeId への参照）がデルタの構成要素になる
-					if (removeId.equals(srcObject.getId())) {
+					if (srcAliasList.get(removeId) != null) {
 						r = new Reference(thisObj, srcObject);
 						r.setCreation(creationList.contains(removeId));		// オブジェクトの生成か?
 						eStructure.addSrcSide(r);
 						srcObject = thisObj;
 						isSrcSide = true;
-					} else if (removeId.equals(dstObject.getId())) {
+						aliasCollector.addAlias(srcAliasList.get(removeId));
+						aliasCollector.changeTrackingObject(removeId, thisObjectId, isSrcSide);
+						aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, srcAliasList.get(removeId).getOccurrencePoint()));
+						srcAliasList.remove(removeId);
+					} else if (dstAliasList.get(removeId) != null) {
 						r = new Reference(thisObj, dstObject);
 						r.setCreation(creationList.contains(removeId));		// オブジェクトの生成か?
 						eStructure.addDstSide(r);
 						dstObject = thisObj;
 						isSrcSide = false;
+						aliasCollector.addAlias(dstAliasList.get(removeId));
+						aliasCollector.changeTrackingObject(removeId, thisObjectId, isSrcSide);
+						aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, dstAliasList.get(removeId).getOccurrencePoint()));
+						dstAliasList.remove(removeId);
 					}
-					aliasCollector.addAlias(aliasList.get(removeId));
-					aliasCollector.changeTrackingObject(removeId, thisObjectId, isSrcSide);
-					aliasCollector.addAlias(new Alias(Alias.AliasType.THIS, 0, thisObjectId, aliasList.get(removeId).getOccurrencePoint()));
 				}
 			}
 		}
