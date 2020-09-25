@@ -7,6 +7,7 @@ public class DeltaAlias extends Alias {
 
 	public DeltaAlias(AliasType aliasType, int index, String objectId, TracePoint occurrencePoint, boolean isSrcSide) {
 		super(aliasType, index, objectId, occurrencePoint);
+		bSrcSide = isSrcSide;
 	}
 
 	public boolean isSrcSide() {

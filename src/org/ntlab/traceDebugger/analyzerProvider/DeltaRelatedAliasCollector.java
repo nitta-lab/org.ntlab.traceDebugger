@@ -23,37 +23,47 @@ public class DeltaRelatedAliasCollector implements IAliasCollector {
 		relatedAliases.add(alias);
 		String objId = alias.getObjectId();
 		String srcOrDst = "";
-		if (srcSideIdList.contains(objId) && !(dstSideIdList.contains(objId))) {
-			if (alias.getAliasType().equals(Alias.AliasType.ACTUAL_ARGUMENT)) {
-				Alias formalParameterAlias = srcSideRelatedAliases.get(srcSideRelatedAliases.size() - 1);
-				alias.setIndex(formalParameterAlias.getIndex());
-			}
-			srcSideRelatedAliases.add(alias);
-			srcOrDst = "Src ";
-		} else if (dstSideIdList.contains(objId) && !(srcSideIdList.contains(objId))) {
-			if (alias.getAliasType().equals(Alias.AliasType.ACTUAL_ARGUMENT)) {
-				Alias formalParameterAlias = dstSideRelatedAliases.get(dstSideRelatedAliases.size() - 1);
-				alias.setIndex(formalParameterAlias.getIndex());
-			}
-			dstSideRelatedAliases.add(alias);
-			srcOrDst = "Dst ";
-		} else if (srcSideIdList.contains(objId) && dstSideIdList.contains(objId)) {
-			boolean hasSrcSide = false;
-			for (Alias ra : srcSideRelatedAliases) {
-				if (ra.getObjectId().equals(objId)) {
-					hasSrcSide = true;
-					break;
-				}
-			}
-			if (!hasSrcSide) {
+		if (alias instanceof DeltaAlias) {
+			boolean isSrcSide = ((DeltaAlias)alias).isSrcSide();
+			if (isSrcSide) {
 				srcSideRelatedAliases.add(alias);
 				srcOrDst = "Src ";
 			} else {
 				dstSideRelatedAliases.add(alias);
 				srcOrDst = "Dst ";
 			}
+		} else {
+			if (srcSideIdList.contains(objId) && !(dstSideIdList.contains(objId))) {
+				if (alias.getAliasType().equals(Alias.AliasType.ACTUAL_ARGUMENT)) {
+					Alias formalParameterAlias = srcSideRelatedAliases.get(srcSideRelatedAliases.size() - 1);
+					alias.setIndex(formalParameterAlias.getIndex());
+				}
+				srcSideRelatedAliases.add(alias);
+				srcOrDst = "Src ";
+			} else if (dstSideIdList.contains(objId) && !(srcSideIdList.contains(objId))) {
+				if (alias.getAliasType().equals(Alias.AliasType.ACTUAL_ARGUMENT)) {
+					Alias formalParameterAlias = dstSideRelatedAliases.get(dstSideRelatedAliases.size() - 1);
+					alias.setIndex(formalParameterAlias.getIndex());
+				}
+				dstSideRelatedAliases.add(alias);
+				srcOrDst = "Dst ";
+			} else if (srcSideIdList.contains(objId) && dstSideIdList.contains(objId)) {			
+				boolean hasSrcSide = false;
+				for (Alias ra : srcSideRelatedAliases) {
+					if (ra.getObjectId().equals(objId)) {
+						hasSrcSide = true;
+						break;
+					}
+				}
+				if (!hasSrcSide) {
+					srcSideRelatedAliases.add(alias);
+					srcOrDst = "Src ";
+				} else {
+					dstSideRelatedAliases.add(alias);
+					srcOrDst = "Dst ";
+				}
+			}
 		}
-		
 		try {
 			System.out.println(srcOrDst + alias.getAliasType() + ": 			" + alias.getMethodSignature() + " line" + alias.getLineNo() + "		index" + alias.getIndex());
 		} catch (Exception e) {
