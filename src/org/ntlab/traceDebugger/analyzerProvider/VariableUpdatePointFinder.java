@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodExecution;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.MethodInvocation;
@@ -53,6 +54,8 @@ public class VariableUpdatePointFinder {
 					Statement statement = start.getStatement();
 					if (statement instanceof FieldUpdate) {
 						registerFieldUpdatePoint(start, (FieldUpdate)statement);
+					} else if (statement instanceof ArrayUpdate) {
+						registerArrayUpdatePoint(start, (ArrayUpdate)statement);
 					} else if (statement instanceof MethodInvocation) {
 						MethodInvocation mi = (MethodInvocation)statement;
 						MethodExecution calledME = mi.getCalledMethodExecution();
@@ -82,6 +85,13 @@ public class VariableUpdatePointFinder {
 		String objectId = fu.getContainerObjId();
 		String fieldName = fu.getFieldName();
 		register(updatePoints, objectId, fieldName, tp);
+	}
+	
+	private void registerArrayUpdatePoint(TracePoint tp, ArrayUpdate au) {
+		String objectId = au.getArrayObjectId();
+		String index = String.valueOf(au.getIndex());
+//		String arrayIndexName = au.getArrayClassName().replace(";", "") + "[" + index + "]";
+		register(updatePoints, objectId, index, tp);
 	}
 	
 	private void registerdefinitionInvocationPoint(TracePoint tp, MethodExecution calledME) {

@@ -66,6 +66,7 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 						id = variableData.getValueId();
 					}
 					simpleName = simpleName.substring(simpleName.lastIndexOf(".") + 1);
+					simpleName = simpleName.replace(";", "[]"); // îzóÒÇÃç€ÇÃï\é¶
 					if (simpleName.equals(Variable.NULL_VALUE)) {
 						return simpleName;
 					} else {

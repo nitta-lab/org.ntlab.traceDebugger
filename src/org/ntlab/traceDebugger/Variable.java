@@ -198,10 +198,12 @@ public class Variable {
 		}		
 		
 		final String NULL_ACTUAL_TYPE = "---"; // フィールドに対して明示的にnullを入れた場合のActualTypeの取得文字列
-		if (this.getValueClassName().equals(NULL_ACTUAL_TYPE)) return DeepHierarchy.NONE;
+//		if (this.getValueClassName().equals(NULL_ACTUAL_TYPE)) return DeepHierarchy.NONE;
+		if (className.equals(NULL_ACTUAL_TYPE)) return DeepHierarchy.NONE;
 
 		final String ARRAY_SIGNATURE_HEAD = "["; // 配列のシグネチャの先頭は、配列の次元数だけ [ が連なる
-		if (this.getValueClassName().startsWith(ARRAY_SIGNATURE_HEAD)) {
+//		if (this.getValueClassName().startsWith(ARRAY_SIGNATURE_HEAD)) {
+		if (className.startsWith(ARRAY_SIGNATURE_HEAD)) {
 			// note: フィールドのTypeが配列型(　[ で始まる　)場合 (その配列が持つ各要素についてさらなるデータ取得処理を呼び出す)
 			return DeepHierarchy.ARRAY;
 		} else {
@@ -295,7 +297,7 @@ public class Variable {
 				if (Flags.isStatic(field.getFlags())) continue;
 				String fieldName = field.getDeclaringType().getElementName() + "." + field.getElementName(); // 完全限定クラス名
 				String fullyQualifiedFieldName = field.getDeclaringType().getFullyQualifiedName() + "." + field.getElementName(); // 完全限定クラス名
-
+				
 				// そのフィールドについての最新の更新情報を取得(FieldUpdate)
 				TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
 //				FieldUpdate fieldUpdate = trace.getRecentlyFieldUpdate(thisObjData.getId(), fieldName, tp);
@@ -327,24 +329,45 @@ public class Variable {
 	}
 
 	private void getArrayState() {
-		TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
-		for (int i = 0;; i++){
-			// その配列要素についての最新の更新情報を取得(ArrayUpdate)
-			ArrayUpdate arrayUpdate = trace.getRecentlyArrayUpdate(valueId, i, before);
-			if (arrayUpdate == null) {
-				// 配列のサイズが取得できないため、インデックスがサイズ超過のときに確実に抜けられる方法として仮処理
-				// ただし、配列要素の途中に未定義があった場合でも、抜けてしまうのが問題点
-				break;
+		for (int i = 0; i < 10; i++) {
+			String index = String.valueOf(i);
+			String nextContainerId = (variableType.isContainerSide()) ? containerId : valueId;
+			String nextClassName = (variableType.isContainerSide()) ? containerClassName : valueClassName;
+			TracePoint updateTracePoint = VariableUpdatePointFinder.getInstance().getPoint(nextContainerId, index, before);
+
+			String arrayIndexName = "[" + i + "]";
+			String fullyArrayIndexName = variableName + arrayIndexName;
+			String nextValueId = NULL_VALUE;
+			String nextValueClassName = "---";
+			if (updateTracePoint != null) {
+				ArrayUpdate arrayUpdate = (ArrayUpdate)updateTracePoint.getStatement();
+				nextValueId = arrayUpdate.getValueObjectId();
+				nextValueClassName = arrayUpdate.getValueClassName();
 			}
-			String arrayIndexName = variableName + "[" + i + "]";
-			
-			// 配列要素のIDとTypeを取得(String)
-			String valueObjId = arrayUpdate.getValueObjectId();
-			String valueType = arrayUpdate.getValueClassName();
-			Variable arrayIndexData = new Variable(arrayIndexName, valueClassName, valueId, valueType, valueObjId, before, isReturned);
+			Variable arrayIndexData = new Variable(arrayIndexName, fullyArrayIndexName, nextClassName, nextContainerId, nextValueClassName, nextValueId, updateTracePoint, before, isReturned, VariableType.USE_VALUE);
 			this.addChild(arrayIndexData);
 		}
 	}
+	
+//	private void getArrayState() {
+//		TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
+//		for (int i = 0;; i++){
+//			// その配列要素についての最新の更新情報を取得(ArrayUpdate)
+//			ArrayUpdate arrayUpdate = trace.getRecentlyArrayUpdate(valueId, i, before);
+//			if (arrayUpdate == null) {
+//				// 配列のサイズが取得できないため、インデックスがサイズ超過のときに確実に抜けられる方法として仮処理
+//				// ただし、配列要素の途中に未定義があった場合でも、抜けてしまうのが問題点
+//				break;
+//			}
+//			String arrayIndexName = variableName + "[" + i + "]";
+//			
+//			// 配列要素のIDとTypeを取得(String)
+//			String valueObjId = arrayUpdate.getValueObjectId();
+//			String valueType = arrayUpdate.getValueClassName();
+//			Variable arrayIndexData = new Variable(arrayIndexName, valueClassName, valueId, valueType, valueObjId, before, isReturned);
+//			this.addChild(arrayIndexData);
+//		}
+//	}
 	
 	public void addAdditionalAttribute(String key, Object value) {
 		additionalAttributes.put(key, value);
