@@ -1,15 +1,11 @@
 package org.ntlab.traceDebugger;
 
-import org.eclipse.jface.resource.ImageRegistry;
 import org.eclipse.jface.viewers.ITableColorProvider;
 import org.eclipse.jface.viewers.ITableLabelProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.jface.viewers.TreeNode;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 import org.ntlab.traceDebugger.Variable.VariableType;
 import org.ntlab.traceDebugger.analyzerProvider.DeltaMarkerManager;
 
@@ -66,6 +62,7 @@ public class VariableLabelProvider extends LabelProvider implements ITableLabelP
 						id = variableData.getValueId();
 					}
 					simpleName = simpleName.substring(simpleName.lastIndexOf(".") + 1);
+					simpleName = simpleName.replace(";", "[]"); // îzóÒÇÃç€ÇÃï\é¶
 					if (simpleName.equals(Variable.NULL_VALUE)) {
 						return simpleName;
 					} else {

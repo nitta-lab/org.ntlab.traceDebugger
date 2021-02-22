@@ -10,6 +10,7 @@ import java.util.Set;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
+import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldAccess;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
@@ -227,6 +228,18 @@ public class Variables {
 				specialVariablesOfUseSide.add(value);
 				parentNodeNameOfUseSide = TraceDebuggerPlugin.isJapanese() ? "フィールド参照後:" : "after field get of:";
 				parentNodeNameOfUseSide += fa.getFieldName();
+			} else if (fromStatement instanceof ArrayAccess) {
+				ArrayAccess aa = (ArrayAccess)fromStatement;
+				String arrayClassName = aa.getArrayClassName();
+				String arrayObjId = aa.getArrayObjectId();
+				String valueClassName = aa.getValueClassName();
+				String valueObjId = aa.getValueObjectId();
+				Variable array = new Variable(Variable.CONTAINER_VARIABLE_NAME, arrayClassName, arrayObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_CONTAINER);
+				Variable value = new Variable(Variable.VALUE_VARIABLE_NAME, arrayClassName, arrayObjId, valueClassName, valueObjId, from, isReturned, VariableType.USE_VALUE);
+				specialVariablesOfUseSide.add(array);
+				specialVariablesOfUseSide.add(value);
+				parentNodeNameOfUseSide = TraceDebuggerPlugin.isJapanese() ? "配列要素参照後:" : "after array get of:";
+				parentNodeNameOfUseSide += aa.getArrayClassName().replace(";", "") + "[" + aa.getIndex() + "]";
 			} else if (fromStatement instanceof MethodInvocation) {
 				MethodInvocation mi = (MethodInvocation)fromStatement;
 				MethodExecution calledME = mi.getCalledMethodExecution();
@@ -266,6 +279,18 @@ public class Variables {
 				specialVariablesDefSide.add(value);
 				parentNodeNameOfDefSide = TraceDebuggerPlugin.isJapanese() ? "フィールド代入前:" : "before field set of:";
 				parentNodeNameOfDefSide += fu.getFieldName();
+			} else if (toStatement instanceof ArrayUpdate) {
+				ArrayUpdate au = (ArrayUpdate)toStatement;
+				String arrayClassName = au.getArrayClassName();
+				String arrayObjId = au.getArrayObjectId();
+				String valueClassName = au.getValueClassName();
+				String valueObjId = au.getValueObjectId();
+				Variable array = new Variable(Variable.CONTAINER_VARIABLE_NAME, arrayClassName, arrayObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_CONTAINER);
+				Variable value = new Variable(Variable.VALUE_VARIABLE_NAME, arrayClassName, arrayObjId, valueClassName, valueObjId, to, isReturned, VariableType.DEF_VALUE);
+				specialVariablesDefSide.add(array);
+				specialVariablesDefSide.add(value);
+				parentNodeNameOfDefSide = TraceDebuggerPlugin.isJapanese() ? "配列要素代入前:" : "before array set of:";
+				parentNodeNameOfDefSide += au.getArrayClassName().replace(";", "") + "[" + au.getIndex() + "]";
 			} else if (toStatement instanceof MethodInvocation) {
 				MethodInvocation mi = (MethodInvocation)toStatement;
 				MethodExecution calledME = mi.getCalledMethodExecution();

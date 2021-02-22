@@ -33,6 +33,8 @@ public class VariableViewRelatedDelta extends VariableView {
 	private IAction deltaActionForContainerToComponent;
 	private IAction deltaActionForThisToAnother;
 	public static final String ID = "org.ntlab.traceDebugger.variableViewRelatedDelta";
+	
+	public static long startTime = 0L;
 
 	public VariableViewRelatedDelta() {
 		// TODO Auto-generated constructor stub
@@ -75,7 +77,8 @@ public class VariableViewRelatedDelta extends VariableView {
 
 		deltaActionForContainerToComponent = new Action() {
 			@Override
-			public void run() {				
+			public void run() {
+//				startTime = System.nanoTime();
 				DeltaMarkerView newDeltaMarkerView = (DeltaMarkerView)TraceDebuggerPlugin.createNewView(DeltaMarkerView.ID, IWorkbenchPage.VIEW_ACTIVATE);
 				newDeltaMarkerView.extractDeltaForContainerToComponent(selectedVariable);
 			}
@@ -84,6 +87,7 @@ public class VariableViewRelatedDelta extends VariableView {
 		deltaActionForThisToAnother = new Action() {
 			@Override
 			public void run() {
+//				startTime = System.nanoTime();
 				TracePoint before = selectedVariable.getBeforeTracePoint();
 				String thisId = before.getMethodExecution().getThisObjId();
 				String thisClassName = before.getMethodExecution().getThisClassName();
@@ -107,6 +111,10 @@ public class VariableViewRelatedDelta extends VariableView {
 		if (variableType.equals(VariableType.USE_VALUE)) {
 			String containerId = selectedVariable.getContainerId();
 			String fieldName = selectedVariable.getFullyQualifiedVariableName();
+			if (fieldName.contains("[")) {
+				// 配列要素の場合は最後のインデックスの部分だけを利用する
+				fieldName = fieldName.substring(fieldName.lastIndexOf("[") + 1, fieldName.lastIndexOf("]"));
+			}
 			return VariableUpdatePointFinder.getInstance().getPoint(containerId, fieldName, before);
 		} else if (variableType.equals(VariableType.USE_RETURN)) {
 			return findJumpPointWithReturnValue(variable, before);

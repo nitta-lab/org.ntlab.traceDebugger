@@ -4,6 +4,7 @@ import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.IToolBarManager;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
@@ -196,6 +197,10 @@ public class DeltaMarkerView extends ViewPart {
 		viewer.setInput(deltaMarkerManager.getMarkerTreeNodes());
 		viewer.expandAll();
 		viewer.refresh();
+//		long endTime = System.nanoTime();
+//		long startTime = VariableViewRelatedDelta.startTime;
+//		MessageDialog.openInformation(null, "デルタ抽出時間計測", "Time: " + (endTime - startTime));
+		VariableViewRelatedDelta.startTime = 0L;
 		TracePoint coordinatorPoint = getCoordinatorPoint();
 		TracePoint creationPoint = getCreationPoint();
 		MethodExecution coordinatorME = coordinatorPoint.getMethodExecution();

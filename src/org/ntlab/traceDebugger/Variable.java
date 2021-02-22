@@ -14,7 +14,6 @@ import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaModelException;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.ArrayUpdate;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.FieldUpdate;
-import org.ntlab.traceAnalysisPlatform.tracer.trace.TraceJSON;
 import org.ntlab.traceAnalysisPlatform.tracer.trace.TracePoint;
 import org.ntlab.traceDebugger.analyzerProvider.VariableUpdatePointFinder;
 
@@ -152,36 +151,6 @@ public class Variable {
 		return variableName + ": " + valueClassName + "(" + "id = " + valueId + ")";
 	}
 	
-//	/**
-//	 * そのフィールドが参照型オブジェクトか配列かを判定して判定結果を返す.<br>
-//	 * (変数ビューに表示させるデータを再帰的に求めるために, 呼び出し元で次にどのメソッドを呼ぶかを判断するのに利用)
-//	 * 
-//	 * @param objData
-//	 * @return FIELD: 参照型オブジェクトの場合, ARRAY: 配列の場合, NONE: それ以外の場合
-//	 */
-//	private DeepHierarchy checkDeepHierarchy() {
-//		// note: フィールドのIDやTypeがない場合や、Type(=ActualType)が"---"の場合は何もしない
-//		if (this.getValueId() == null || this.getValueId().isEmpty() 
-//				|| this.getValueClassName() == null || this.getValueClassName().isEmpty()) {
-//			return DeepHierarchy.NONE;
-//		}
-//		final String NULL_ACTUAL_TYPE = "---"; // フィールドに対して明示的にnullを入れた場合のActualTypeの取得文字列
-//		if (this.getValueClassName().equals(NULL_ACTUAL_TYPE)) return DeepHierarchy.NONE;
-//
-//		final String ARRAY_SIGNATURE_HEAD = "["; // 配列のシグネチャの先頭は、配列の次元数だけ [ が連なる
-//		if (this.getValueClassName().startsWith(ARRAY_SIGNATURE_HEAD)) {
-//			// note: フィールドのTypeが配列型(　[ で始まる　)場合 (その配列が持つ各要素についてさらなるデータ取得処理を呼び出す)
-//			return DeepHierarchy.ARRAY;
-//		} else {
-//			String[] primitives = {"byte", "short", "int", "long", "float", "double", "char", "boolean"};
-//			if (!Arrays.asList(primitives).contains(this.getValueClassName())) {
-//				// note: フィールドのTypeが参照型(=オブジェクト)の場合 (そのオブジェクトが持っているフィールドについてさらなるデータ取得処理を呼び出す)
-//				return DeepHierarchy.FIELD;
-//			}
-//		}
-//		return DeepHierarchy.NONE;
-//	}
-	
 	/**
 	 * そのフィールドが参照型オブジェクトか配列かを判定して判定結果を返す.<br>
 	 * (変数ビューに表示させるデータを再帰的に求めるために, 呼び出し元で次にどのメソッドを呼ぶかを判断するのに利用)
@@ -198,10 +167,10 @@ public class Variable {
 		}		
 		
 		final String NULL_ACTUAL_TYPE = "---"; // フィールドに対して明示的にnullを入れた場合のActualTypeの取得文字列
-		if (this.getValueClassName().equals(NULL_ACTUAL_TYPE)) return DeepHierarchy.NONE;
+		if (className.equals(NULL_ACTUAL_TYPE)) return DeepHierarchy.NONE;
 
 		final String ARRAY_SIGNATURE_HEAD = "["; // 配列のシグネチャの先頭は、配列の次元数だけ [ が連なる
-		if (this.getValueClassName().startsWith(ARRAY_SIGNATURE_HEAD)) {
+		if (className.startsWith(ARRAY_SIGNATURE_HEAD)) {
 			// note: フィールドのTypeが配列型(　[ で始まる　)場合 (その配列が持つ各要素についてさらなるデータ取得処理を呼び出す)
 			return DeepHierarchy.ARRAY;
 		} else {
@@ -295,30 +264,21 @@ public class Variable {
 				if (Flags.isStatic(field.getFlags())) continue;
 				String fieldName = field.getDeclaringType().getElementName() + "." + field.getElementName(); // 完全限定クラス名
 				String fullyQualifiedFieldName = field.getDeclaringType().getFullyQualifiedName() + "." + field.getElementName(); // 完全限定クラス名
-
-				// そのフィールドについての最新の更新情報を取得(FieldUpdate)
-				TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
-//				FieldUpdate fieldUpdate = trace.getRecentlyFieldUpdate(thisObjData.getId(), fieldName, tp);
-//				FieldUpdate fieldUpdate = trace.getFieldUpdate(id, fullyQualifiedFieldName, before, isReturned);
 				
-//				TracePoint updateTracePoint = trace.getFieldUpdateTracePoint(valueId, fullyQualifiedFieldName, before, isReturned);
+				// そのフィールドについての最新の更新情報を取得(FieldUpdate)
 				String nextContainerId = (variableType.isContainerSide()) ? containerId : valueId;
 				String nextClassName = (variableType.isContainerSide()) ? containerClassName : valueClassName;
-//				TracePoint updateTracePoint = VariableUpdatePointFinder.getInstance().getPoint(valueId, fullyQualifiedFieldName, before);
 				TracePoint updateTracePoint = VariableUpdatePointFinder.getInstance().getPoint(nextContainerId, fullyQualifiedFieldName, before);
-				
-//				if (updateTracePoint == null) continue;
 				if (updateTracePoint != null) {
 					FieldUpdate fieldUpdate = (FieldUpdate)updateTracePoint.getStatement();
 					// フィールドのIDとTypeを取得(String)
 					String nextValueId = (fieldUpdate != null) ? fieldUpdate.getValueObjId() : "---";
 					String nextValueClassName  = (fieldUpdate != null) ? fieldUpdate.getValueClassName() : NULL_VALUE;
-//					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, fieldType, fieldObjId, updateTracePoint, before, isReturned, VariableType.USE_VALUE);
 					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, nextClassName, nextContainerId, nextValueClassName, nextValueId, updateTracePoint, before, isReturned, VariableType.USE_VALUE);
 					this.addChild(fieldData);
 				} else {
 					Variable fieldData = new Variable(fieldName, fullyQualifiedFieldName, valueClassName, valueId, NULL_VALUE, "---", updateTracePoint, before, isReturned, VariableType.USE_VALUE);
-					this.addChild(fieldData);					
+					this.addChild(fieldData);
 				}
 			}
 		} catch (JavaModelException e) {
@@ -327,21 +287,22 @@ public class Variable {
 	}
 
 	private void getArrayState() {
-		TraceJSON trace = (TraceJSON)TraceDebuggerPlugin.getAnalyzer().getTrace();
-		for (int i = 0;; i++){
-			// その配列要素についての最新の更新情報を取得(ArrayUpdate)
-			ArrayUpdate arrayUpdate = trace.getRecentlyArrayUpdate(valueId, i, before);
-			if (arrayUpdate == null) {
-				// 配列のサイズが取得できないため、インデックスがサイズ超過のときに確実に抜けられる方法として仮処理
-				// ただし、配列要素の途中に未定義があった場合でも、抜けてしまうのが問題点
-				break;
+		for (int i = 0; i < 10; i++) {
+			String index = String.valueOf(i);
+			String nextContainerId = (variableType.isContainerSide()) ? containerId : valueId;
+			String nextClassName = (variableType.isContainerSide()) ? containerClassName : valueClassName;
+			TracePoint updateTracePoint = VariableUpdatePointFinder.getInstance().getPoint(nextContainerId, index, before);
+
+			String arrayIndexName = "[" + i + "]";
+			String fullyArrayIndexName = variableName + arrayIndexName;
+			String nextValueId = NULL_VALUE;
+			String nextValueClassName = "---";
+			if (updateTracePoint != null) {
+				ArrayUpdate arrayUpdate = (ArrayUpdate)updateTracePoint.getStatement();
+				nextValueId = arrayUpdate.getValueObjectId();
+				nextValueClassName = arrayUpdate.getValueClassName();
 			}
-			String arrayIndexName = variableName + "[" + i + "]";
-			
-			// 配列要素のIDとTypeを取得(String)
-			String valueObjId = arrayUpdate.getValueObjectId();
-			String valueType = arrayUpdate.getValueClassName();
-			Variable arrayIndexData = new Variable(arrayIndexName, valueClassName, valueId, valueType, valueObjId, before, isReturned);
+			Variable arrayIndexData = new Variable(arrayIndexName, fullyArrayIndexName, nextClassName, nextContainerId, nextValueClassName, nextValueId, updateTracePoint, before, isReturned, VariableType.USE_VALUE);
 			this.addChild(arrayIndexData);
 		}
 	}
