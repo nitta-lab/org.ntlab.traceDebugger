@@ -90,7 +90,6 @@ public class VariableUpdatePointFinder {
 	private void registerArrayUpdatePoint(TracePoint tp, ArrayUpdate au) {
 		String objectId = au.getArrayObjectId();
 		String index = String.valueOf(au.getIndex());
-//		String arrayIndexName = au.getArrayClassName().replace(";", "") + "[" + index + "]";
 		register(updatePoints, objectId, index, tp);
 	}
 	
